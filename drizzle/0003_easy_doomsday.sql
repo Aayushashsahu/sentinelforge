@@ -1,0 +1,1 @@
+ALTER TABLE `trueforge_sessions` DROP INDEX `trueforge_sessions_missionId_unique`;
