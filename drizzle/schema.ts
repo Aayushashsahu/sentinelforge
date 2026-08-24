@@ -1,28 +1,14 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
-export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
-  id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-
-// TODO: Add your tables here
+export const users = mysqlTable("users", { id: int("id").autoincrement().primaryKey(), openId: varchar("openId", { length: 64 }).notNull().unique(), name: text("name"), email: varchar("email", { length: 320 }), loginMethod: varchar("loginMethod", { length: 64 }), role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(), createdAt: timestamp("createdAt").defaultNow().notNull(), updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(), lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull() });
+export type User = typeof users.$inferSelect; export type InsertUser = typeof users.$inferInsert;
+export const missionStatusEnum = ["CREATED", "INVESTIGATING", "PLANNING_FIX", "VERIFYING", "WAITING_APPROVAL", "EXECUTING", "COMPLETED", "FAILED", "REJECTED"] as const;
+export const riskEnum = ["LOW", "MEDIUM", "HIGH"] as const;
+export const missions = mysqlTable("missions", { id: varchar("id", { length: 32 }).primaryKey(), title: varchar("title", { length: 255 }).notNull(), repository: varchar("repository", { length: 255 }).notNull(), incident: text("incident").notNull(), status: mysqlEnum("status", missionStatusEnum).notNull(), risk: mysqlEnum("risk", riskEnum).notNull(), rootCause: text("rootCause"), repairSummary: text("repairSummary"), patch: text("patch"), createdAt: bigint("createdAt", { mode: "number" }).notNull(), updatedAt: bigint("updatedAt", { mode: "number" }).notNull() });
+export const missionEvents = mysqlTable("mission_events", { id: varchar("id", { length: 32 }).primaryKey(), missionId: varchar("missionId", { length: 32 }).notNull(), sequence: int("sequence").notNull(), eventType: varchar("eventType", { length: 64 }).notNull(), actor: varchar("actor", { length: 128 }).notNull(), tool: varchar("tool", { length: 128 }), result: text("result").notNull(), evidenceRefs: text("evidenceRefs").notNull(), createdAt: bigint("createdAt", { mode: "number" }).notNull() });
+export const evidence = mysqlTable("evidence", { id: varchar("id", { length: 32 }).primaryKey(), missionId: varchar("missionId", { length: 32 }).notNull(), kind: varchar("kind", { length: 32 }).notNull(), title: varchar("title", { length: 255 }).notNull(), content: text("content").notNull(), source: varchar("source", { length: 255 }).notNull(), createdAt: bigint("createdAt", { mode: "number" }).notNull() });
+export const sandboxRuns = mysqlTable("sandbox_runs", { id: varchar("id", { length: 32 }).primaryKey(), missionId: varchar("missionId", { length: 32 }).notNull(), status: mysqlEnum("status", ["PASS", "FAIL", "UNKNOWN", "TIMEOUT"]).notNull(), runner: varchar("runner", { length: 128 }).notNull(), command: varchar("command", { length: 255 }).notNull(), stdout: text("stdout").notNull(), stderr: text("stderr").notNull(), exitCode: int("exitCode").notNull(), durationMs: int("durationMs").notNull(), timedOut: int("timedOut").notNull(), createdAt: bigint("createdAt", { mode: "number" }).notNull() });
+export const approvalRequests = mysqlTable("approval_requests", { id: varchar("id", { length: 32 }).primaryKey(), missionId: varchar("missionId", { length: 32 }).notNull(), actionType: varchar("actionType", { length: 128 }).notNull(), status: mysqlEnum("status", ["PENDING", "APPROVED", "REJECTED", "EXPIRED"]).notNull(), risk: mysqlEnum("risk", riskEnum).notNull(), justification: text("justification").notNull(), decidedAt: bigint("decidedAt", { mode: "number" }), decidedBy: varchar("decidedBy", { length: 128 }), createdAt: bigint("createdAt", { mode: "number" }).notNull(), expiresAt: bigint("expiresAt", { mode: "number" }).notNull() });
+export const externalActions = mysqlTable("external_actions", { id: varchar("id", { length: 32 }).primaryKey(), missionId: varchar("missionId", { length: 32 }).notNull(), actionType: varchar("actionType", { length: 128 }).notNull(), status: varchar("status", { length: 32 }).notNull(), target: varchar("target", { length: 255 }).notNull(), idempotencyKey: varchar("idempotencyKey", { length: 128 }).notNull().unique(), result: text("result").notNull(), createdAt: bigint("createdAt", { mode: "number" }).notNull(), executedAt: bigint("executedAt", { mode: "number" }) });
+export type Mission = typeof missions.$inferSelect;
+export type ApprovalRequest = typeof approvalRequests.$inferSelect;

@@ -1,0 +1,5 @@
+{
+  "name": "broken-ci-fixture",
+  "version": "1.0.1",
+  "scripts": { "test": "node test.js" }
+}
