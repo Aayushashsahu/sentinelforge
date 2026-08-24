@@ -15,4 +15,45 @@
 - [x] Remove unnecessary platform runtime, debug collector, metadata, and generated artifacts without changing SentinelForge behavior.
 - [x] Decouple unused platform authentication scaffolding and preserve owner-notification behavior.
 - [x] Run clean provenance scans, type checking, tests, build verification, and document retained references if any.
-- [ ] Save a verified post-cleanup checkpoint and report the provenance-cleanup result.
+- [x] Save a verified post-cleanup checkpoint and report the provenance-cleanup result.
+- [ ] Verify the official TrueForge SDK, sandbox, approval, and GitHub MCP integration contracts against current documentation.
+- [x] Add persistent mission-to-TrueForge-session, turn, thread, and append-only real-agent event correlation without changing deterministic offline mode; live approval-action correlation remains pending.
+- [ ] Implement a typed official TrueForge adapter for session lifecycle, turns, events, approval checkpoints, resume, and termination.
+- [ ] Implement Repair Engineer and Verifier roles when the real read-only investigation supplies a repairable repository artifact; the current target repository is empty.
+- [x] Implement real read-only GitHub MCP evidence capture with secret-safe tool metadata persistence.
+- [ ] Implement TrueForge sandbox verification after the runtime emits a verified sandbox lifecycle event; current harmless probe is recorded as `UNKNOWN`.
+- [ ] Implement real approval pause-resume and one idempotent GitHub pull-request action after verified approval.
+- [ ] Add backend failure handling, typed observation APIs, integration tests, public setup documentation, and offline-mode disclosure.
+- [ ] Verify the real backend path and preserve all deterministic offline tests before saving a final checkpoint.
+- [x] Assess whether the managed SentinelForge environment can host a private co-located TrueForge v0.1.4 runtime with its required dependencies.
+- [x] If supported, provision and configure a private TrueForge runtime with NVIDIA NIM and GitHub MCP connectivity; otherwise document the environment blocker without inventing a URL.
+- [x] Verify SentinelForge-to-TrueForge reachability and report the resulting private integration URL or confirmed limitation.
+- [x] Keep SentinelForge implementation paused while reviewing the published TrueForge core package and official source only.
+- [x] Inventory exact public exports, documented in-process APIs, required initialization, storage, HTTP, and provider dependencies for @truefoundry/trueforge-core@0.1.4.
+- [x] Cross-check the official TrueForge architecture and hackathon rules, assess version and compatibility risks, and deliver an evidence-based embedding verdict without modifying application code.
+- [x] Perform a read-only inventory of current SentinelForge TrueForge endpoint, authentication, streaming, session, MCP, GitHub MCP, approval, and environment configuration.
+- [x] Trace the actual connection sequence and assess whether the existing implementation supports a remote TrueForge instance without code changes.
+- [x] Deliver a source-grounded integration audit with blockers and the minimum recommended next implementation step, without modifying application code or creating network exposure.
+- [ ] Review the remaining backend-sprint brief and record the current branch, working tree, architecture, schema, workflow, and test baseline.
+- [x] Configure secret-backed TrueForge endpoint, empty-token, model, and GitHub MCP settings without exposing or committing credentials.
+- [x] Ensure `TRUEFORGE_TOKEN` is optional and omitted from authorization headers when the standalone TrueForge runtime uses no authentication.
+- [x] Probe the unchanged TrueForge base URL only at GET /healthz and record its exact outcome before any session, MCP, sandbox, or write implementation.
+- [x] Implement and verify a server-side TrueForge health/version probe without creating sessions, calling MCP, using a sandbox, or performing writes.
+- [x] Add persisted TrueForge session, turn, thread, and stream-event correlation while preserving the deterministic fixture path; required-action/tool-call correlation remains pending.
+- [x] Implement and verify the real read-only TrueForge Investigator with Zod-validated structured output and evidence/inference separation; defer Repair Engineer until a repairable artifact exists.
+- [x] Implement bounded TrueForge sandbox verification or record a precise blocked provider boundary while retaining the fixture verifier.
+- [ ] Implement real approval pause/resume correlation and exactly one idempotent GitHub pull-request action after approval.
+- [ ] Add live-path failure handling, tests, runbook documentation, and a final verified checkpoint or blocker report.
+- [x] Record the first verified live-session bootstrap blocker: TrueForge `POST /api/v1/sessions` returned HTTP 422 before a session ID was issued.
+- [x] Align the raw session-create envelope with the tunnel runtime’s verified `agent.spec` contract and document the public v0.1.4 `agent_spec` mismatch.
+- [x] Resolve the configured short model name against the live TrueForge model catalogue before creating a session, without changing or exposing server secrets.
+- [x] Correct live turn-ID correlation, persist only sanitized stream metadata, and require an actual GitHub MCP tool event before accepting Investigator evidence.
+- [x] Implement unit-tested terminal `turn.done` SSE handling and distinguish MCP initialization from an actual GitHub MCP tool call; the live runtime still required reconciliation fallback.
+- [x] Test the bounded Investigator without a forced provider response format, while retaining local Zod validation of its final JSON after real MCP evidence is observed.
+- [x] Reconcile completed remote turn history idempotently when a TrueForge SSE connection remains open after `turn.done`, without starting another turn.
+- [x] Remove server-only TrueForge base URLs from all mission bundle responses while retaining them only in private correlation storage.
+- [x] Probe the live TrueForge sandbox provider with a harmless bounded command and record a real pass, unavailable error, or timeout without touching a repository.
+- [x] Remove the incorrect one-session-per-mission constraint so independent bounded TrueForge investigation, sandbox, and approval sessions can be correlated safely.
+- [x] Redact runtime URLs and SQL parameter values from persisted live-provider failures, including the first sandbox-probe persistence error.
+- [ ] Implement and verify live required-action/tool-call correlation persistence for approval-capable turns.
+- [ ] Fix and live-verify TrueForge SSE termination so `missions.investigate` returns promptly after a real `turn.done` without reconciliation fallback.

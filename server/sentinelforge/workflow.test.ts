@@ -19,6 +19,7 @@ describe("approval policy", () => {
 describe("mission transition guard", () => {
   it("accepts only the bounded workflow path", () => {
     expect(isAllowedMissionTransition("CREATED", "INVESTIGATING")).toBe(true);
+    expect(isAllowedMissionTransition("CREATED", "FAILED")).toBe(true);
     expect(isAllowedMissionTransition("WAITING_APPROVAL", "EXECUTING")).toBe(true);
     expect(isAllowedMissionTransition("WAITING_APPROVAL", "REJECTED")).toBe(true);
   });

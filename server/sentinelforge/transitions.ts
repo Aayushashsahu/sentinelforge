@@ -1,7 +1,7 @@
 import type { MissionStatus } from "../../shared/sentinelforge";
 
 const allowedTransitions: Record<MissionStatus, MissionStatus[]> = {
-  CREATED: ["INVESTIGATING"],
+  CREATED: ["INVESTIGATING", "FAILED"],
   INVESTIGATING: ["PLANNING_FIX", "FAILED"],
   PLANNING_FIX: ["VERIFYING", "FAILED"],
   VERIFYING: ["WAITING_APPROVAL", "FAILED"],
