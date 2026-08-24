@@ -1,17 +1,10 @@
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { launchDeterministicFixtureMission, resolveApproval } from "./sentinelforge/workflow";
+import { publicProcedure, router } from "./_core/trpc";
 import { getMissionBundle, listMissionBundles } from "./sentinelforge/repository";
+import { launchDeterministicFixtureMission, resolveApproval } from "./sentinelforge/workflow";
 
 export const appRouter = router({
-  system: systemRouter,
-  auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => { const cookieOptions = getSessionCookieOptions(ctx.req); ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 }); return { success: true } as const; }),
-  }),
+  health: publicProcedure.query(() => ({ ok: true, service: "sentinelforge" })),
   missions: router({
     list: publicProcedure.query(async () => (await listMissionBundles()).filter(Boolean)),
     get: publicProcedure.input(z.object({ id: z.string().min(4).max(32) })).query(async ({ input }) => getMissionBundle(input.id)),

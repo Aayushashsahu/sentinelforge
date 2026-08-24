@@ -10,4 +10,9 @@
 - [x] Add TrueForge/MCP readiness panel and typed integration boundary without claiming live tool access.
 - [x] Add Qodo-ready documentation, deterministic demo instructions, and safety disclosure.
 - [x] Write and run tests for approval, decline, verification failure, and audit immutability paths.
-- [ ] Verify visual presentation, complete the checklist, and save a final project checkpoint.
+- [x] Verify visual presentation, complete the checklist, and save a final project checkpoint.
+- [x] Inventory and classify all remaining platform-specific repository references.
+- [x] Remove unnecessary platform runtime, debug collector, metadata, and generated artifacts without changing SentinelForge behavior.
+- [x] Decouple unused platform authentication scaffolding and preserve owner-notification behavior.
+- [x] Run clean provenance scans, type checking, tests, build verification, and document retained references if any.
+- [ ] Save a verified post-cleanup checkpoint and report the provenance-cleanup result.

@@ -1,7 +1,4 @@
-import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
-
-export const users = mysqlTable("users", { id: int("id").autoincrement().primaryKey(), openId: varchar("openId", { length: 64 }).notNull().unique(), name: text("name"), email: varchar("email", { length: 320 }), loginMethod: varchar("loginMethod", { length: 64 }), role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(), createdAt: timestamp("createdAt").defaultNow().notNull(), updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(), lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull() });
-export type User = typeof users.$inferSelect; export type InsertUser = typeof users.$inferInsert;
+import { bigint, int, mysqlEnum, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 export const missionStatusEnum = ["CREATED", "INVESTIGATING", "PLANNING_FIX", "VERIFYING", "WAITING_APPROVAL", "EXECUTING", "COMPLETED", "FAILED", "REJECTED"] as const;
 export const riskEnum = ["LOW", "MEDIUM", "HIGH"] as const;
 export const missions = mysqlTable("missions", { id: varchar("id", { length: 32 }).primaryKey(), title: varchar("title", { length: 255 }).notNull(), repository: varchar("repository", { length: 255 }).notNull(), incident: text("incident").notNull(), status: mysqlEnum("status", missionStatusEnum).notNull(), risk: mysqlEnum("risk", riskEnum).notNull(), rootCause: text("rootCause"), repairSummary: text("repairSummary"), patch: text("patch"), createdAt: bigint("createdAt", { mode: "number" }).notNull(), updatedAt: bigint("updatedAt", { mode: "number" }).notNull() });
