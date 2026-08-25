@@ -34,7 +34,7 @@ describe.skipIf(!runLiveTest)("explicit live GitHub MCP resource verification", 
     const model = await client.resolveModelName(config.model);
     const session = await client.createInlineSession(buildReadOnlyInvestigatorSpec({ model, githubMcpName: config.githubMcpName }));
     const events = await readOneBoundedTurn(client, session.id, [
-      "Use search_repositories for exactly Aayushashsahu/sentinelforge, then call get_file_contents exactly once with owner Aayushashsahu, repo sentinelforge, path README.md, and ref main.",
+      "Call get_file_contents exactly once with owner Aayushashsahu, repo sentinelforge, path README.md, and ref main.",
       "Consume content[].resource.text when present. Return the required Investigator JSON only. Answer: What does the SentinelForge README state about the current external action implementation?",
       "Your evidence must identify README.md and quote a non-empty verbatim README body excerpt that answers that question. A SHA, URI, filename, acknowledgement, or metadata is not evidence.",
       "Do not use shell, curl, git, sandbox, a custom GitHub client, a GitHub write, an approval action, any other file, or any other repository.",
