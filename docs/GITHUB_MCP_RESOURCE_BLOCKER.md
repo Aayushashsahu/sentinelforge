@@ -29,6 +29,21 @@ The single newly authorized live verification used only the configured `github` 
 
 No sandbox capability, custom GitHub client, direct GitHub REST call, curl request, Git CLI call, approval continuation, branch, commit, pull request, or other GitHub write was made.
 
+## 2026-08-25 Patched-Runtime Verification Attempt
+
+The runtime owner subsequently reported that the local `@truefoundry/trueforge@0.1.4` source had been patched, rebuilt, and restarted. SentinelForge made **exactly one** newly authorized read-only verification attempt with the constrained Investigator policy: `search_repositories`, then one `get_file_contents` request for `Aayushashsahu/sentinelforge` `README.md` at `main`. Before a session could be created, the initial read-only `GET /api/v1/models` request failed with Cloudflare Tunnel **HTTP 530 / Error 1033**: Cloudflare could not reach the tunnel origin.
+
+| Check | Observed result |
+| --- | --- |
+| Runtime model catalogue | Not reached — HTTP 530 tunnel error before session creation. |
+| TrueForge session / turn | Not created. |
+| GitHub MCP tool call | Not made. |
+| Raw MCP result blocks | None received. |
+| Normalized resource text | None received. |
+| Actual README body in Investigator context | **Not verified.** |
+
+This is a transport availability failure, not a metadata-only result and not proof that the local patch failed. Because the user authorized one verification only, SentinelForge did not retry. Once the tunnel origin is reachable again, the runtime owner must explicitly authorize a fresh one-attempt verification.
+
 ## Public Limitation and Supported Remediation
 
 There is no SentinelForge configuration or documented TrueForge HTTP API that changes this server-side `executeToolCalls` conversion. SentinelForge must not fabricate a resource block from metadata or bypass the configured MCP connector.

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 const configuredBaseUrl = process.env.TRUEFORGE_BASE_URL?.replace(/\/+$/, "");
+const runLiveConnectionTest = process.env.RUN_TRUEFORGE_CONNECTION_LIVE_TEST === "1";
 
-describe.skipIf(!configuredBaseUrl)("configured TrueForge runtime", () => {
+describe.skipIf(!configuredBaseUrl || !runLiveConnectionTest)("configured TrueForge runtime", () => {
   it("responds to the documented healthz endpoint without an Authorization header in no-auth mode", async () => {
     const response = await fetch(`${configuredBaseUrl}/healthz`, {
       headers: { accept: "application/json" },

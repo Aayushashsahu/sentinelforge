@@ -63,3 +63,7 @@ The configured `github` MCP tool catalogue exposes read-only `get_file_contents`
 ### Local runtime hotfix access blocker
 
 The user subsequently requested a direct patch to the actual local TrueForge v0.1.4 runtime. SentinelForge has access only to the runtime HTTP tunnel and a browser connector, not the WSL/local filesystem or process that owns the running artifact. An offline package reference is present in the Manus workspace but is not proven to be the active server, so it was not modified. The exact source target, patch requirements, and supported host-attachment next step are recorded in [TRUEFORGE_MCP_RESOURCE_BLOCKER.md](./TRUEFORGE_MCP_RESOURCE_BLOCKER.md).
+
+### Patched runtime was unreachable at its single verification attempt
+
+After the runtime owner reported a local patch/restart, SentinelForge made exactly one constrained read-only verification attempt. The read-only model-catalogue preflight failed before any session or MCP call with Cloudflare HTTP 530 / Error 1033, stating that the tunnel could not reach its origin. No resource block or file text was received, and no retry was made. This leaves the patch **unverified**, not disproven; see [GITHUB_MCP_RESOURCE_BLOCKER.md](./GITHUB_MCP_RESOURCE_BLOCKER.md) for the raw/normalized outcome boundary.
