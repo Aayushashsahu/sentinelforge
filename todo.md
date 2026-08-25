@@ -104,3 +104,7 @@
 - [x] Attempt isolated standalone/no-auth startup only on `127.0.0.1:8790` and test the required endpoint contract; the tag bound privately but returns 404 for `/healthz` and `/api/v1/models`, so it was stopped and not adopted.
 - [ ] Perform one private read-only GitHub MCP README verification only after isolated local health/model checks pass; do not use sandbox, approvals, or GitHub writes.
 - [x] Create `docs/TRUEFORGE_COLOCATION_BLOCKER.md` with the exact source/API and credential limitations; no automatic tunnel fallback was created.
+- [x] Perform the newly requested one-time read-only reachability check for the configured TrueForge routes without creating an MCP turn; DNS resolution failed for the stale Quick Tunnel hostname before `/healthz` reached TrueForge, so `/api/v1/models` was not requested.
+- [x] Set the server-only TrueForge base URL to the corrected active Quick Tunnel supplied by the user and validate the configuration without exposing it to the browser.
+- [x] Perform exactly one authorized read-only model-catalogue preflight and one GitHub MCP `get_file_contents` README investigation against the corrected endpoint; GitHub MCP activity occurred but no actual resource-derived README body reached the Investigator, so success was not declared.
+- [x] Read the completed authorized session history without creating a new turn; the `{ data, pagination }` envelope and recursive raw scan contained zero MCP `resource` blocks.

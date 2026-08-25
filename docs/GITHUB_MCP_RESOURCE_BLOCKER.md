@@ -48,6 +48,26 @@ This is a transport availability failure, not a metadata-only result and not pro
 
 The runtime owner later confirmed that `/healthz` was healthy and explicitly authorized one fresh model-catalogue preflight plus one README MCP read. SentinelForge performed that one attempt at 2026-08-25T07:57:32Z. The required `GET /api/v1/models` again failed with Cloudflare **HTTP 530 / Error 1033** before session creation (Ray ID `a3090be53c288e29`). Therefore the authorized `get_file_contents` call was not made, no raw or normalized MCP content exists, and actual README text still did not reach the Investigator. No retry was made.
 
+### Subsequent route-only reachability check
+
+On a later user request to “try now,” SentinelForge made one route-only `GET /healthz` check without creating a session or turn. DNS resolution failed for the configured Quick Tunnel hostname (`curl` error 6, HTTP status `000`) before the request reached TrueForge. The model-catalogue route was therefore not requested. This confirms the configured external tunnel is stale or unavailable from this environment; it supplies no evidence about the local patched runtime or MCP resource handling.
+
+### Corrected-endpoint patched-runtime verification
+
+The runtime owner then supplied a corrected active Quick Tunnel. SentinelForge stored it only in the server-side `TRUEFORGE_BASE_URL` secret and validated one no-auth `/healthz` request successfully. Under the owner's single-session authorization, SentinelForge resolved the configured model catalogue, created session `01m0w1wngneqzp1g7ta5r1wr2j`, and issued one constrained Investigator turn whose prompt allowed only the GitHub MCP `get_file_contents` read for `Aayushashsahu/sentinelforge` `README.md` at `main`.
+
+| Observation | Verified result |
+| --- | --- |
+| Model-catalogue preflight | Completed before session creation. |
+| GitHub MCP tool activity | Observed by the event classifier. |
+| Agent-visible `resource` / `embeddedResource` block count | `0` |
+| Investigator `README.md` evidence length | `0` |
+| Investigator evidence sources | Empty |
+| Structured finding | Unparseable; no body-backed result was accepted. |
+| Completed-history envelope | `{ data, pagination }`; event records had `{ event, turn_id }`, and a recursive raw scan found no resource block. |
+
+The passive history inspection fetched only the already completed session's `/events` history; it created no new session, turn, model call, MCP tool call, sandbox, approval, or GitHub action. The raw and normalized results therefore agree: **the corrected endpoint reaches TrueForge and GitHub MCP activity occurs, but actual `resource.text` still does not reach the Investigator or SentinelForge event boundary.** This is a failed success criterion, not metadata-based success. No second investigation was started.
+
 ## Public Limitation and Supported Remediation
 
 There is no SentinelForge configuration or documented TrueForge HTTP API that changes this server-side `executeToolCalls` conversion. SentinelForge must not fabricate a resource block from metadata or bypass the configured MCP connector.
