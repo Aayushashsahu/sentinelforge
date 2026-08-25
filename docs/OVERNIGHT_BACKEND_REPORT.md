@@ -56,6 +56,8 @@ Mission bundles do not return the stored runtime base URL. Remote correlation st
 | Type check | Passed: `pnpm check` |
 | First-party MCP unit contract | Passed: allowlisted decoded ordinary-text output and token non-disclosure / allowlist rejection coverage. |
 | First-party MCP live contract | Passed: authenticated MCP client received one ordinary text block for fixture `package.json`, `release-manifest.json`, and `test.js`. |
+| First-party MCP status observation | Passed: `tools.status` returned the read-only MCP name, endpoint path, allowlist, and tool surface without a credential value. |
+| Full deterministic suite | Passed: 13 files / 50 tests, with 5 explicit external-live test files skipped. |
 | Explicit live MCP resource verification | The earlier opt-in test observed a real configured GitHub MCP tool call but zero raw resource blocks and no body-backed evidence. Two separately user-authorized patched-runtime attempts then failed before session creation because the stale Cloudflare tunnel returned HTTP 530 / Error 1033 during `GET /api/v1/models`. After the owner supplied a corrected endpoint, one new constrained session successfully reached the model catalogue and GitHub MCP, but its stream and passive completed-history scan still contained zero resource blocks, zero README evidence, and no parseable body-backed result. No sandbox, approval, or GitHub write capability was attached. |
 | Production build | Passed: `pnpm build` |
 | Live health test | Passed: 2 live configuration/health tests |

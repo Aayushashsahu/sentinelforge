@@ -1,8 +1,25 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { ENV } from "../../_core/env";
+import { SENTINELFORGE_ALLOWED_REPOSITORIES } from "./githubRead";
 import { GitHubReadApi } from "./githubRead";
 
 export type McpTextResponse = { content: [{ type: "text"; text: string }]; isError?: true };
+
+export const SENTINELFORGE_TOOLS = ["get_repository", "get_file", "get_issue", "get_workflow_run"] as const;
+
+export function getSentinelForgeToolsStatus() {
+  return {
+    name: "sentinelforge-tools",
+    endpointPath: "/api/mcp/sentinelforge-tools",
+    transport: "STREAMABLE_HTTP" as const,
+    allowedRepositories: [...SENTINELFORGE_ALLOWED_REPOSITORIES],
+    tools: [...SENTINELFORGE_TOOLS],
+    githubReadConfigured: Boolean(ENV.githubReadToken),
+    writeActionsEnabled: false,
+    sandboxEnabled: false,
+  };
+}
 
 function textResponse(text: string): McpTextResponse {
   return { content: [{ type: "text", text }] };

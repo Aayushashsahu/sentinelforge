@@ -14,6 +14,8 @@
 
 The endpoint implements session-aware Streamable HTTP MCP transport. Each MCP client is assigned an isolated MCP session, allowing standard `initialize`, `notifications/initialized`, tool calls, and close semantics.
 
+SentinelForge also exposes the token-safe read-only tRPC observation `tools.status`. It reports the MCP name, endpoint path, transport, allowlisted repository, four tool names, and boolean configuration state; it never returns the GitHub token and never enables a write action.
+
 ## Available Tools
 
 | Tool | Input | Ordinary text output |
