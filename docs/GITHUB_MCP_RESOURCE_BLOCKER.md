@@ -68,6 +68,20 @@ The runtime owner then supplied a corrected active Quick Tunnel. SentinelForge s
 
 The passive history inspection fetched only the already completed session's `/events` history; it created no new session, turn, model call, MCP tool call, sandbox, approval, or GitHub action. The raw and normalized results therefore agree: **the corrected endpoint reaches TrueForge and GitHub MCP activity occurs, but actual `resource.text` still does not reach the Investigator or SentinelForge event boundary.** This is a failed success criterion, not metadata-based success. No second investigation was started.
 
+### Requested `remoteMcpClient.callTool` boundary diagnosis
+
+The requested diagnostic point is an in-process JavaScript boundary inside the remote TrueForge server. In the public source, `remoteMcpClient.ts` defines `RemoteMcpConnection.callTool()` as the direct MCP SDK `client.callTool()` return, while `executeToolCalls.ts` consumes that result during the same server process. SentinelForge is an HTTP client of the runtime; its available contracts are session creation, streamed turn events, and completed-session history. The history endpoint returned only the post-runtime `{ data, pagination }` event envelope. Neither it nor the public API description exposed a route, tracing subscription, or diagnostic event containing the pre-conversion `CallToolResult`.
+
+| Requested item | SentinelForge observability | Reason |
+| --- | --- | --- |
+| `result.content.length` immediately after `remoteMcpClient.callTool()` | **Not observable** | The value is in remote server memory before HTTP/SSE event serialization. |
+| Content block types | **Not observable** | No pre-conversion event or diagnostic route is exposed. |
+| `resource.text` / `resource.blob` presence | **Not observable** | The completed event history contains zero resource blocks after the runtime boundary. |
+| Actual README body at remote-client boundary | **Not observable** | No server-side instrumentation has been exposed to SentinelForge. |
+| Model-visible conversion | **Observed only as absence** | The completed turn had no README evidence or structured result. |
+
+Because the requested raw boundary is not externally exposed, SentinelForge did **not** create another session, turn, or `get_file_contents` call. Adding a diagnostic route or logging hook would require modifying the running TrueForge runtime, which the instruction explicitly forbids. The truthful decision is therefore **B at the SentinelForge boundary**: the exact pre-conversion MCP response shape cannot be recovered from the current remote API, and no further action is safe without a runtime-provided diagnostic interface.
+
 ## Public Limitation and Supported Remediation
 
 There is no SentinelForge configuration or documented TrueForge HTTP API that changes this server-side `executeToolCalls` conversion. SentinelForge must not fabricate a resource block from metadata or bypass the configured MCP connector.

@@ -108,3 +108,5 @@
 - [x] Set the server-only TrueForge base URL to the corrected active Quick Tunnel supplied by the user and validate the configuration without exposing it to the browser.
 - [x] Perform exactly one authorized read-only model-catalogue preflight and one GitHub MCP `get_file_contents` README investigation against the corrected endpoint; GitHub MCP activity occurred but no actual resource-derived README body reached the Investigator, so success was not declared.
 - [x] Read the completed authorized session history without creating a new turn; the `{ data, pagination }` envelope and recursive raw scan contained zero MCP `resource` blocks.
+- [x] Determine whether the remote TrueForge API exposes the raw MCP `CallToolResult` immediately after `remoteMcpClient.callTool` and before `executeToolCalls`; it does not expose that in-process boundary, so neither runtime was modified.
+- [x] Decline to perform another README MCP diagnostic because the requested pre-conversion boundary is not observable through the remote API; report the exact observability limitation without secrets or additional external actions.
