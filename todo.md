@@ -64,3 +64,4 @@
 - [x] Create and maintain `docs/SANDBOX_BLOCKER.md` with provider, image, proxy/index facts, attempts, exact failures, and safe next steps.
 - [ ] Continue independent repair, verifier, approval-persistence, approval-resume, GitHub-idempotency, failure-handling, test, and API contracts after recording the sandbox blocker; real repair and live provider continuations remain prerequisite-blocked.
 - [x] Define and test provider-neutral repair proposal, verifier result, approval-required event, approval continuation, idempotent GitHub-action guard contracts, and a read-only execution-contract API without invoking a remote write; API returned HTTP 200 with guarded/blocked status values.
+- [x] Persist a future real `tool.approval_required` event into the existing approval, turn, mission-status, audit, and owner-notification boundaries without invoking a continuation or GitHub action; live provider event capture and continuation remain pending.
