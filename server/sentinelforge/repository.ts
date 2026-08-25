@@ -15,6 +15,18 @@ export async function appendMissionEvent(input: { missionId: string; eventType: 
   const event = createImmutableAuditEvent({ id: id("evt"), missionId: input.missionId, sequence: nextAuditSequence(latest ? [latest.sequence] : []), eventType: input.eventType, actor: input.actor, tool: input.tool ?? null, correlationId: input.correlationId ?? null, result: input.result, payload: input.payload === undefined ? null : JSON.stringify(input.payload), evidenceRefs: JSON.stringify(input.evidenceRefs ?? []), createdAt: now() });
   await db.insert(missionEvents).values(event); return event;
 }
+export async function appendMissionEvents(inputs: readonly { missionId: string; eventType: string; actor: string; tool?: string; correlationId?: string; result: string; payload?: unknown; evidenceRefs?: string[] }[]) {
+  if (inputs.length === 0) return [];
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const missionId = inputs[0].missionId;
+  if (inputs.some(input => input.missionId !== missionId)) throw new Error("A batch of mission audit events must belong to one mission.");
+  const [latest] = await db.select({ sequence: missionEvents.sequence }).from(missionEvents).where(eq(missionEvents.missionId, missionId)).orderBy(desc(missionEvents.sequence)).limit(1);
+  const startSequence = nextAuditSequence(latest ? [latest.sequence] : []);
+  const createdAt = now();
+  const events = inputs.map((input, index) => createImmutableAuditEvent({ id: id("evt"), missionId, sequence: startSequence + index, eventType: input.eventType, actor: input.actor, tool: input.tool ?? null, correlationId: input.correlationId ?? null, result: input.result, payload: input.payload === undefined ? null : JSON.stringify(input.payload), evidenceRefs: JSON.stringify(input.evidenceRefs ?? []), createdAt }));
+  await db.insert(missionEvents).values(events);
+  return events;
+}
 export async function addEvidence(input: { missionId: string; kind: string; title: string; content: string; source: string }) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const item = { id: id("evd"), ...input, createdAt: now() }; await db.insert(evidence).values(item); return item; }
 export async function createMission(input: { title: string; repository: string; incident: string; risk: Risk; mode?: "LIVE" | "FIXTURE" }) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const createdAt = now(); const mission = { id: id("SF"), title: input.title, repository: input.repository, incident: input.incident, status: "CREATED" as const, risk: input.risk, rootCause: null, repairSummary: null, patch: null, createdAt, updatedAt: createdAt }; await db.insert(missions).values(mission); await appendMissionEvent({ missionId: mission.id, eventType: "MISSION_CREATED", actor: "operator", result: "Mission persisted and ready for deterministic investigation." }); return mission;

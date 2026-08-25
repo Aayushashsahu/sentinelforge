@@ -2,7 +2,7 @@ import type { Risk } from "../../shared/sentinelforge";
 import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./agents/investigator";
 import { buildReadOnlyRepairEngineerSpec, parseRepairEngineerOutcome } from "./agents/repairEngineer";
 import { buildSandboxProbeSpec } from "./agents/sandboxProbe";
-import { addEvidence, addSandboxRun, appendMissionEvent, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, setMissionPlanningArtifacts, setMissionStatus } from "./repository";
+import { addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, setMissionPlanningArtifacts, setMissionStatus } from "./repository";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { readTrueForgeSse, TrueForgeSseAbortedError, type TrueForgeStreamEvent } from "./trueforge/stream";
 
@@ -86,6 +86,17 @@ export function selectSemanticStreamEventsForAudit(events: readonly TrueForgeStr
   return events.filter(event => sanitizeStreamMetadata(event).remoteType !== "model.message.delta");
 }
 
+export function buildStreamAuditInputs(input: { missionId: string; turnId: string; events: readonly TrueForgeStreamEvent[] }) {
+  return selectSemanticStreamEventsForAudit(input.events).map(event => ({
+    missionId: input.missionId,
+    eventType: "TRUEFORGE_STREAM_EVENT",
+    actor: "TrueForge",
+    correlationId: input.turnId,
+    result: `Observed TrueForge stream event: ${event.event}.`,
+    payload: sanitizeStreamMetadata(event),
+  }));
+}
+
 export function containsGithubMcpToolEvent(events: readonly TrueForgeStreamEvent[], githubMcpName: string): boolean {
   return events.some(event => {
     const metadata = sanitizeStreamMetadata(event);
@@ -133,9 +144,7 @@ async function ingestCompletedInvestigation(input: { missionId: string; sessionI
     await recordTrueForgeTurn({ missionId: input.missionId, trueforgeSessionId: input.sessionId, turnId, status: "COMPLETED", ...(threadId ? { threadId } : {}) });
     const semanticEvents = selectSemanticStreamEventsForAudit(input.streamEvents);
     await appendMissionEvent({ missionId: input.missionId, eventType: "TURN_CREATED", actor: "TrueForge", correlationId: turnId, result: "TrueForge Investigator turn completed and its event stream was captured.", payload: { streamEventCount: input.streamEvents.length, persistedSemanticEventCount: semanticEvents.length } });
-    for (const event of semanticEvents) {
-      await appendMissionEvent({ missionId: input.missionId, eventType: "TRUEFORGE_STREAM_EVENT", actor: "TrueForge", correlationId: turnId, result: `Observed TrueForge stream event: ${event.event}.`, payload: sanitizeStreamMetadata(event) });
-    }
+    await appendMissionEvents(buildStreamAuditInputs({ missionId: input.missionId, turnId, events: input.streamEvents }));
   }
   if (!containsGithubMcpToolEvent(input.streamEvents, getTrueForgeRuntimeConfig().githubMcpName)) throw new Error("Investigator stream contained no actual GitHub MCP tool call; refusing to treat model text as evidence-backed.");
   const result = parseInvestigatorResult(input.streamEvents.map(event => event.data));
