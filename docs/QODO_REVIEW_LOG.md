@@ -9,9 +9,9 @@
 | Qodo task connector | **NOT REQUIRED** | Qodo review is supplied by the existing GitHub App rather than a task connector. |
 | Qodo GitHub App installation | **REAL** | The authenticated GitHub settings page lists **Qodo Code Review** as an installed GitHub App. |
 | SentinelForge repository access | **OWNER-CONFIRMED** | The owner confirmed the existing Qodo installation has already been configured for `Aayushashsahu/sentinelforge`. A supplementary read-only GitHub REST probe could not authenticate because the supplied CLI credential returned HTTP 401; no access setting was changed. |
-| Pull-request review capability | **PENDING FIRST SMALL PR** | Qodo’s documented flow begins automated review after a repository-selected pull request is opened. No PR has been created for setup. [1] |
+| Pull-request review capability | **REAL** | Qodo reviewed the open PR 1, posted a finding, and updated its review after a corrective commit. The pull request remains open pending final review reconciliation and a separate merge decision. |
 
-> **QODO: REAL** — Qodo Code Review is installed and repository access is owner-confirmed. The first automated review remains pending a future, separately authorized small pull request. Backend development continues independently.
+> **QODO: REAL** — Qodo Code Review is installed, repository access is owner-confirmed, and PR 1 has an active Qodo review trail. Backend development continues independently.
 
 ## Small Pull-Request Review Plan
 
@@ -19,7 +19,7 @@ After Qodo is installed and a separately authorized GitHub write path is availab
 
 | Planned PR | Scope | Qodo review status | Findings / action |
 | --- | --- | --- | --- |
-| PR 1 | Repository-level Qodo review policy for future first-party MCP work | [Open #1](https://github.com/Aayushashsahu/sentinelforge/pull/1) | Qodo issued finding **QODO-PR1-001**: the original checklist named the completed MCP/fixture milestone while this governance PR changes only review policy and documentation. The finding is accepted; this log and checklist now align the scope, and Qodo reassessment is pending. |
+| PR 1 | Repository-level Qodo review policy for future first-party MCP work | [Open #1](https://github.com/Aayushashsahu/sentinelforge/pull/1) | Qodo review is active. Finding **QODO-PR1-001** was accepted and corrected; the CI pnpm-version conflict was also corrected. A final Qodo update and a separate merge decision remain pending. |
 | PR 2 | Investigator workflow | Not created | Qodo installation is ready; await separate PR authorization. |
 | PR 3 | Repair proposal and verifier contract | Not created | Qodo installation is ready; await separate PR authorization. |
 | PR 4 | Approval persistence and external-action boundary | Not created | Awaiting live approval prerequisites and separate PR authorization. |
