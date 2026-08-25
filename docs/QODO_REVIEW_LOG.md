@@ -19,7 +19,7 @@ After Qodo is installed and a separately authorized GitHub write path is availab
 
 | Planned PR | Scope | Qodo review status | Findings / action |
 | --- | --- | --- | --- |
-| PR 1 | First-party `sentinelforge-tools` MCP review policy and incident-fixture quality boundary | Authorized; branch preparation in progress | Adds only the repository-local Qodo review policy and review-trail documentation; Qodo’s current default review should assess this PR. |
+| PR 1 | Repository-level Qodo review policy for future first-party MCP work | [Open #1](https://github.com/Aayushashsahu/sentinelforge/pull/1) | Qodo issued finding **QODO-PR1-001**: the original checklist named the completed MCP/fixture milestone while this governance PR changes only review policy and documentation. The finding is accepted; this log and checklist now align the scope, and Qodo reassessment is pending. |
 | PR 2 | Investigator workflow | Not created | Qodo installation is ready; await separate PR authorization. |
 | PR 3 | Repair proposal and verifier contract | Not created | Qodo installation is ready; await separate PR authorization. |
 | PR 4 | Approval persistence and external-action boundary | Not created | Awaiting live approval prerequisites and separate PR authorization. |
@@ -28,6 +28,12 @@ After Qodo is installed and a separately authorized GitHub write path is availab
 ## Review Entry Format
 
 For each future pull request, append the PR number and URL, Qodo’s review state, material findings, the implemented fixes, and any justified disagreement. Do not silently dismiss a Qodo finding. No GitHub token or Qodo credential may be copied into this log.
+
+### PR 1 — Qodo Finding Log
+
+| Finding | Disposition | Resolution |
+| --- | --- | --- |
+| QODO-PR1-001 — PR scope mismatch between `todo.md` and this review log | **Accepted** | PR 1 is explicitly a repository-level Qodo policy PR. The completed first-party MCP/fixture implementation predates the review trail and will be represented by a later, independently scoped PR if it receives new diff-based work. The checklist and this log now use the same scope. |
 
 ## References
 
