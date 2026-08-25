@@ -34,7 +34,7 @@
 - [x] Perform a read-only inventory of current SentinelForge TrueForge endpoint, authentication, streaming, session, MCP, GitHub MCP, approval, and environment configuration.
 - [x] Trace the actual connection sequence and assess whether the existing implementation supports a remote TrueForge instance without code changes.
 - [x] Deliver a source-grounded integration audit with blockers and the minimum recommended next implementation step, without modifying application code or creating network exposure.
-- [ ] Review the remaining backend-sprint brief and record the current branch, working tree, architecture, schema, workflow, and test baseline.
+- [x] Review the remaining backend-sprint brief and record the current branch, working tree, architecture, schema, workflow, and test baseline in `docs/BACKEND_SPRINT_BASELINE.md`.
 - [x] Configure secret-backed TrueForge endpoint, empty-token, model, and GitHub MCP settings without exposing or committing credentials.
 - [x] Ensure `TRUEFORGE_TOKEN` is optional and omitted from authorization headers when the standalone TrueForge runtime uses no authentication.
 - [x] Probe the unchanged TrueForge base URL only at GET /healthz and record its exact outcome before any session, MCP, sandbox, or write implementation.
