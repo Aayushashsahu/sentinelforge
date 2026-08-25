@@ -124,10 +124,10 @@
 - [x] Attempt the minimum safe Qodo setup required to review future pull requests; the existing Qodo Code Review GitHub App is installed, and owner-confirmed SentinelForge access has been recorded without delaying backend work.
 - [x] Verify the user-confirmed existing Qodo GitHub App covers `Aayushashsahu/sentinelforge` and supports future pull-request reviews; Qodo reviewed the authorized first small PR and recorded its finding trail.
 - [x] Create and maintain `docs/QODO_REVIEW_LOG.md` with Qodo setup status, small-PR review entries, important findings, fixes, and documented disagreements.
-- [ ] Create PR 1 for the repository-level Qodo review policy that will govern subsequent first-party `sentinelforge-tools` MCP and incident-fixture pull requests, wait for Qodo review, and record the outcome before any merge decision.
-- [ ] Fix and rerun the PR 1 CI failure caused by duplicate pnpm version declarations before considering Qodo review complete.
-- [ ] Resolve Qodo finding QODO-PR1-001: ensure the PR 1 checklist and review log describe the same governance-only scope, then request Qodo reassessment.
-- [ ] Resolve Qodo finding QODO-PR1-002: remove the stale first-review-pending status from the Qodo setup record and request Qodo reassessment.
+- [x] Create PR 1 for the repository-level Qodo review policy that will govern subsequent first-party `sentinelforge-tools` MCP and incident-fixture pull requests, wait for Qodo review, and record the outcome before any merge decision; PR #1 is open and Qodo reviewed the final head.
+- [x] Fix and rerun the PR 1 CI failure caused by duplicate pnpm version declarations before considering Qodo review complete; the package-manager pin is now the single pnpm source and the rerun succeeded.
+- [x] Resolve Qodo finding QODO-PR1-001: ensure the PR 1 checklist and review log describe the same governance-only scope, then request Qodo reassessment.
+- [x] Resolve Qodo finding QODO-PR1-002: remove the stale first-review-pending status from the Qodo setup record and request Qodo reassessment.
 - [x] Inspect the running TrueForge MCP configuration/catalog API for a supported way to register the existing first-party `sentinelforge-tools` remote endpoint without changing SentinelForge code or approval behavior; the catalog is read-only and reflects runtime-owned `mcp.yaml` entries only.
 - [x] Register `sentinelforge-tools` only through the supported TrueForge configuration path, restricting it to `get_repository`, `get_file`, `get_issue`, and `get_workflow_run`; the runtime owner completed the host-side registration and SentinelForge verified the running catalog.
 - [x] Verify the running TrueForge catalog lists `sentinelforge-tools`, initializes it, exposes exactly the four read-only tools, and reports whether authorization is required; catalog verification returned only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` with no authorization requirement.
