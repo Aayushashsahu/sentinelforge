@@ -3,7 +3,13 @@ import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./agents
 import { buildSandboxProbeSpec } from "./agents/sandboxProbe";
 import { addEvidence, addSandboxRun, appendMissionEvent, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, setMissionStatus } from "./repository";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
-import { readTrueForgeSse, type TrueForgeStreamEvent } from "./trueforge/stream";
+import { readTrueForgeSse, TrueForgeSseAbortedError, type TrueForgeStreamEvent } from "./trueforge/stream";
+
+const LIVE_TURN_TIMEOUT_MS = 75_000;
+
+class LiveTurnPendingError extends Error {
+  constructor() { super("TrueForge turn is still running after the bounded stream timeout; mission remains pending reconciliation."); }
+}
 
 function findFirstString(value: unknown, keys: readonly string[]): string | null {
   if (Array.isArray(value)) {
@@ -63,6 +69,26 @@ export function mapTrueForgeSessionHistory(payload: unknown): TrueForgeStreamEve
   });
 }
 
+function hasTerminalTurn(events: readonly TrueForgeStreamEvent[]): boolean {
+  return events.some(event => event.event === "turn.done" || (event.data !== null && typeof event.data === "object" && !Array.isArray(event.data) && (event.data as Record<string, unknown>).type === "turn.done"));
+}
+
+async function readBoundedTurn(input: { client: TrueForgeClient; sessionId: string; message: string }) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), LIVE_TURN_TIMEOUT_MS);
+  try {
+    const response = await input.client.createTurnStream({ sessionId: input.sessionId, previousTurnId: "none", input: [{ type: "user.message", content: input.message }], signal: controller.signal });
+    return await readTrueForgeSse(response, controller.signal);
+  } catch (error) {
+    if (!(error instanceof TrueForgeSseAbortedError) && !controller.signal.aborted) throw error;
+    const history = mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId));
+    if (hasTerminalTurn(history)) return history;
+    throw new LiveTurnPendingError();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function ingestCompletedInvestigation(input: { missionId: string; sessionId: string; streamEvents: TrueForgeStreamEvent[] }) {
   const turnId = findFirstString(input.streamEvents.map(event => event.data), ["turn_id", "turnId"]);
   if (!turnId) throw new Error("TrueForge streamed no identifiable turn ID.");
@@ -116,14 +142,13 @@ export async function investigateLiveMission(missionId: string) {
   await appendMissionEvent({ missionId, eventType: "AGENT_STARTED", actor: "Investigator", correlationId: session.sessionId, tool: `mcp:${getTrueForgeRuntimeConfig().githubMcpName}`, result: "Read-only Investigator turn started. GitHub writes and sandbox execution are disabled." });
   try {
     const client = new TrueForgeClient(getTrueForgeRuntimeConfig());
-    const response = await client.createTurnStream({
-      sessionId: session.sessionId,
-      previousTurnId: "none",
-      input: [{ type: "user.message", content: `Investigate this engineering incident in repository ${bundle.mission.repository}: ${bundle.mission.incident} First invoke the GitHub MCP tool get_file_contents with owner "Aayushashsahu", repo "sentinelforge", and path "README.md". Do not return a response until that tool result is available. Then inspect CI workflow files only if needed, and return the required JSON.` }],
-    });
-    const streamEvents = await readTrueForgeSse(response);
+    const streamEvents = await readBoundedTurn({ client, sessionId: session.sessionId, message: `Investigate this engineering incident in repository ${bundle.mission.repository}: ${bundle.mission.incident} First invoke the GitHub MCP tool get_file_contents with owner "Aayushashsahu", repo "sentinelforge", and path "README.md". Do not return a response until that tool result is available. Then inspect CI workflow files only if needed, and return the required JSON.` });
     return await ingestCompletedInvestigation({ missionId, sessionId: session.sessionId, streamEvents });
   } catch (error) {
+    if (error instanceof LiveTurnPendingError) {
+      await appendMissionEvent({ missionId, eventType: "TRUEFORGE_TURN_PENDING", actor: "Investigator", correlationId: session.sessionId, result: error.message });
+      return getMissionBundle(missionId);
+    }
     await setMissionStatus(missionId, "FAILED");
     await appendMissionEvent({ missionId, eventType: "MISSION_FAILED", actor: "Investigator", correlationId: session.sessionId, result: error instanceof Error ? error.message : "Live investigation failed." });
     throw error;
@@ -155,8 +180,7 @@ export async function runLiveSandboxProbe(missionId: string) {
     const session = await client.createInlineSession(buildSandboxProbeSpec(resolvedModel));
     await linkTrueForgeSession({ missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "SANDBOX_PROBE" });
     await appendMissionEvent({ missionId, eventType: "TRUEFORGE_SANDBOX_PROBE_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, result: "Dedicated bounded sandbox capability probe session created. GitHub MCP is not attached.", payload: { sandbox: "enabled", command: "printf sentinel-forge-sandbox-ok" } });
-    const response = await client.createTurnStream({ sessionId: session.id, previousTurnId: "none", input: [{ type: "user.message", content: "Use the sandbox now to run exactly: printf sentinel-forge-sandbox-ok" }] });
-    const events = await readTrueForgeSse(response);
+    const events = await readBoundedTurn({ client, sessionId: session.id, message: "Use the sandbox now to run exactly: printf sentinel-forge-sandbox-ok" });
     const turnId = findFirstString(events.map(event => event.data), ["turn_id", "turnId"]);
     if (!turnId) throw new Error("TrueForge sandbox probe streamed no identifiable turn ID.");
     await recordTrueForgeTurn({ missionId, trueforgeSessionId: session.id, turnId, status: "COMPLETED" });
