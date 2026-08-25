@@ -137,3 +137,4 @@
 - [x] Execute the separately authorized single live Repair Engineer session for `SF_xF37FKFqr1NvtA`, validate its persisted proposal evidence, and retain the no-sandbox/no-write/no-approval boundary.
 - [x] Normalize the completed Repair Engineer turn’s object-shaped, evidence-backed patch from read-only session history and persist it without issuing a second turn or any external action.
 - [x] Add deterministic fail-closed approval-persistence regression coverage for invalid repair fingerprints, missing correlated turns, and notification-unavailable pauses without invoking approval continuation or a GitHub action.
+- [x] Fail closed in the live approval-event adapter before any repository lookup when the stream event or repair fingerprint is invalid, with deterministic adapter-level regressions.

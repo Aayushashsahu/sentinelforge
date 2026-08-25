@@ -30,6 +30,10 @@ export type LiveRepairProposal = z.infer<typeof liveRepairProposalSchema>;
 export type LiveVerificationResult = z.infer<typeof liveVerificationResultSchema>;
 export type TrueForgeApprovalRequired = z.infer<typeof approvalRequiredEventSchema>;
 
+export function isValidRepairFingerprint(input: string): boolean {
+  return /^[a-f0-9]{64}$/.test(input);
+}
+
 export function createRepairFingerprint(proposal: LiveRepairProposal): string {
   const stable = JSON.stringify({ summary: proposal.summary, patch: proposal.patch, files_changed: [...proposal.files_changed].sort(), expected_effect: proposal.expected_effect, risk: proposal.risk });
   return createHash("sha256").update(stable).digest("hex");
@@ -90,7 +94,7 @@ function assertSafeGitHubPullRequestIntentTarget(input: { missionId: string; rep
 
 export function buildIdempotentGitHubPullRequestIntent(input: { missionId: string; repository: string; proposal: LiveRepairProposal; fingerprint: string }) {
   const proposal = liveRepairProposalSchema.parse(input.proposal);
-  if (!/^[a-f0-9]{64}$/.test(input.fingerprint)) throw new Error("A valid repair fingerprint is required for a GitHub PR intent.");
+  if (!isValidRepairFingerprint(input.fingerprint)) throw new Error("A valid repair fingerprint is required for a GitHub PR intent.");
   assertSafeGitHubPullRequestIntentTarget({ missionId: input.missionId, repository: input.repository, filesChanged: proposal.files_changed });
   return {
     actionType: "GITHUB_PULL_REQUEST" as const,
