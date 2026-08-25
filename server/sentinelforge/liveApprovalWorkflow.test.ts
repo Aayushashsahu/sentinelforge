@@ -20,7 +20,7 @@ vi.mock("./repository", () => ({
   updateTrueForgeTurn: mocks.updateTrueForgeTurn,
 }));
 
-import { persistLiveTrueForgeApprovalRequired } from "./liveApprovalWorkflow";
+import { mapTrueForgeProviderApprovalPause, persistLiveTrueForgeApprovalRequired } from "./liveApprovalWorkflow";
 
 function validApprovalEvent() {
   return {
@@ -63,6 +63,23 @@ describe("live TrueForge approval adapter", () => {
       repairFingerprint: "invalid-fingerprint",
       verificationEvidenceRefs: [],
     })).rejects.toThrow(/repair fingerprint is invalid/);
+    expectNoRepositoryOrNotificationAccess();
+  });
+
+  it("maps the actual provider pause correlation into the persisted approval-event shape without reading a repository", () => {
+    const mapped = mapTrueForgeProviderApprovalPause({
+      providerEvent: { type: "tool.approval_required", id: "approval_event_1", created_at: "2026-08-25T16:00:00.000Z", thread_id: "thread_1", tool_calls: [{ id: "call_1", source_event_id: "model_event_1" }] },
+      toolName: "github.create_pull_request",
+    });
+    expect(mapped).toEqual({ ...validApprovalEvent(), required_action_id: "approval_event_1" });
+    expectNoRepositoryOrNotificationAccess();
+  });
+
+  it("rejects a provider pause with a non-canonical correlated tool name before any repository lookup", () => {
+    expect(() => mapTrueForgeProviderApprovalPause({
+      providerEvent: { type: "tool.approval_required", id: "approval_event_1", created_at: "2026-08-25T16:00:00.000Z", thread_id: "thread_1", tool_calls: [{ id: "call_1", source_event_id: "model_event_1" }] },
+      toolName: " github.create_pull_request",
+    })).toThrow(/provider pause or correlated tool name is invalid/);
     expectNoRepositoryOrNotificationAccess();
   });
 });

@@ -105,5 +105,24 @@ export const trueforgeTurns = mysqlTable("trueforge_turns", {
   updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
 });
 
+export const approvalContinuations = mysqlTable("approval_continuations", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  approvalRequestId: varchar("approvalRequestId", { length: 32 }).notNull().unique(),
+  missionId: varchar("missionId", { length: 32 }).notNull(),
+  trueforgeSessionId: varchar("trueforgeSessionId", { length: 128 }).notNull(),
+  turnId: varchar("turnId", { length: 128 }).notNull(),
+  threadId: varchar("threadId", { length: 128 }).notNull(),
+  toolCallId: varchar("toolCallId", { length: 128 }).notNull(),
+  decision: mysqlEnum("decision", ["APPROVED", "REJECTED"]).notNull(),
+  idempotencyKey: varchar("idempotencyKey", { length: 255 }).notNull().unique(),
+  status: mysqlEnum("status", ["PENDING_SEND", "SENDING", "SENT", "FAILED", "NOT_SENT"]).notNull(),
+  payload: text("payload").notNull(),
+  lastError: text("lastError"),
+  attemptCount: int("attemptCount").notNull().default(0),
+  createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  sentAt: bigint("sentAt", { mode: "number" }),
+});
+
 export type Mission = typeof missions.$inferSelect;
 export type ApprovalRequest = typeof approvalRequests.$inferSelect;

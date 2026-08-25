@@ -147,3 +147,5 @@
 - [x] Reject whitespace-padded TrueForge approval-event tool names before they can produce divergent persisted action types.
 - [x] Verify whether TrueForge can honestly require approval for a harmless dedicated MCP probe tool; otherwise document the `@write`/`@destructive` approval-test blocker without adding a probe or fabricating an event. TrueForge v0.1.4 supports an exact literal tool selector.
 - [x] Add the non-mutating `approval_probe` tool with literal-name approval selection, then use exactly one authorized TrueForge turn to persist a genuine paused provider event without continuation or underlying tool execution.
+- [x] Inspect the existing persisted TrueForge approval-probe checkpoint read-only, without contacting the runtime or constructing, sending, or applying a continuation.
+- [x] Implement and deterministically test the server-side TrueForge approval bridge: durable correlation, idempotent approve/reject, continuation construction, duplicate/stale handling, and resume-failure auditing without touching the paused probe or invoking a live continuation.

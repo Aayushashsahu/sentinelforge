@@ -1,0 +1,21 @@
+CREATE TABLE `approval_continuations` (
+	`id` varchar(32) NOT NULL,
+	`approvalRequestId` varchar(32) NOT NULL,
+	`missionId` varchar(32) NOT NULL,
+	`trueforgeSessionId` varchar(128) NOT NULL,
+	`turnId` varchar(128) NOT NULL,
+	`threadId` varchar(128) NOT NULL,
+	`toolCallId` varchar(128) NOT NULL,
+	`decision` enum('APPROVED','REJECTED') NOT NULL,
+	`idempotencyKey` varchar(160) NOT NULL,
+	`status` enum('PENDING_SEND','SENT','FAILED','NOT_SENT') NOT NULL,
+	`payload` text NOT NULL,
+	`lastError` text,
+	`attemptCount` int NOT NULL DEFAULT 0,
+	`createdAt` bigint NOT NULL,
+	`updatedAt` bigint NOT NULL,
+	`sentAt` bigint,
+	CONSTRAINT `approval_continuations_id` PRIMARY KEY(`id`),
+	CONSTRAINT `approval_continuations_approvalRequestId_unique` UNIQUE(`approvalRequestId`),
+	CONSTRAINT `approval_continuations_idempotencyKey_unique` UNIQUE(`idempotencyKey`)
+);
