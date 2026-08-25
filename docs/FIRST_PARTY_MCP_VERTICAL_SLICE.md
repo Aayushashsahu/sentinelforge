@@ -55,25 +55,44 @@ The read-only session history confirmed use of `get_repository`, `get_file`, and
 
 The minimum repair is a read-only proposal to align `release-manifest.json` to the package version. No proposal was applied, no branch, commit, pull request, approval continuation, or sandbox verification was performed. This successful live outcome establishes that actual ordinary file text reached the model; it is not inferred from metadata.
 
-## Separate Repair Engineer Authorization Boundary
+## Real TrueForge Repair Engineer Outcome
 
-The completed Investigator result supplies the required evidence basis for a Repair Engineer proposal, but it does **not** authorize a second agent turn. Before SentinelForge creates a Repair Engineer session, the owner must explicitly authorize exactly one new **read-only** turn for mission `SF_xF37FKFqr1NvtA`.
+After separate explicit authorization, one and only one additional **read-only** Repair Engineer session completed for the same mission. Its remote session history showed two actual `sentinelforge-tools` `get_file` calls, reading `release-manifest.json` and `package.json` at `main`. The model received ordinary file bodies and returned an evidence-backed object-shaped version proposal. The initial strict parser rejected the object-shaped patch, string evidence limitation, and descriptive `Low` risk; SentinelForge then performed a **read-only history recovery**, normalized only the bounded manifest-version shape, and persisted the proposal without creating a second session or turn.
 
-The permitted session must attach only `sentinelforge-tools`, use only its four read methods, keep sandbox and dynamic subagents disabled, and return one structured proposal. The expected minimal proposal is an un-applied patch to `release-manifest.json` changing `1.3.0` to `1.4.0`; it must persist as a proposal only. The turn must not create a branch, commit, pull request, GitHub write, approval continuation, or verification claim.
+| Correlation | Verified value |
+| --- | --- |
+| Mission | `SF_xF37FKFqr1NvtA` |
+| TrueForge Repair Engineer session | `01m0wbj50nj21txhwzj9fk05qb` |
+| TrueForge Repair Engineer turn | `01m0wbj6v8f0ych1e2aczmjtb9.local` |
+| MCP methods called | `get_file` only, for `release-manifest.json` and `package.json` |
+| Persisted mission state | `PLANNING_FIX` |
+| Approval records / external-action records | `0` / `0` |
+
+The persisted, un-applied equivalent unified diff is:
+
+```diff
+--- a/release-manifest.json
++++ b/release-manifest.json
+@@
+-  "version": "1.3.0"
++  "version": "1.4.0"
+```
+
+The Repair Engineer limited its evidence statement to the two read files and did not claim sandbox verification. The proposal remains un-applied, unverified, unapproved, and unsent to GitHub. No sandbox, Qodo, branch, commit, pull request, approval continuation, or GitHub write was invoked.
 
 ## Investigator and Repairer Contract
 
 The read-only Investigator and Repair Engineer policies now select only the explicit `sentinelforge-tools` tool names. Their prompts require ordinary file-text evidence and reject SHA, URI, filename, metadata, error strings, `EmbeddedResource`, and `ResourceLink` as source content. Both remain sandbox-disabled and have no write tools. Existing persistent mission, event, evidence, repair-proposal, deterministic verifier, approval, and idempotency boundaries are retained.
 
-## Required Runtime Registration Before a Real Agent Turn
+## Resolved Runtime Registration
 
-The external TrueForge runtime must register a remote MCP server named `sentinelforge-tools` pointing to the **published SentinelForge origin** plus:
+The external TrueForge runtime has registered a remote MCP server named `sentinelforge-tools` pointing to the **published SentinelForge origin** plus:
 
 ```text
 /api/mcp/sentinelforge-tools
 ```
 
-The runtime must permit only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` for the Investigator and Repairer policies. SentinelForge cannot register this server through the currently exposed TrueForge HTTP API, and it does not modify TrueForge internals. Until the runtime owner registers the endpoint and confirms it is reachable from the runtime, a live TrueForge Investigator session using this MCP server is **BLOCKED**. No GitHub write is needed for that registration step.
+The runtime permits only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` for the Investigator and Repairer policies. SentinelForge cannot register this server through the currently exposed TrueForge HTTP API and did not modify TrueForge internals; the runtime owner completed the host-side registration and SentinelForge validated the active catalog before either authorized live turn.
 
 The official registry example uses an `mcp_servers` entry with a `name` and `url`. The runtime owner should add the equivalent of the following to the runtime-owned registry, substituting the stable published SentinelForge origin (not a browser-visible secret and not a localhost URL):
 
@@ -93,4 +112,4 @@ The existing approval persistence and idempotency contracts remain intact, but t
 
 The requested Qodo Dev integration is not currently configured as a task connector. SentinelForge has therefore not requested a Qodo review and has not created a branch, commit, or pull request. A Qodo-backed review or PR remains a separate user-authorized step after a connector is available and the existing evidence, verification, approval, and GitHub-write gates have been satisfied.
 
-The active TrueForge catalog was inspected and currently lists only its legacy `github` MCP server. The runtime’s supported MCP API is catalog-only; registration must be performed through the runtime host’s `mcp.yaml` configuration and reload process. See [TRUEFORGE_FIRST_PARTY_MCP_REGISTRATION_BLOCKER.md](./TRUEFORGE_FIRST_PARTY_MCP_REGISTRATION_BLOCKER.md) for the exact observed result and the safe host-side change.
+The runtime’s supported MCP API remains catalog-only, so registration remains a runtime-host concern. The active catalog now lists the registered first-party server with the exact four permitted tools and no authorization requirement.

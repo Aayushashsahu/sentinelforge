@@ -33,6 +33,24 @@ describe("read-only Repair Engineer", () => {
     expect(result.evidence_limitations).toEqual([]);
   });
 
+  it("normalizes the bounded object-shaped manifest version proposal returned by the live Repair Engineer", () => {
+    const result = parseRepairEngineerResult([{
+      content: JSON.stringify({
+        summary: "Align release-manifest.json version with package.json.",
+        patch: { file: "release-manifest.json", old_version: "1.3.0", new_version: "1.4.0" },
+        files_changed: ["release-manifest.json"],
+        expected_effect: "The release versions align.",
+        risk: "Low – only the version field changes.",
+        evidence_limitations: "Only package.json and release-manifest.json were inspected.",
+      }),
+    }]);
+
+    expect(result.patch).toContain('-  "version": "1.3.0"');
+    expect(result.patch).toContain('+  "version": "1.4.0"');
+    expect(result.risk).toBe("LOW");
+    expect(result.evidence_limitations).toEqual(["Only package.json and release-manifest.json were inspected."]);
+  });
+
   it("pins the repair request to the exact mission repository and prohibits writes", () => {
     const message = buildRepairEngineerMessage({ repository: "Aayushashsahu/sentinelforge-incident-fixture", incident: "manifest mismatch", rootCause: "MCP file body limitation" });
     expect(message).toContain('owner "Aayushashsahu"');
