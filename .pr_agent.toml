@@ -1,0 +1,14 @@
+# Qodo Code Review policy for SentinelForge.
+# This is intentionally repository-local and applies after it is merged to main.
+
+[github_app]
+pr_commands = [
+  "/agentic_describe",
+  "/agentic_review"
+]
+
+[review_agent]
+comments_location_policy = "both"
+inline_comments_severity_threshold = 2
+issues_user_guidelines = "Prioritize authorization boundaries, server-only secret handling, MCP tool allowlists, ordinary-text evidence integrity, and proposal-only GitHub safety. Do not treat intentionally blocked sandbox, approval, Qodo, or GitHub-write stages as defects when the pull request preserves their explicit gates."
+compliance_user_guidelines = "Flag any client exposure of credentials, arbitrary repository access, write-capable MCP tools, unapproved GitHub mutation paths, or claims that a simulated verifier or blocked sandbox is a real successful verification."
