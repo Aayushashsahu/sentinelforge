@@ -59,3 +59,7 @@ One separate real Repair Engineer session was created with only the GitHub MCP `
 ## 2026-08-25 — GitHub MCP actual file-text delivery remains blocked
 
 The configured `github` MCP tool catalogue exposes read-only `get_file_contents`; SentinelForge explicitly selects it together with `search_repositories` and instructs the agent to consume embedded resource text. A newly authorized live verification observed a real GitHub MCP call but no resource block or file body in the TrueForge event stream. The public `v0.1.4` source identifies the exact harness loss: `executeToolCalls.ts` filters a content array to `type === "text"` before constructing the model tool message, excluding `resource.text`. The detailed trace, safe normalization coverage, version caveat, and runtime-side remediation are recorded in [GITHUB_MCP_RESOURCE_BLOCKER.md](./GITHUB_MCP_RESOURCE_BLOCKER.md). No further attempt, sandbox use, approval continuation, or GitHub write is permitted in this work item.
+
+### Local runtime hotfix access blocker
+
+The user subsequently requested a direct patch to the actual local TrueForge v0.1.4 runtime. SentinelForge has access only to the runtime HTTP tunnel and a browser connector, not the WSL/local filesystem or process that owns the running artifact. An offline package reference is present in the Manus workspace but is not proven to be the active server, so it was not modified. The exact source target, patch requirements, and supported host-attachment next step are recorded in [TRUEFORGE_MCP_RESOURCE_BLOCKER.md](./TRUEFORGE_MCP_RESOURCE_BLOCKER.md).

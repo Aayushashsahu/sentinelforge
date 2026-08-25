@@ -64,6 +64,8 @@ The production build issued only the pre-existing bundle-size warning for a clie
 
 The exact live blockers are maintained in [OVERNIGHT_BLOCKERS.md](./OVERNIGHT_BLOCKERS.md), [GITHUB_MCP_RESOURCE_BLOCKER.md](./GITHUB_MCP_RESOURCE_BLOCKER.md), and [SANDBOX_BLOCKER.md](./SANDBOX_BLOCKER.md). The important current boundaries are the runtime/API-envelope compatibility mismatch, live SSE response completion requiring reconciliation, a sandbox provider whose Python bootstrap cannot reach its dependency source through the configured proxy, and a confirmed TrueForge harness conversion that drops GitHub MCP `resource.text` before model context. Each blocks progressively later workflow stages. SentinelForge fails closed rather than simulating a repair, approval, or GitHub write.
 
+The requested direct hotfix cannot be applied from this task because the active TrueForge server runs on the user's local WSL host. SentinelForge can use its tunnelled HTTP API but has neither that host's source/build artifact nor process-restart control; the only connected local capability is browser access. The isolated offline package reference in Manus was deliberately not patched. See [TRUEFORGE_MCP_RESOURCE_BLOCKER.md](./TRUEFORGE_MCP_RESOURCE_BLOCKER.md) for the exact source target and host-attachment procedure.
+
 ## Commits and Checkpoint State
 
 No manual Git commit was created during this sprint. The next step is to save a verified managed checkpoint containing the client, persistence migration, tests, blocker report, and this report. The existing working tree also includes inherited pre-sprint modifications; this report distinguishes the current live-integration work from that earlier baseline.
