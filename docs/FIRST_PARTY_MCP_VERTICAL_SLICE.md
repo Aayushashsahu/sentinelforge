@@ -37,6 +37,24 @@ An authenticated end-to-end MCP client connected to the local `sentinelforge-too
 
 This is **REAL** GitHub file data passing through the first-party MCP implementation. It supplies the narrow evidence needed for the fixture’s version-drift root cause without relying on GitHub MCP resource blocks.
 
+## Real TrueForge Investigator Outcome
+
+After the runtime owner registered the first-party endpoint, SentinelForge read the actual TrueForge catalog and verified `sentinelforge-tools` was initialized with exactly the four declared read-only methods and no authentication requirement. One and only one real Investigator turn then completed:
+
+| Correlation | Verified value |
+| --- | --- |
+| Mission | `SF_xF37FKFqr1NvtA` |
+| TrueForge session | `01m0waamsttyeb0y0r3xxnvrff` |
+| TrueForge turn | `01m0waaw5c98fxev1hybsk87qa.local` |
+| Model | `nvidia-nim/nemotron-3-5-lightning-30b-a3b` |
+| Mission state after ingestion | `PLANNING_FIX` |
+
+The read-only session history confirmed use of `get_repository`, `get_file`, and `get_workflow_run`; no issue, sandbox, approval, or GitHub write tool was used. The Investigator persisted body-backed observations from `.github/workflows/test.yml`, `test.js`, `package.json`, and `release-manifest.json`. In particular, it recorded `package.json` `version: "1.4.0"`, `release-manifest.json` `version: "1.3.0"`, and the test logic that exits with code 1 when those values differ.
+
+> **Root cause:** mismatched version strings between `package.json` and `release-manifest.json`.
+
+The minimum repair is a read-only proposal to align `release-manifest.json` to the package version. No proposal was applied, no branch, commit, pull request, approval continuation, or sandbox verification was performed. This successful live outcome establishes that actual ordinary file text reached the model; it is not inferred from metadata.
+
 ## Investigator and Repairer Contract
 
 The read-only Investigator and Repair Engineer policies now select only the explicit `sentinelforge-tools` tool names. Their prompts require ordinary file-text evidence and reject SHA, URI, filename, metadata, error strings, `EmbeddedResource`, and `ResourceLink` as source content. Both remain sandbox-disabled and have no write tools. Existing persistent mission, event, evidence, repair-proposal, deterministic verifier, approval, and idempotency boundaries are retained.
@@ -66,3 +84,7 @@ No MCP header credential is required for the current public-fixture-only impleme
 The server has deterministic unit coverage for decoded ordinary-text output, token non-disclosure, and allowlist rejection. Its real MCP contract test passed using the fixture. The user has prohibited GitHub writes, so Qodo-backed source pull requests and all branch/commit/PR actions remain **BLOCKED / not attempted**. Sandbox verification remains separately blocked and is never represented as real.
 
 The existing approval persistence and idempotency contracts remain intact, but they remain **GATED** behind the required ordered prerequisites: a real first-party-MCP Investigator result, a valid read-only repair proposal, a real verifier result, and a real approval-required event. No code path grants the Actor GitHub mutation capability before those prerequisites and an explicit new authorization.
+
+The requested Qodo Dev integration is not currently configured as a task connector. SentinelForge has therefore not requested a Qodo review and has not created a branch, commit, or pull request. A Qodo-backed review or PR remains a separate user-authorized step after a connector is available and the existing evidence, verification, approval, and GitHub-write gates have been satisfied.
+
+The active TrueForge catalog was inspected and currently lists only its legacy `github` MCP server. The runtime’s supported MCP API is catalog-only; registration must be performed through the runtime host’s `mcp.yaml` configuration and reload process. See [TRUEFORGE_FIRST_PARTY_MCP_REGISTRATION_BLOCKER.md](./TRUEFORGE_FIRST_PARTY_MCP_REGISTRATION_BLOCKER.md) for the exact observed result and the safe host-side change.

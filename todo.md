@@ -68,14 +68,14 @@
 - [x] Perform one final bounded investigation of the exact TrueForge v0.1.4 local sandbox bootstrap, local environment/image options, proxy settings, and smoke-test expectations without configuring Daytona or host execution.
 - [x] Record the final sandbox infrastructure result in `docs/SANDBOX_BLOCKER.md`, mark it BLOCKED if no permitted local remedy is available, and stop sandbox changes after the two-fix limit.
 - [x] Create and validate the public `Aayushashsahu/sentinelforge-incident-fixture` repository containing the safe, reproducible release-manifest mismatch fixture.
-- [ ] Run the real read-only TrueForge Investigator against the incident fixture and persist repository evidence, root cause, and structured output; real MCP calls completed but file content did not reach the model and a retry transcribed the repository name incorrectly.
+- [x] Run the real read-only TrueForge Investigator against the incident fixture and persist repository evidence, root cause, and structured output; the first-party MCP delivered actual file text and the completed session persisted the `1.4.0` versus `1.3.0` root cause.
 - [ ] Implement and exercise a read-only Repair Engineer that produces the expected manifest-version patch without a GitHub write; one real session was attempted and safely rejected a no-patch, malformed-limits response.
 - [x] Implement the verifier abstraction and use the deterministic verifier only when the real sandbox remains blocked, clearly labeling the status.
 - [ ] Implement actual approval-required capture, exact TrueForge resume/reject handling, and one guarded GitHub PR path only after live verification passes.
 - [x] Update the backend report capability matrix with only verified REAL, PARTIAL, SIMULATED, or BLOCKED status values.
 - [x] Fix the real Investigator timeout AbortError so an aborted bounded SSE read reconciles safely without crashing the SentinelForge backend; regression coverage verifies rejected cancellation is contained.
 - [x] Accept and normalize the observed real TrueForge Investigator `Low`/`Medium`/`High` confidence format while retaining raw MCP evidence requirements and without inventing file contents.
-- [ ] Address the observed GitHub MCP checksum-only file-response limitation with truthful inspectable fixture metadata, while retaining explicit MCP file-read attempts and no repository repair write.
+- [x] Address the observed GitHub MCP checksum-only file-response limitation through the allowlisted first-party ordinary-text MCP server, while retaining explicit read evidence and no repository repair write.
 - [x] Wire the deterministic verifier abstraction into a read-only SentinelForge backend observation API and verify its explicit `SIMULATED`/no-sandbox status end-to-end.
 - [ ] Verify the bounded live Investigator timeout path end-to-end after the AbortError fix: backend remains up and returns a safe pending or reconciled response without manual recovery.
 - [x] Bound and batch semantic live stream audit persistence so completed TrueForge investigations avoid one sequential database round trip per retained event; repeated delta events remain filtered.
@@ -116,6 +116,14 @@
 - [x] Confirm the deterministic public incident fixture contains the release-manifest version mismatch and an intentionally failing test, without making any new GitHub mutation.
 - [x] Integrate a TrueForge Investigator that uses only `sentinelforge-tools` for repository evidence; keep Repairer read-only, sandbox verification accurately labeled, and GitHub writes unavailable pending approval and prerequisites.
 - [x] Document the new vertical-slice architecture, capability matrix, and blocked dependencies; do not create external GitHub branches, commits, or PRs until separately authorized.
-- [ ] Have the external TrueForge runtime register the published `/api/mcp/sentinelforge-tools` endpoint as `sentinelforge-tools` with only the four read methods, then authorize one real Investigator session using that connector.
+- [x] Have the external TrueForge runtime register the published `/api/mcp/sentinelforge-tools` endpoint as `sentinelforge-tools` with only the four read methods, then authorize one real Investigator session using that connector.
 - [x] Align Repair Engineer test fixtures and stream-tool metadata with the first-party `sentinelforge-tools` connector so deterministic workflow coverage remains valid after the MCP pivot.
 - [x] Add a read-only SentinelForge backend observation for the first-party MCP capability and allowed target without exposing GitHub credentials or enabling a write action.
+- [ ] Configure or connect the requested Qodo Dev integration before requesting a repository review or creating a Qodo-backed pull request; no Qodo connector is currently available in this task.
+- [x] Inspect the running TrueForge MCP configuration/catalog API for a supported way to register the existing first-party `sentinelforge-tools` remote endpoint without changing SentinelForge code or approval behavior; the catalog is read-only and reflects runtime-owned `mcp.yaml` entries only.
+- [x] Register `sentinelforge-tools` only through the supported TrueForge configuration path, restricting it to `get_repository`, `get_file`, `get_issue`, and `get_workflow_run`; the runtime owner completed the host-side registration and SentinelForge verified the running catalog.
+- [x] Verify the running TrueForge catalog lists `sentinelforge-tools`, initializes it, exposes exactly the four read-only tools, and reports whether authorization is required; catalog verification returned only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` with no authorization requirement.
+- [x] Execute exactly one authorized real Investigator session for `Aayushashsahu/sentinelforge-incident-fixture` using only `sentinelforge-tools`, then persist session/turn correlation and structured evidence without sandbox, approval, or GitHub write.
+- [x] Validate the completed Investigator record names actual file bodies, the four-tool boundary, exact release-version root cause, and minimum repair without fabricating repository facts.
+- [x] Correct the opt-in Investigator test to use the mission identifier returned inside the live mission bundle; the first setup call created no Investigator turn because it passed an undefined mission ID.
+- [x] Correct the opt-in Investigator assertion to validate persisted `OBSERVED` evidence sources rather than an obsolete GitHub-MCP-file-text kind; no additional turn is required.
