@@ -34,6 +34,7 @@ describe("live provider-neutral execution contracts", () => {
     expect(() => assertLiveGitHubPrExecutionAllowed(gate)).not.toThrow();
     expect(() => assertLiveGitHubPrExecutionAllowed({ ...gate, verificationStatus: "UNKNOWN" })).toThrow(/verification/);
     expect(() => assertLiveGitHubPrExecutionAllowed({ ...gate, currentFingerprint: "a".repeat(64) })).toThrow(/proposal changed/);
+    expect(() => assertLiveGitHubPrExecutionAllowed({ ...gate, approvedFingerprint: "malformed", currentFingerprint: "malformed" })).toThrow(/invalid fingerprint/);
     expect(() => assertLiveGitHubPrExecutionAllowed({ ...gate, existingActionCount: 1 })).toThrow(/idempotent/);
   });
 

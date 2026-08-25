@@ -141,3 +141,4 @@
 - [x] Bound untrusted TrueForge approval-event identifiers to the compatible persistence limits and reject oversized stream fields deterministically before approval persistence.
 - [x] Fail closed when constructing a dormant TrueForge approval-continuation payload with blank or oversized correlation identifiers, or an oversized denial reason.
 - [x] Correct the read-only execution-contract status surface to report the persisted un-applied Repair Engineer proposal without implying approval or write readiness.
+- [x] Require both matching repair fingerprints at the dormant GitHub execution gate to have valid SHA-256 format before any future write can be permitted.
