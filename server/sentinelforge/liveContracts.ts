@@ -18,7 +18,9 @@ export const liveVerificationResultSchema = z.object({
   repair_fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
 }).strict();
 
-const approvalCorrelationIdentifierSchema = z.string().min(1).max(128);
+const approvalCorrelationIdentifierSchema = z.string().min(1).max(128).refine(value => value === value.trim(), {
+  message: "Approval correlation identifiers must not include surrounding whitespace.",
+});
 
 const approvalRequiredEventSchema = z.object({
   type: z.literal("tool.approval_required"),

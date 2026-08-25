@@ -14,6 +14,8 @@ describe("live provider-neutral execution contracts", () => {
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "c".repeat(129), tool_name: "github.create_pull_request" })).toBeNull();
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "a".repeat(129), tool_name: "github.create_pull_request" })).toBeNull();
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", tool_name: "g".repeat(111) })).toBeNull();
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: " thread_1", tool_call_id: "call_1", tool_name: "github.create_pull_request" })).toBeNull();
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1 ", tool_name: "github.create_pull_request" })).toBeNull();
   });
 
   it("builds an explicit allow or deny continuation without executing it", () => {
@@ -23,6 +25,8 @@ describe("live provider-neutral execution contracts", () => {
 
   it("fails closed when a dormant approval continuation has malformed identifiers or an invalid denial reason", () => {
     expect(() => buildTrueForgeApprovalContinuation({ threadId: " ", toolCallId: "call_1", approve: true })).toThrow(/bounded non-blank/);
+    expect(() => buildTrueForgeApprovalContinuation({ threadId: " thread_1", toolCallId: "call_1", approve: true })).toThrow(/bounded non-blank/);
+    expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1 ", approve: true })).toThrow(/bounded non-blank/);
     expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "c".repeat(129), approve: true })).toThrow(/bounded non-blank/);
     expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: false, denialReason: "   " })).toThrow(/denial reason/);
     expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: false, denialReason: "d".repeat(4_001) })).toThrow(/denial reason/);
