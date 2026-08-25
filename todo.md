@@ -127,3 +127,5 @@
 - [x] Validate the completed Investigator record names actual file bodies, the four-tool boundary, exact release-version root cause, and minimum repair without fabricating repository facts.
 - [x] Correct the opt-in Investigator test to use the mission identifier returned inside the live mission bundle; the first setup call created no Investigator turn because it passed an undefined mission ID.
 - [x] Correct the opt-in Investigator assertion to validate persisted `OBSERVED` evidence sources rather than an obsolete GitHub-MCP-file-text kind; no additional turn is required.
+- [x] Add deterministic proposal coverage grounded in the verified first-party ordinary-text release-version evidence without invoking a Repair Engineer session.
+- [ ] Obtain a separate explicit authorization before creating one read-only Repair Engineer session for mission `SF_xF37FKFqr1NvtA`; it must use only sentinelforge-tools and persist a proposal without applying it.

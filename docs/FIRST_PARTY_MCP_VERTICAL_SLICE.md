@@ -55,6 +55,12 @@ The read-only session history confirmed use of `get_repository`, `get_file`, and
 
 The minimum repair is a read-only proposal to align `release-manifest.json` to the package version. No proposal was applied, no branch, commit, pull request, approval continuation, or sandbox verification was performed. This successful live outcome establishes that actual ordinary file text reached the model; it is not inferred from metadata.
 
+## Separate Repair Engineer Authorization Boundary
+
+The completed Investigator result supplies the required evidence basis for a Repair Engineer proposal, but it does **not** authorize a second agent turn. Before SentinelForge creates a Repair Engineer session, the owner must explicitly authorize exactly one new **read-only** turn for mission `SF_xF37FKFqr1NvtA`.
+
+The permitted session must attach only `sentinelforge-tools`, use only its four read methods, keep sandbox and dynamic subagents disabled, and return one structured proposal. The expected minimal proposal is an un-applied patch to `release-manifest.json` changing `1.3.0` to `1.4.0`; it must persist as a proposal only. The turn must not create a branch, commit, pull request, GitHub write, approval continuation, or verification claim.
+
 ## Investigator and Repairer Contract
 
 The read-only Investigator and Repair Engineer policies now select only the explicit `sentinelforge-tools` tool names. Their prompts require ordinary file-text evidence and reject SHA, URI, filename, metadata, error strings, `EmbeddedResource`, and `ResourceLink` as source content. Both remain sandbox-disabled and have no write tools. Existing persistent mission, event, evidence, repair-proposal, deterministic verifier, approval, and idempotency boundaries are retained.
