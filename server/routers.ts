@@ -3,7 +3,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { getMissionBundle, listMissionBundles } from "./sentinelforge/repository";
 import { launchDeterministicFixtureMission, resolveApproval } from "./sentinelforge/workflow";
 import { probeConfiguredTrueForge } from "./sentinelforge/trueforge/client";
-import { createLiveMission, investigateLiveMission, reconcileLiveInvestigation, runLiveRepairPlan, runLiveSandboxProbe } from "./sentinelforge/liveWorkflow";
+import { createLiveMission, investigateLiveMission, reconcileLiveInvestigation, runLiveApprovalProbe, runLiveRepairPlan, runLiveSandboxProbe } from "./sentinelforge/liveWorkflow";
 import { getLiveExecutionContractStatus } from "./sentinelforge/liveContracts";
 import { verifyIncidentFixtureDeterministically } from "./sentinelforge/verifier";
 import { getSentinelForgeToolsStatus } from "./sentinelforge/tools/mcpServer";
@@ -15,6 +15,7 @@ export const appRouter = router({
     executionContracts: publicProcedure.query(() => getLiveExecutionContractStatus()),
     verifyIncidentFixture: publicProcedure.input(z.object({ packageVersion: z.string().min(1), manifestVersion: z.string().min(1), proposedManifestVersion: z.string().min(1) })).query(({ input }) => verifyIncidentFixtureDeterministically(input)),
     sandboxProbe: publicProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).mutation(async ({ input }) => runLiveSandboxProbe(input.missionId)),
+    approvalProbe: publicProcedure.mutation(async () => runLiveApprovalProbe()),
   }),
   tools: router({
     status: publicProcedure.query(() => getSentinelForgeToolsStatus()),

@@ -34,9 +34,21 @@ const approvalRequiredEventSchema = z.object({
   tool_name: approvalToolNameSchema,
 }).passthrough();
 
+const trueForgeProviderApprovalPauseSchema = z.object({
+  type: z.literal("tool.approval_required"),
+  id: approvalCorrelationIdentifierSchema,
+  created_at: z.string().min(1).max(128).refine(value => value === value.trim(), { message: "Approval event timestamps must be canonical." }),
+  thread_id: approvalCorrelationIdentifierSchema,
+  tool_calls: z.array(z.object({
+    id: approvalCorrelationIdentifierSchema,
+    source_event_id: approvalCorrelationIdentifierSchema,
+  }).strict()).length(1),
+}).strict();
+
 export type LiveRepairProposal = z.infer<typeof liveRepairProposalSchema>;
 export type LiveVerificationResult = z.infer<typeof liveVerificationResultSchema>;
 export type TrueForgeApprovalRequired = z.infer<typeof approvalRequiredEventSchema>;
+export type TrueForgeProviderApprovalPause = z.infer<typeof trueForgeProviderApprovalPauseSchema>;
 
 export function isValidRepairFingerprint(input: string): boolean {
   return /^[a-f0-9]{64}$/.test(input);
@@ -52,6 +64,11 @@ export function parseTrueForgeApprovalRequiredEvent(input: unknown): TrueForgeAp
   const record = input as { data?: unknown; type?: unknown };
   const candidate = record.data && typeof record.data === "object" ? record.data : input;
   const parsed = approvalRequiredEventSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
+}
+
+export function parseTrueForgeProviderApprovalPauseEvent(input: unknown): TrueForgeProviderApprovalPause | null {
+  const parsed = trueForgeProviderApprovalPauseSchema.safeParse(input);
   return parsed.success ? parsed.data : null;
 }
 

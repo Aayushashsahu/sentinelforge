@@ -6,11 +6,11 @@ const fixtureOwner = "Aayushashsahu";
 const fixtureRepo = "sentinelforge-incident-fixture";
 
 describe("sentinelforge-tools", () => {
-  it("reports only the read-only tool surface and fixture allowlist without returning a credential", () => {
+  it("reports the read-only tool surface, harmless approval probe, and fixture allowlist without returning a credential", () => {
     const status = getSentinelForgeToolsStatus();
     expect(status).toMatchObject({ name: "sentinelforge-tools", endpointPath: "/api/mcp/sentinelforge-tools", writeActionsEnabled: false, sandboxEnabled: false });
     expect(status.allowedRepositories).toEqual([`${fixtureOwner}/${fixtureRepo}`]);
-    expect(status.tools).toEqual(["get_repository", "get_file", "get_issue", "get_workflow_run"]);
+    expect(status.tools).toEqual(["get_repository", "get_file", "get_issue", "get_workflow_run", "approval_probe"]);
     expect(JSON.stringify(status)).not.toContain("GITHUB_READ_TOKEN");
   });
 
@@ -35,6 +35,16 @@ describe("sentinelforge-tools", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("not an allowed SentinelForge investigation target");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("returns a constant harmless approval-probe value without reading GitHub or performing any write", async () => {
+    const fetchImpl = vi.fn();
+    const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch));
+
+    const result = await tools.call("approval_probe", {});
+
+    expect(result).toEqual({ content: [{ type: "text", text: "sentinelforge-approval-probe: harmless" }] });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

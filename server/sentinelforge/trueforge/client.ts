@@ -30,7 +30,7 @@ export type TrueForgeInlineAgentSpec = {
   mcp_servers?: Array<{
     name: string;
     enable_tools: string[];
-    require_approval_for_tools: Array<"@write" | "@destructive">;
+    require_approval_for_tools: string[];
     preload: true;
   }>;
   response_format?: { type: "json_object" };
