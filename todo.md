@@ -124,7 +124,7 @@
 - [x] Attempt the minimum safe Qodo setup required to review future pull requests; the existing Qodo Code Review GitHub App is installed, and owner-confirmed SentinelForge access has been recorded without delaying backend work.
 - [x] Verify the user-confirmed existing Qodo GitHub App covers `Aayushashsahu/sentinelforge` and supports future pull-request reviews; Qodo reviewed the authorized first small PR and recorded its finding trail.
 - [x] Create and maintain `docs/QODO_REVIEW_LOG.md` with Qodo setup status, small-PR review entries, important findings, fixes, and documented disagreements.
-- [x] Create PR 1 for the repository-level Qodo review policy that will govern subsequent first-party `sentinelforge-tools` MCP and incident-fixture pull requests, wait for Qodo review, and record the outcome before any merge decision; PR #1 is open and Qodo reviewed the final head.
+- [ ] Create PR 1 for the repository-level Qodo review policy that will govern subsequent first-party `sentinelforge-tools` MCP and incident-fixture pull requests, wait for Qodo review, and record the outcome before any merge decision; PR #1 is open, CI is successful, and Qodo’s final reassessment is processing.
 - [x] Fix and rerun the PR 1 CI failure caused by duplicate pnpm version declarations before considering Qodo review complete; the package-manager pin is now the single pnpm source and the rerun succeeded.
 - [x] Resolve Qodo finding QODO-PR1-001: ensure the PR 1 checklist and review log describe the same governance-only scope, then request Qodo reassessment.
 - [x] Resolve Qodo finding QODO-PR1-002: remove the stale first-review-pending status from the Qodo setup record and request Qodo reassessment.

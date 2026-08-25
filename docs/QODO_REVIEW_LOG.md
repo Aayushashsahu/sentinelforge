@@ -19,7 +19,7 @@ After Qodo is installed and a separately authorized GitHub write path is availab
 
 | Planned PR | Scope | Qodo review status | Findings / action |
 | --- | --- | --- | --- |
-| PR 1 | Repository-level Qodo review policy for future first-party MCP work | [Open #1](https://github.com/Aayushashsahu/sentinelforge/pull/1) | Qodo reviewed the PR and updated its review through commit `84c9ad0`. Findings **QODO-PR1-001** and **QODO-PR1-002** were accepted and corrected; the CI pnpm-version conflict was also corrected. The pull request remains open solely for a separate merge decision. |
+| PR 1 | Repository-level Qodo review policy for future first-party MCP work | [Open #1](https://github.com/Aayushashsahu/sentinelforge/pull/1) | Qodo completed review through commit `84c9ad0`; findings **QODO-PR1-001** and **QODO-PR1-002** were accepted and corrected, and the CI pnpm-version conflict was corrected. The final Qodo reassessment of the latest finding-record commit is still processing. CI is successful; no merge decision has been made. |
 | PR 2 | Investigator workflow | Not created | Qodo installation is ready; await separate PR authorization. |
 | PR 3 | Repair proposal and verifier contract | Not created | Qodo installation is ready; await separate PR authorization. |
 | PR 4 | Approval persistence and external-action boundary | Not created | Awaiting live approval prerequisites and separate PR authorization. |
@@ -33,8 +33,8 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 
 | Finding | Disposition | Resolution |
 | --- | --- | --- |
-| QODO-PR1-001 — PR scope mismatch between `todo.md` and this review log | **Accepted** | PR 1 is explicitly a repository-level Qodo policy PR. The completed first-party MCP/fixture implementation predates the review trail and will be represented by a later, independently scoped PR if it receives new diff-based work. The checklist and this log now use the same scope. |
-| QODO-PR1-002 — setup record still stated that the first review was pending | **Accepted** | The setup table and summary now record the completed PR 1 Qodo review activity. The pull request remains open pending a separate merge decision, not a missing review. |
+| QODO-PR1-001 — PR scope mismatch between `todo.md` and this review log | **Accepted; reassessment processing** | PR 1 is explicitly a repository-level Qodo policy PR. The completed first-party MCP/fixture implementation predates the review trail and will be represented by a later, independently scoped PR if it receives new diff-based work. The checklist and this log now use the same scope. |
+| QODO-PR1-002 — setup record still stated that the first review was pending | **Accepted; reassessment processing** | The setup table and summary now record the completed PR 1 Qodo review activity. The pull request remains open pending a separate merge decision, not a missing review. |
 
 ## References
 
