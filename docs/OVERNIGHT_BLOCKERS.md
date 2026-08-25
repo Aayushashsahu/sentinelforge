@@ -67,3 +67,5 @@ The user subsequently requested a direct patch to the actual local TrueForge v0.
 ### Patched runtime was unreachable at its single verification attempt
 
 After the runtime owner reported a local patch/restart, SentinelForge made exactly one constrained read-only verification attempt. The read-only model-catalogue preflight failed before any session or MCP call with Cloudflare HTTP 530 / Error 1033, stating that the tunnel could not reach its origin. No resource block or file text was received, and no retry was made. This leaves the patch **unverified**, not disproven; see [GITHUB_MCP_RESOURCE_BLOCKER.md](./GITHUB_MCP_RESOURCE_BLOCKER.md) for the raw/normalized outcome boundary.
+
+The runtime owner then restored `/healthz` and explicitly authorized one fresh attempt. That second authorization likewise reached only the `GET /api/v1/models` preflight and returned Cloudflare HTTP 530 / Error 1033 before session creation. It yielded no GitHub MCP call or README body, and SentinelForge again did not retry.

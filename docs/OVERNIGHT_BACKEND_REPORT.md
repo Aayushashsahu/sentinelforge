@@ -52,7 +52,7 @@ Mission bundles do not return the stored runtime base URL. Remote correlation st
 | --- | --- |
 | Type check | Passed: `pnpm check` |
 | Full test suite | Passed: 12 files / 47 tests, with 3 live tests skipped unless explicitly authorized. This includes deterministic GitHub MCP text/resource/resource-link normalization, SHA-only rejection, semantic audit-batch mapping, Investigator-message, Repair Engineer limitation, deterministic verifier, approval, and abort-regression coverage. |
-| Explicit live MCP resource verification | The earlier opt-in test observed a real configured GitHub MCP tool call but zero raw resource blocks and no body-backed evidence. The later user-authorized patched-runtime attempt failed before session creation because the Cloudflare tunnel returned HTTP 530 / Error 1033; no MCP result was received and no retry was made. No sandbox, approval, or GitHub write capability was attached. |
+| Explicit live MCP resource verification | The earlier opt-in test observed a real configured GitHub MCP tool call but zero raw resource blocks and no body-backed evidence. Two separately user-authorized patched-runtime attempts each failed before session creation because the Cloudflare tunnel returned HTTP 530 / Error 1033 during `GET /api/v1/models`; neither produced an MCP result and neither was retried. No sandbox, approval, or GitHub write capability was attached. |
 | Production build | Passed: `pnpm build` |
 | Live health test | Passed: 2 live configuration/health tests |
 | Secret-boundary response check | Passed: the runtime base URL is omitted from the mission-status response |

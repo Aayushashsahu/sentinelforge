@@ -44,6 +44,10 @@ The runtime owner subsequently reported that the local `@truefoundry/trueforge@0
 
 This is a transport availability failure, not a metadata-only result and not proof that the local patch failed. Because the user authorized one verification only, SentinelForge did not retry. Once the tunnel origin is reachable again, the runtime owner must explicitly authorize a fresh one-attempt verification.
 
+### Fresh post-recovery authorization
+
+The runtime owner later confirmed that `/healthz` was healthy and explicitly authorized one fresh model-catalogue preflight plus one README MCP read. SentinelForge performed that one attempt at 2026-08-25T07:57:32Z. The required `GET /api/v1/models` again failed with Cloudflare **HTTP 530 / Error 1033** before session creation (Ray ID `a3090be53c288e29`). Therefore the authorized `get_file_contents` call was not made, no raw or normalized MCP content exists, and actual README text still did not reach the Investigator. No retry was made.
+
 ## Public Limitation and Supported Remediation
 
 There is no SentinelForge configuration or documented TrueForge HTTP API that changes this server-side `executeToolCalls` conversion. SentinelForge must not fabricate a resource block from metadata or bypass the configured MCP connector.
