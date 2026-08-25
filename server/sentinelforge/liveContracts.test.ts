@@ -9,6 +9,13 @@ describe("live provider-neutral execution contracts", () => {
     expect(parseTrueForgeApprovalRequiredEvent({ type: "mcp.initialize" })).toBeNull();
   });
 
+  it("rejects oversized untrusted approval-event fields before they can exceed persistence limits", () => {
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "t".repeat(129), tool_call_id: "call_1", tool_name: "github.create_pull_request" })).toBeNull();
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "c".repeat(129), tool_name: "github.create_pull_request" })).toBeNull();
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "a".repeat(129), tool_name: "github.create_pull_request" })).toBeNull();
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", tool_name: "g".repeat(111) })).toBeNull();
+  });
+
   it("builds an explicit allow or deny continuation without executing it", () => {
     expect(buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: true })).toEqual({ type: "user.tool_approval", thread_id: "thread_1", tool_call_id: "call_1", approval: { status: "allow" } });
     expect(buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: false, denialReason: "out of scope" }).approval).toEqual({ status: "deny", reason: "out of scope" });

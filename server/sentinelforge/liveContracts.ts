@@ -18,12 +18,14 @@ export const liveVerificationResultSchema = z.object({
   repair_fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
 }).strict();
 
+const approvalCorrelationIdentifierSchema = z.string().min(1).max(128);
+
 const approvalRequiredEventSchema = z.object({
   type: z.literal("tool.approval_required"),
-  thread_id: z.string().min(1),
-  tool_call_id: z.string().min(1),
-  required_action_id: z.string().min(1).optional(),
-  tool_name: z.string().min(1),
+  thread_id: approvalCorrelationIdentifierSchema,
+  tool_call_id: approvalCorrelationIdentifierSchema,
+  required_action_id: approvalCorrelationIdentifierSchema.optional(),
+  tool_name: z.string().min(1).max(110),
 }).passthrough();
 
 export type LiveRepairProposal = z.infer<typeof liveRepairProposalSchema>;
