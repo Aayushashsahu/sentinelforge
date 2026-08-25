@@ -78,7 +78,7 @@
 - [ ] Address the observed GitHub MCP checksum-only file-response limitation with truthful inspectable fixture metadata, while retaining explicit MCP file-read attempts and no repository repair write.
 - [x] Wire the deterministic verifier abstraction into a read-only SentinelForge backend observation API and verify its explicit `SIMULATED`/no-sandbox status end-to-end.
 - [ ] Verify the bounded live Investigator timeout path end-to-end after the AbortError fix: backend remains up and returns a safe pending or reconciled response without manual recovery.
-- [ ] Bound and batch live stream audit persistence so completed TrueForge investigations do not exceed the API request timeout while writing repeated delta events.
+- [x] Bound and batch semantic live stream audit persistence so completed TrueForge investigations avoid one sequential database round trip per retained event; repeated delta events remain filtered.
 - [ ] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist its proposed patch with evidence limitations, and perform no GitHub write.
 - [ ] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist a valid proposed patch with evidence limitations, and perform no GitHub write.
 - [x] Exercise one bounded real read-only Repair Engineer session and reject its malformed no-patch output fail-closed, with no sandbox, approval continuation, or GitHub write.

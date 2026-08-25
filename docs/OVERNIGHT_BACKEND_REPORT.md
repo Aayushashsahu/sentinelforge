@@ -17,7 +17,7 @@ The initial live target was empty. The replacement incident fixture is public, n
 | Server-side configuration boundary | **REAL** | Base URL, short model name, and GitHub MCP name are server-only environment settings; a token remains optional and omitted when blank. |
 | Model resolution | **REAL** | The runtime catalogue resolved the supplied short name to a fully qualified NVIDIA NIM model name before session creation. |
 | TrueForge session creation | **REAL** | Multiple live sessions were created and correlated to one mission after correcting the one-session-per-mission persistence constraint. |
-| TrueForge turn/event correlation | **REAL / PARTIAL** | Session, turn, thread, and append-only event correlation are persisted. The live reader now has an abort-aware 75-second bound and falls back to read-only `/events` reconciliation when a completed terminal event is available; end-to-end live SSE closure remains unverified. |
+| TrueForge turn/event correlation | **REAL / PARTIAL** | Session, turn, thread, and append-only event correlation are persisted. Semantic stream records now use one ordered immutable batch insert rather than a sequential write per retained event, while repeated model deltas remain filtered. The live reader has an abort-aware 75-second bound and falls back to read-only `/events` reconciliation when a completed terminal event is available; end-to-end live SSE closure remains unverified. |
 | GitHub MCP initialization | **REAL** | A live session initialized the configured GitHub MCP server. |
 | Incident fixture repository | **REAL** | Public, non-empty `Aayushashsahu/sentinelforge-incident-fixture` intentionally fails because `package.json` is `1.4.0` while `release-manifest.json` is `1.3.0`. |
 | GitHub MCP READ | **REAL / BLOCKED FOR CONTENT** | The Investigator issued real read-only `get_file_contents`, branch, release, user-search, and repository-search calls. One turn returned only file SHAs; another contains a model repository-name transcription error and 404 results. Explicit `get_file_contents` selection and two bounded continuation calls produced no observable non-empty file body. |
@@ -51,7 +51,7 @@ Mission bundles do not return the stored runtime base URL. Remote correlation st
 | Check | Result |
 | --- | --- |
 | Type check | Passed: `pnpm check` |
-| Full test suite | Passed: 13 files, 47 tests. This includes deterministic GitHub MCP embedded-resource parsing, SHA-only rejection, Investigator-message, Repair Engineer limitation, deterministic verifier, approval, and abort-regression coverage. |
+| Full test suite | Passed: 13 files, 48 tests. This includes deterministic GitHub MCP embedded-resource parsing, SHA-only rejection, semantic audit-batch mapping, Investigator-message, Repair Engineer limitation, deterministic verifier, approval, and abort-regression coverage. |
 | Production build | Passed: `pnpm build` |
 | Live health test | Passed: 2 live configuration/health tests |
 | Secret-boundary response check | Passed: the runtime base URL is omitted from the mission-status response |

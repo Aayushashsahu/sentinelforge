@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildIncidentInvestigationMessage, selectSemanticStreamEventsForAudit } from "./liveWorkflow";
+import { buildIncidentInvestigationMessage, buildStreamAuditInputs, selectSemanticStreamEventsForAudit } from "./liveWorkflow";
 
 describe("incident investigation message", () => {
   it("uses the mission repository and requires the fixture evidence files", () => {
@@ -28,5 +28,23 @@ describe("incident investigation message", () => {
     ]);
     expect(selected).toHaveLength(2);
     expect(selected.map(item => item.event)).toEqual(["message", "turn.done"]);
+  });
+
+  it("maps semantic stream events to an ordered batch of sanitized immutable audit inputs", () => {
+    const inputs = buildStreamAuditInputs({
+      missionId: "m1",
+      turnId: "turn-1",
+      events: [
+        { event: "message", data: { type: "model.message.delta", content: "skip" } },
+        { event: "message", data: { type: "model.message", id: "e1", tool_calls: [] } },
+        { event: "turn.done", data: { type: "turn.done", id: "e2" } },
+      ],
+    });
+    expect(inputs).toHaveLength(2);
+    expect(inputs.map(input => input.correlationId)).toEqual(["turn-1", "turn-1"]);
+    expect(inputs.map(input => input.payload)).toEqual([
+      expect.objectContaining({ remoteType: "model.message", remoteEventId: "e1" }),
+      expect.objectContaining({ remoteType: "turn.done", remoteEventId: "e2" }),
+    ]);
   });
 });
