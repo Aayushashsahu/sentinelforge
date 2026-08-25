@@ -31,4 +31,30 @@ describe("TrueForge SSE parser", () => {
     await expect(pending).rejects.toBeInstanceOf(TrueForgeSseAbortedError);
     expect(cancelled).toBe(true);
   });
+
+  it("contains a rejected cancellation during abort without creating an unhandled stream failure", async () => {
+    let cancelled = false;
+    const response = new Response(new ReadableStream({
+      start() {},
+      cancel() { cancelled = true; return Promise.reject(new DOMException("aborted", "AbortError")); },
+    }));
+    const controller = new AbortController();
+    const pending = readTrueForgeSse(response, controller.signal);
+    controller.abort();
+
+    await expect(pending).rejects.toBeInstanceOf(TrueForgeSseAbortedError);
+    expect(cancelled).toBe(true);
+  });
+
+  it("returns the controlled abort outcome even when cancellation never resolves", async () => {
+    const response = new Response(new ReadableStream({
+      start() {},
+      cancel() { return new Promise<void>(() => undefined); },
+    }));
+    const controller = new AbortController();
+    const pending = readTrueForgeSse(response, controller.signal);
+    controller.abort();
+
+    await expect(pending).rejects.toBeInstanceOf(TrueForgeSseAbortedError);
+  });
 });

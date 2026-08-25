@@ -11,6 +11,7 @@ describe("read-only Investigator", () => {
   it("accepts only evidence-backed structured results from the event stream", () => {
     const result = parseInvestigatorResult([{ message: JSON.stringify({ finding: "CI manifest differs", root_cause: "Version drift", confidence: 0.9, evidence: [{ source: "github:file", detail: "manifest version differs" }], recommended_next_step: "Prepare a minimal patch" }) }]);
     expect(result.root_cause).toBe("Version drift");
+    expect(parseInvestigatorResult([{ message: JSON.stringify({ finding: "Evidence is incomplete", root_cause: "File content unavailable", confidence: "Low", evidence: [{ source: "github:get_file_contents", detail: "The connector returned only a SHA." }], recommended_next_step: "Obtain accessible content." }) }]).confidence).toBe(0.35);
     expect(() => parseInvestigatorResult([{ message: "not structured output" }])).toThrow(/malformed/i);
   });
 });

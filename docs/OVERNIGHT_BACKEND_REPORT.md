@@ -5,9 +5,9 @@
 
 ## Executive Summary
 
-SentinelForge now has a **real server-side TrueForge integration boundary** beside its preserved deterministic offline fixture. It created real sessions through the reachable standalone/no-auth runtime, resolved the configured short model name against the runtime catalogue, ran a real read-only GitHub MCP investigation, and persisted observed evidence separately from the Investigator’s inference. No GitHub write, sandbox-verified repair, approval continuation, branch, commit, pull request, merge, deployment, repository-administration action, workflow modification, or secrets operation was performed.
+SentinelForge now has a **real server-side TrueForge integration boundary** beside its preserved deterministic offline fixture. It created real sessions through the reachable standalone/no-auth runtime, resolved the configured short model name against the runtime catalogue, and ran real read-only GitHub MCP investigations. It also created the public, deliberately broken `Aayushashsahu/sentinelforge-incident-fixture` repository. No GitHub repair write, sandbox-verified repair, approval continuation, branch, commit, pull request, merge, deployment, repository-administration action, workflow modification, or secrets operation was performed.
 
-The live Investigator established that the configured target repository is empty: GitHub MCP reads reported no default branch, commits, tags, releases, or readable `README.md`. A bounded sandbox session/turn was also created, but it emitted no sandbox lifecycle event for the harmless `printf sentinel-forge-sandbox-ok` command. SentinelForge recorded the sandbox result as **UNKNOWN**, not as a successful verification. Those facts block any genuine repair, approval, or pull-request path.
+The initial live target was empty. The replacement incident fixture is public, non-empty, and deterministically fails its initial release-manifest check. However, the active GitHub MCP returned checksum-only responses for file downloads in one real Investigator turn and the model transcribed the repository name incorrectly in a second turn. The system correctly refused to represent either as a complete evidence-backed root cause. A bounded sandbox session reached real `exec`, but its bootstrap failed on a `pydantic` package-index/proxy path. SentinelForge records the sandbox result as **BLOCKED**, never as a successful verification.
 
 ## Capability Matrix
 
@@ -19,12 +19,14 @@ The live Investigator established that the configured target repository is empty
 | TrueForge session creation | **REAL** | Multiple live sessions were created and correlated to one mission after correcting the one-session-per-mission persistence constraint. |
 | TrueForge turn/event correlation | **REAL / PARTIAL** | Session, turn, thread, and append-only event correlation are persisted. The live reader now has an abort-aware 75-second bound and falls back to read-only `/events` reconciliation when a completed terminal event is available; end-to-end live SSE closure remains unverified. |
 | GitHub MCP initialization | **REAL** | A live session initialized the configured GitHub MCP server. |
-| GitHub MCP evidence | **REAL** | The Investigator issued real read-only `get_file_contents`, branch, tag, release, and commit calls. Observed results are stored separately from inference. |
-| Investigator structured result | **REAL** | The completed reconciled turn passed local Zod validation and advanced the mission to `PLANNING_FIX`. |
-| Repair Engineer | **BLOCKED** | The target repository has no source, workflow, branch, or CI artifact to repair. |
-| TrueForge sandbox verification | **BLOCKED** | The first probe emitted no sandbox lifecycle event. The user-requested retry reached the real sandbox `exec` tool, but bootstrap failed because the sandbox could not install `pydantic` through its configured proxy; no terminal `turn.done` arrived before the bounded client timeout. Both outcomes are recorded as `UNKNOWN`, never `PASS`. |
-| Human approval pause/resume | **UNAVAILABLE** | No repair proposal or sandbox pass exists, so no genuine required-action event was created or continued. |
-| GitHub branch, commit, or pull request | **NOT PERFORMED** | These remain intentionally blocked by missing repair, sandbox, and approval prerequisites. |
+| Incident fixture repository | **REAL** | Public, non-empty `Aayushashsahu/sentinelforge-incident-fixture` intentionally fails because `package.json` is `1.4.0` while `release-manifest.json` is `1.3.0`. |
+| GitHub MCP READ | **REAL / PARTIAL** | The Investigator issued real read-only `get_file_contents`, branch, release, user-search, and repository-search calls. One turn returned only file SHAs; another contains a model repository-name transcription error and 404 results. |
+| Evidence and root cause | **PARTIAL** | A completed reconciled real turn persisted observed GitHub MCP directory/file metadata and an evidence-backed root cause that the connector delivered SHA/URL metadata rather than file bodies. It did not claim the release-manifest mismatch was directly observed by the agent. |
+| Repair Engineer | **PARTIAL / BLOCKED** | A real separate read-only Repair Engineer session initialized GitHub MCP and called `get_file_contents`, but returned a null patch, empty changed-file list, string-valued evidence limit, and a `none` risk after the same content limitation. The strict parser rejected it; no patch was persisted or applied. |
+| Verifier | **SIMULATED** | A deterministic, pure no-shell incident-fixture verifier is now exposed through a read-only backend API. It passes the proposed `1.4.0` manifest change and explicitly returns `mode: DETERMINISTIC_FIXTURE` and `didExecuteSandbox: false`. |
+| TrueForge sandbox verification | **BLOCKED** | The first probe emitted no sandbox lifecycle event. The final retry reached real sandbox `exec`, but bootstrap failed because the sandbox could not install `pydantic` through its configured proxy. The final source timebox found no permitted official local-provider remedy. |
+| Human approval pause/resume | **PARTIAL / GATED** | The exact `user.tool_approval` continuation schema, fail-closed approval-required persistence, owner notification, and idempotency gates are implemented and tested. No genuine required-action event or continuation was sent because the repair proposal and live sandbox prerequisites failed. |
+| GitHub branch, commit, or pull request | **BLOCKED** | No verified live repair proposal, sandbox pass, real approval event, or continuation exists. No external repair action was performed. |
 | Deterministic offline fixture | **SIMULATED / PRESERVED** | The existing fixture verifier and simulated approval action remain available and clearly distinct from live mode. |
 
 ## Runtime and Package Compatibility
@@ -49,7 +51,7 @@ Mission bundles do not return the stored runtime base URL. Remote correlation st
 | Check | Result |
 | --- | --- |
 | Type check | Passed: `pnpm check` |
-| Full test suite | Passed: 6 files, 25 tests |
+| Full test suite | Passed: 12 files, 44 tests. This includes focused Repair Engineer limitation workflow, deterministic verifier API, Investigator-message, confidence-normalization, and abort regression coverage. |
 | Production build | Passed: `pnpm build` |
 | Live health test | Passed: 2 live configuration/health tests |
 | Secret-boundary response check | Passed: the runtime base URL is omitted from the mission-status response |
@@ -59,7 +61,7 @@ The production build issued only the pre-existing bundle-size warning for a clie
 
 ## Blockers and Their Effect
 
-The exact live blockers are maintained in [OVERNIGHT_BLOCKERS.md](./OVERNIGHT_BLOCKERS.md). The important current boundaries are the runtime/API-envelope compatibility mismatch, live SSE response completion requiring reconciliation, a sandbox provider whose Python bootstrap cannot reach its dependency source through the configured proxy, and an empty target repository. Each blocks progressively later workflow stages. SentinelForge fails closed rather than simulating a repair, approval, or GitHub write.
+The exact live blockers are maintained in [OVERNIGHT_BLOCKERS.md](./OVERNIGHT_BLOCKERS.md) and the completed infrastructure timebox is in [SANDBOX_BLOCKER.md](./SANDBOX_BLOCKER.md). The important current boundaries are the runtime/API-envelope compatibility mismatch, live SSE response completion requiring reconciliation, a sandbox provider whose Python bootstrap cannot reach its dependency source through the configured proxy, and a GitHub MCP file-content interaction that returns checksums rather than content to the model. Each blocks progressively later workflow stages. SentinelForge fails closed rather than simulating a repair, approval, or GitHub write.
 
 ## Commits and Checkpoint State
 
@@ -67,4 +69,4 @@ No manual Git commit was created during this sprint. The next step is to save a 
 
 ## Exact Morning Next Action
 
-> Make the sandbox image self-contained with compatible `pydantic` installed, or restore its package-index proxy/network route. Then rerun exactly `printf sentinel-forge-sandbox-ok` in a dedicated sandbox-enabled session and require both a successful tool response and terminal `turn.done`. In parallel, point SentinelForge at a non-empty repository and a reproducible CI incident. Only after both produce real evidence should the team create a bounded Repair Engineer proposal, require a real approval action, and consider one idempotent GitHub pull-request action.
+> Repair the local runtime’s sandbox artifact or package-index/proxy path outside SentinelForge, then rerun exactly `printf sentinel-forge-sandbox-ok` and require both a successful real `exec` result and terminal `turn.done`. The incident fixture now exists; next resolve GitHub MCP file-content delivery to the model or use a documented MCP read result that exposes the actual file text. Only after direct evidence, a live repair proposal, and live sandbox verification should the team create a genuine required-action event, resume it after approval, and consider one idempotent pull-request action.
