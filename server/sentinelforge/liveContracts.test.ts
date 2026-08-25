@@ -28,6 +28,13 @@ describe("live provider-neutral execution contracts", () => {
     expect(buildIdempotentGitHubPullRequestIntent({ missionId: "SF_1", repository: "owner/repo", proposal, fingerprint })).toMatchObject({ actionType: "GITHUB_PULL_REQUEST", idempotencyKey: `trueforge-pr:SF_1:${fingerprint}`, branchName: "sentinelforge/sf_1" });
   });
 
+  it("fails closed for unsafe dormant PR-intent targets", () => {
+    const fingerprint = createRepairFingerprint(proposal);
+    expect(() => buildIdempotentGitHubPullRequestIntent({ missionId: "mission_1", repository: "owner/repo", proposal, fingerprint })).toThrow(/SentinelForge mission/);
+    expect(() => buildIdempotentGitHubPullRequestIntent({ missionId: "SF_1", repository: "owner/repo/extra", proposal, fingerprint })).toThrow(/owner\/repository/);
+    expect(() => buildIdempotentGitHubPullRequestIntent({ missionId: "SF_1", repository: "owner/repo", proposal: { ...proposal, files_changed: ["../secret"] }, fingerprint })).toThrow(/unsafe changed-file path/);
+  });
+
   it("reports contracts as guarded or blocked rather than claiming a live approval or write", () => {
     expect(getLiveExecutionContractStatus()).toMatchObject({ sandbox: "BLOCKED_BY_PROVIDER_BOOTSTRAP", githubWrite: "GUARDED_NO_REMOTE_WRITE_IMPLEMENTED" });
   });

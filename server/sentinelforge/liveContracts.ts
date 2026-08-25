@@ -74,9 +74,24 @@ export function assertLiveGitHubPrExecutionAllowed(input: LiveExecutionGateInput
   if (input.existingActionCount !== 0) throw new Error("GitHub action refused: an idempotent action record already exists.");
 }
 
+function assertSafeGitHubPullRequestIntentTarget(input: { missionId: string; repository: string; filesChanged: readonly string[] }): void {
+  if (!/^SF_[A-Za-z0-9_-]{1,120}$/.test(input.missionId)) {
+    throw new Error("A SentinelForge mission identifier is required for a GitHub PR intent.");
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/.test(input.repository)) {
+    throw new Error("A canonical owner/repository target is required for a GitHub PR intent.");
+  }
+  for (const filePath of input.filesChanged) {
+    if (filePath.startsWith("/") || filePath.includes("\\") || filePath.split("/").some(segment => segment === ".." || segment.length === 0)) {
+      throw new Error("GitHub PR intent contains an unsafe changed-file path.");
+    }
+  }
+}
+
 export function buildIdempotentGitHubPullRequestIntent(input: { missionId: string; repository: string; proposal: LiveRepairProposal; fingerprint: string }) {
   const proposal = liveRepairProposalSchema.parse(input.proposal);
   if (!/^[a-f0-9]{64}$/.test(input.fingerprint)) throw new Error("A valid repair fingerprint is required for a GitHub PR intent.");
+  assertSafeGitHubPullRequestIntentTarget({ missionId: input.missionId, repository: input.repository, filesChanged: proposal.files_changed });
   return {
     actionType: "GITHUB_PULL_REQUEST" as const,
     target: input.repository,
