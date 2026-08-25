@@ -2,8 +2,8 @@
 
 **Recorded:** 2026-08-25  
 **Working branch:** `main`  
-**Stable main checkpoint:** `4644493d`
-**Worktree at record time:** The deterministic approval-persistence regression hardening, this baseline update, and the corresponding checklist update are the only uncommitted main-branch changes.
+**Stable main checkpoint:** `c7df83b6`
+**Worktree at record time:** Clean after the verified deterministic hardening checkpoint.
 **Scope:** Backend-only release-incident vertical slice. No dashboard redesign is in scope.
 
 ## Current Main-Branch Baseline
@@ -16,7 +16,7 @@
 | Verifier | **SIMULATED**. The deterministic fixture verifier is explicit about `didExecuteSandbox: false`; it is not a sandbox pass. |
 | Sandbox | **BLOCKED**. The provider bootstrap cannot install `pydantic` through its configured proxy. This blocker is not to be retried absent an infrastructure-side remedy. |
 | Approval and repair write | **GATED**. No genuine required-action event, approval continuation, sandbox pass, write-scoped repair credential, or repair-action authorization exists. |
-| Deterministic verification | **PASS**. `pnpm check`, `pnpm test` (57 passing, 9 opt-in live tests skipped), `pnpm build`, and `git diff --check` passed at the current milestone. |
+| Deterministic verification | **PASS**. `pnpm check`, `pnpm test` (61 passing deterministic tests across 14 test files, with 9 opt-in live tests skipped), `pnpm build`, and `git diff --check` passed at checkpoint `c7df83b6`. |
 
 ## Architecture, Persistence, and Workflow
 
@@ -32,10 +32,12 @@ The live workflow is deliberately ordered as **ordinary-text evidence → read-o
 
 ## Repository and Review State
 
-The baseline branch remains separate from the open Qodo governance pull request. PR [#1](https://github.com/Aayushashsahu/sentinelforge/pull/1) is a narrow repository-review-policy and CI-consistency change, not a repair action and not a substitute for an evidence-bearing incident implementation diff. A single bounded status inspection found the GitHub `quality` check successful and four Qodo `COMMENTED` reviews through commit `9f1f652`; it found no formal review decision and no Qodo result shown for the later pnpm-alignment commit. The PR therefore remains open pending Qodo’s asynchronous reassessment and a later, separate merge decision.
+The baseline branch remains separate from the open Qodo governance pull request. PR [#1](https://github.com/Aayushashsahu/sentinelforge/pull/1) is a narrow repository-review-policy and CI-consistency change, not a repair action and not a substitute for an evidence-bearing incident implementation diff. Its remote head is `dac3afc49839f61601a5fb29b96c7a93e4a98c41`; the visible `quality` check is successful, while the four visible Qodo `COMMENTED` reviews only reach `9f1f652`. There is no formal review decision and no visible Qodo reassessment of the current head. The PR therefore remains open pending asynchronous reassessment and a later, separately authorized merge decision.
 
 > **Safety boundary:** No PR review, Qodo policy, or CI change authorizes applying the persisted repair proposal. The sandbox, approval, and repair-write gates remain unchanged.
 
 ## Next Independent Backend Work
 
-This milestone adds regression coverage that fails closed before any persistence when the repair fingerprint is invalid or no correlated TrueForge turn exists, and confirms that an owner-notification outage leaves the action paused and audited. The safe next implementation work is to continue strengthening deterministic failure handling and read-only observation contracts. Live sandbox, approval continuation, and repair GitHub-write execution remain dormant until their separate verified prerequisites and explicit authorizations exist.
+The later hardening milestones keep all dormant execution boundaries fail-closed without performing a live action. Approval persistence now rejects invalid fingerprints and missing correlated turns, while notification failure still leaves the action paused and audited. The live approval-event adapter rejects malformed events and invalid fingerprints before repository lookup; stream identifiers and tool names are bounded to compatible persistence limits; approval-continuation inputs reject blank or oversized correlation and denial fields; and the dormant GitHub gate validates both matching repair fingerprints as SHA-256 before a future write could be permitted. The read-only execution surface reports `PERSISTED_UNAPPLIED_READ_ONLY_PROPOSAL`, accurately describing the existing Repair Engineer artifact.
+
+The safe next implementation work is therefore limited to independent deterministic failure handling and read-only observation contracts. Live sandbox, approval continuation, repair GitHub-write execution, Qodo remediation, and any merge remain dormant until their separate verified prerequisites and explicit authorizations exist.
