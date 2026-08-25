@@ -6,12 +6,12 @@
 
 | Item | Status | Evidence / next action |
 | --- | --- | --- |
-| Qodo task connector | **BLOCKED** | No Qodo connector is present in the current task configuration. |
-| Qodo GitHub App installation | **NOT YET INSTALLED** | The authenticated GitHub account showed no existing Qodo app installation. Qodo’s official Marketplace flow requires installing the GitHub App, selecting the repository, and opening a PR before automated reviews begin. [1] |
-| Browser-assisted installation | **AWAITING CONFIRMATION** | The official Marketplace page was opened, but the connected browser timed out before its installation controls could be inspected. Installing an app changes repository-access permissions and requires the owner’s confirmation. |
-| Pull-request review capability | **UNVERIFIED** | Verification requires a Qodo-installed repository and a small pull request. No pull request has been created for setup. |
+| Qodo task connector | **NOT REQUIRED** | Qodo review is supplied by the existing GitHub App rather than a task connector. |
+| Qodo GitHub App installation | **REAL** | The authenticated GitHub settings page lists **Qodo Code Review** as an installed GitHub App. |
+| SentinelForge repository access | **OWNER-CONFIRMED** | The owner confirmed the existing Qodo installation has already been configured for `Aayushashsahu/sentinelforge`. A supplementary read-only GitHub REST probe could not authenticate because the supplied CLI credential returned HTTP 401; no access setting was changed. |
+| Pull-request review capability | **PENDING FIRST SMALL PR** | Qodo’s documented flow begins automated review after a repository-selected pull request is opened. No PR has been created for setup. [1] |
 
-> **QODO: BLOCKED** — the blocker is missing Qodo GitHub App installation/authorization, not the SentinelForge runtime. Backend development continues independently.
+> **QODO: REAL** — Qodo Code Review is installed and repository access is owner-confirmed. The first automated review remains pending a future, separately authorized small pull request. Backend development continues independently.
 
 ## Small Pull-Request Review Plan
 
@@ -19,11 +19,11 @@ After Qodo is installed and a separately authorized GitHub write path is availab
 
 | Planned PR | Scope | Qodo review status | Findings / action |
 | --- | --- | --- | --- |
-| PR 1 | First-party `sentinelforge-tools` MCP and incident fixture | Not created | Awaiting Qodo installation and separate PR authorization. |
-| PR 2 | Investigator workflow | Not created | Awaiting Qodo installation and separate PR authorization. |
-| PR 3 | Repair proposal and verifier contract | Not created | Awaiting Qodo installation and separate PR authorization. |
-| PR 4 | Approval persistence and external-action boundary | Not created | Awaiting live approval prerequisites, Qodo installation, and separate PR authorization. |
-| PR 5 | Final hardening and demo readiness | Not created | Awaiting Qodo installation and separate PR authorization. |
+| PR 1 | First-party `sentinelforge-tools` MCP and incident fixture | Not created | Qodo installation is ready; await separate PR authorization. |
+| PR 2 | Investigator workflow | Not created | Qodo installation is ready; await separate PR authorization. |
+| PR 3 | Repair proposal and verifier contract | Not created | Qodo installation is ready; await separate PR authorization. |
+| PR 4 | Approval persistence and external-action boundary | Not created | Awaiting live approval prerequisites and separate PR authorization. |
+| PR 5 | Final hardening and demo readiness | Not created | Qodo installation is ready; await separate PR authorization. |
 
 ## Review Entry Format
 
