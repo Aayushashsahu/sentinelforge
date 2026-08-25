@@ -24,6 +24,7 @@
 - [ ] Implement TrueForge sandbox verification after the runtime emits a verified sandbox lifecycle event; current harmless probe is recorded as `UNKNOWN`.
 - [ ] Implement real approval pause-resume and one idempotent GitHub pull-request action after verified approval.
 - [ ] Add backend failure handling, typed observation APIs, integration tests, public setup documentation, and offline-mode disclosure.
+- [x] Harden the dormant GitHub PR-intent contract with fail-closed mission, repository, and changed-file validation; deterministic coverage passes without enabling any write path.
 - [x] Verify the real backend path and preserve all deterministic offline tests before saving a final milestone checkpoint; the authorized first-party MCP Investigator and Repair Engineer stages plus full deterministic checks are complete.
 - [x] Assess whether the managed SentinelForge environment can host a private co-located TrueForge v0.1.4 runtime with its required dependencies.
 - [x] If supported, provision and configure a private TrueForge runtime with NVIDIA NIM and GitHub MCP connectivity; otherwise document the environment blocker without inventing a URL.
