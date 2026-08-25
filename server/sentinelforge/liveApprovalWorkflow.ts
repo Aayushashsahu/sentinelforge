@@ -1,11 +1,12 @@
 import { notifyOwner } from "../_core/notification";
-import { parseTrueForgeApprovalRequiredEvent } from "./liveContracts";
+import { isValidRepairFingerprint, parseTrueForgeApprovalRequiredEvent } from "./liveContracts";
 import { addApprovalRequest, appendMissionEvent, getMissionBundle, getTrueForgeTurnByMission, setMissionStatus, updateTrueForgeTurn } from "./repository";
 import { persistTrueForgeApprovalRequired } from "./trueforgeApproval";
 
 export async function persistLiveTrueForgeApprovalRequired(input: { missionId: string; streamEvent: unknown; repairFingerprint: string; verificationEvidenceRefs: string[] }) {
   const event = parseTrueForgeApprovalRequiredEvent(input.streamEvent);
   if (!event) throw new Error("TrueForge approval persistence refused: event is not a valid tool.approval_required payload.");
+  if (!isValidRepairFingerprint(input.repairFingerprint)) throw new Error("TrueForge approval persistence refused: repair fingerprint is invalid.");
   return persistTrueForgeApprovalRequired({
     getMission: async missionId => {
       const bundle = await getMissionBundle(missionId);

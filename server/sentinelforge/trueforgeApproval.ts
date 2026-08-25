@@ -1,5 +1,5 @@
 import type { MissionStatus, Risk } from "../../shared/sentinelforge";
-import type { TrueForgeApprovalRequired } from "./liveContracts";
+import { isValidRepairFingerprint, type TrueForgeApprovalRequired } from "./liveContracts";
 
 type ApprovalRecord = { id: string };
 type MissionRecord = { id: string; status: MissionStatus };
@@ -20,7 +20,7 @@ export async function persistTrueForgeApprovalRequired<TBundle>(port: TrueForgeA
   const mission = await port.getMission(input.missionId);
   if (!mission) throw new Error("Mission was not found.");
   if (mission.status !== "VERIFYING") throw new Error("TrueForge approval-required event refused: mission must be in VERIFYING after real verification passes.");
-  if (!/^[a-f0-9]{64}$/.test(input.repairFingerprint)) throw new Error("TrueForge approval-required event refused: repair fingerprint is invalid.");
+  if (!isValidRepairFingerprint(input.repairFingerprint)) throw new Error("TrueForge approval-required event refused: repair fingerprint is invalid.");
   const turn = await port.getLatestTrueForgeTurn(input.missionId);
   if (!turn) throw new Error("TrueForge approval-required event refused: no correlated turn exists.");
 
