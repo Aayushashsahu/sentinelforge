@@ -21,6 +21,13 @@ describe("live provider-neutral execution contracts", () => {
     expect(buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: false, denialReason: "out of scope" }).approval).toEqual({ status: "deny", reason: "out of scope" });
   });
 
+  it("fails closed when a dormant approval continuation has malformed identifiers or an invalid denial reason", () => {
+    expect(() => buildTrueForgeApprovalContinuation({ threadId: " ", toolCallId: "call_1", approve: true })).toThrow(/bounded non-blank/);
+    expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "c".repeat(129), approve: true })).toThrow(/bounded non-blank/);
+    expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: false, denialReason: "   " })).toThrow(/denial reason/);
+    expect(() => buildTrueForgeApprovalContinuation({ threadId: "thread_1", toolCallId: "call_1", approve: false, denialReason: "d".repeat(4_001) })).toThrow(/denial reason/);
+  });
+
   it("fails closed until approval, verification, correlation, fingerprint, and idempotency prerequisites all pass", () => {
     const fingerprint = createRepairFingerprint(proposal);
     const gate = { missionStatus: "WAITING_APPROVAL" as const, approvalStatus: "APPROVED" as const, verificationStatus: "PASS" as const, approvedFingerprint: fingerprint, currentFingerprint: fingerprint, requiredActionId: "action_1", toolCallId: "call_1", existingActionCount: 0, risk: "LOW" as const };
