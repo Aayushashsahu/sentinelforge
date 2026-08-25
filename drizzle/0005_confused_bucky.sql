@@ -1,0 +1,1 @@
+ALTER TABLE `approval_continuations` MODIFY COLUMN `status` enum('PENDING_SEND','SENDING','SENT','FAILED','NOT_SENT') NOT NULL;

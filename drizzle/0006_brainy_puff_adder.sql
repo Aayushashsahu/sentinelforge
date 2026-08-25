@@ -1,0 +1,1 @@
+ALTER TABLE `approval_continuations` MODIFY COLUMN `idempotencyKey` varchar(255) NOT NULL;

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { approvalRequests, evidence, externalActions, missionEvents, missions, sandboxRuns, trueforgeSessions, trueforgeTurns, type Mission } from "../../drizzle/schema";
+import { approvalContinuations, approvalRequests, evidence, externalActions, missionEvents, missions, sandboxRuns, trueforgeSessions, trueforgeTurns, type Mission } from "../../drizzle/schema";
 import type { MissionStatus, Risk } from "../../shared/sentinelforge";
 import { getDb } from "../db";
 import { assertAllowedMissionTransition } from "./transitions";
@@ -57,9 +57,9 @@ export async function recoverPlanningMissionAfterRepairParsingFailure(missionId:
 }
 export async function getMissionBundle(missionId: string) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const [mission] = await db.select().from(missions).where(eq(missions.id, missionId)).limit(1); if (!mission) return null;
-  const [events, missionEvidence, runs, approvals, actions, trueforgeSessionRecords, trueforgeTurnRecords] = await Promise.all([db.select().from(missionEvents).where(eq(missionEvents.missionId, missionId)).orderBy(asc(missionEvents.sequence)), db.select().from(evidence).where(eq(evidence.missionId, missionId)).orderBy(asc(evidence.createdAt)), db.select().from(sandboxRuns).where(eq(sandboxRuns.missionId, missionId)).orderBy(desc(sandboxRuns.createdAt)), db.select().from(approvalRequests).where(eq(approvalRequests.missionId, missionId)).orderBy(desc(approvalRequests.createdAt)), db.select().from(externalActions).where(eq(externalActions.missionId, missionId)).orderBy(desc(externalActions.createdAt)), db.select().from(trueforgeSessions).where(eq(trueforgeSessions.missionId, missionId)).orderBy(desc(trueforgeSessions.createdAt)), db.select().from(trueforgeTurns).where(eq(trueforgeTurns.missionId, missionId)).orderBy(desc(trueforgeTurns.createdAt))]);
+  const [events, missionEvidence, runs, approvals, actions, continuations, trueforgeSessionRecords, trueforgeTurnRecords] = await Promise.all([db.select().from(missionEvents).where(eq(missionEvents.missionId, missionId)).orderBy(asc(missionEvents.sequence)), db.select().from(evidence).where(eq(evidence.missionId, missionId)).orderBy(asc(evidence.createdAt)), db.select().from(sandboxRuns).where(eq(sandboxRuns.missionId, missionId)).orderBy(desc(sandboxRuns.createdAt)), db.select().from(approvalRequests).where(eq(approvalRequests.missionId, missionId)).orderBy(desc(approvalRequests.createdAt)), db.select().from(externalActions).where(eq(externalActions.missionId, missionId)).orderBy(desc(externalActions.createdAt)), db.select().from(approvalContinuations).where(eq(approvalContinuations.missionId, missionId)).orderBy(desc(approvalContinuations.createdAt)), db.select().from(trueforgeSessions).where(eq(trueforgeSessions.missionId, missionId)).orderBy(desc(trueforgeSessions.createdAt)), db.select().from(trueforgeTurns).where(eq(trueforgeTurns.missionId, missionId)).orderBy(desc(trueforgeTurns.createdAt))]);
   const publicTrueForgeSessions = trueforgeSessionRecords.map(({ baseUrl: _baseUrl, ...session }) => session);
-  return { mission, events, evidence: missionEvidence, runs, approvals, actions, trueforgeSessions: publicTrueForgeSessions, trueforgeTurns: trueforgeTurnRecords };
+  return { mission, events, evidence: missionEvidence, runs, approvals, actions, continuations, trueforgeSessions: publicTrueForgeSessions, trueforgeTurns: trueforgeTurnRecords };
 }
 export async function listMissionBundles() { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const list = await db.select().from(missions).orderBy(desc(missions.updatedAt)); return Promise.all(list.map(mission => getMissionBundle(mission.id))); }
 export async function getApprovalWithMission(requestId: string) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const [approval] = await db.select().from(approvalRequests).where(eq(approvalRequests.id, requestId)).limit(1); if (!approval) return null; const [mission] = await db.select().from(missions).where(eq(missions.id, approval.missionId)).limit(1); return mission ? { approval, mission } : null; }
@@ -98,4 +98,78 @@ export async function getTrueForgeTurnByMission(missionId: string) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   const [record] = await db.select().from(trueforgeTurns).where(eq(trueforgeTurns.missionId, missionId)).orderBy(desc(trueforgeTurns.createdAt)).limit(1);
   return record ?? null;
+}
+
+type ContinuationPayload = { type: "user.tool_approval"; thread_id: string; tool_call_id: string; approval: { status: "allow" } | { status: "deny"; reason?: string } };
+type ContinuationStatus = "PENDING_SEND" | "SENDING" | "SENT" | "FAILED" | "NOT_SENT";
+
+function parseContinuationPayload(value: string): ContinuationPayload {
+  const parsed = JSON.parse(value) as ContinuationPayload;
+  if (parsed.type !== "user.tool_approval" || typeof parsed.thread_id !== "string" || typeof parsed.tool_call_id !== "string" || !parsed.approval || (parsed.approval.status !== "allow" && parsed.approval.status !== "deny")) {
+    throw new Error("Persisted TrueForge continuation payload is malformed.");
+  }
+  return parsed;
+}
+
+function mapContinuation(record: typeof approvalContinuations.$inferSelect) {
+  return { ...record, payload: parseContinuationPayload(record.payload) };
+}
+
+export async function getTrueForgeApprovalBridgeRecord(requestId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const [approval] = await db.select().from(approvalRequests).where(eq(approvalRequests.id, requestId)).limit(1);
+  if (!approval) return null;
+  const [mission] = await db.select().from(missions).where(eq(missions.id, approval.missionId)).limit(1);
+  const [turn] = await db.select().from(trueforgeTurns).where(and(eq(trueforgeTurns.missionId, approval.missionId), eq(trueforgeTurns.status, "WAITING_APPROVAL"))).orderBy(desc(trueforgeTurns.createdAt)).limit(1);
+  if (!mission || !turn || !turn.threadId || !turn.toolCallId || !turn.requiredActionId) return null;
+  return { approvalRequestId: approval.id, missionId: mission.id, approvalStatus: approval.status, expiresAt: approval.expiresAt, missionStatus: mission.status, trueforgeSessionId: turn.trueforgeSessionId, turnId: turn.turnId, threadId: turn.threadId, toolCallId: turn.toolCallId, requiredActionId: turn.requiredActionId };
+}
+
+export async function getApprovalContinuationByApprovalRequest(approvalRequestId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const [record] = await db.select().from(approvalContinuations).where(eq(approvalContinuations.approvalRequestId, approvalRequestId)).limit(1);
+  return record ? mapContinuation(record) : null;
+}
+
+export async function getApprovalContinuationById(continuationId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const [record] = await db.select().from(approvalContinuations).where(eq(approvalContinuations.id, continuationId)).limit(1);
+  return record ? mapContinuation(record) : null;
+}
+
+export async function createApprovalContinuation(input: { approvalRequestId: string; missionId: string; decision: "APPROVED" | "REJECTED"; status: ContinuationStatus; idempotencyKey: string; trueforgeSessionId: string; turnId: string; threadId: string; toolCallId: string; payload: ContinuationPayload }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const createdAt = now();
+  const record = { id: id("tfc"), ...input, payload: JSON.stringify(input.payload), lastError: null, attemptCount: 0, createdAt, updatedAt: createdAt, sentAt: null };
+  try {
+    await db.insert(approvalContinuations).values(record);
+  } catch (error) {
+    const [existing] = await db.select().from(approvalContinuations).where(eq(approvalContinuations.approvalRequestId, input.approvalRequestId)).limit(1);
+    if (existing) return mapContinuation(existing);
+    throw error;
+  }
+  return mapContinuation(record);
+}
+
+export async function decideApprovalIfPending(requestId: string, status: "APPROVED" | "REJECTED") {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const result = await db.update(approvalRequests).set({ status, decidedAt: now(), decidedBy: "operator" }).where(and(eq(approvalRequests.id, requestId), eq(approvalRequests.status, "PENDING")));
+  return (result as { affectedRows?: number }).affectedRows === 1;
+}
+
+export async function claimApprovalContinuationForSend(continuationId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const result = await db.update(approvalContinuations).set({ status: "SENDING", updatedAt: now() }).where(and(eq(approvalContinuations.id, continuationId), eq(approvalContinuations.status, "PENDING_SEND")));
+  return (result as { affectedRows?: number }).affectedRows === 1;
+}
+
+export async function markApprovalContinuationSent(continuationId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const updatedAt = now();
+  await db.update(approvalContinuations).set({ status: "SENT", attemptCount: 1, sentAt: updatedAt, updatedAt }).where(eq(approvalContinuations.id, continuationId));
+}
+
+export async function markApprovalContinuationFailed(continuationId: string, error: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(approvalContinuations).set({ status: "FAILED", attemptCount: 1, lastError: error.slice(0, 4_000), updatedAt: now() }).where(eq(approvalContinuations.id, continuationId));
 }
