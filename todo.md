@@ -84,3 +84,7 @@
 - [x] Exercise one bounded real read-only Repair Engineer session and reject its malformed no-patch output fail-closed, with no sandbox, approval continuation, or GitHub write.
 - [x] Adjust Repair Engineer handling so an evidence-limited non-proposal output is persisted explicitly as a limitation without failing a future planning mission; valid proposal persistence remains blocked until direct source evidence is available.
 - [ ] Verify the real Repair Engineer limitation branch end-to-end: persist `REPAIR_LIMITATION` evidence and `REPAIR_LIMITED` audit state while keeping the mission in planning with no approval or GitHub action.
+- [x] Inspect the actual configured `github` MCP tool contract and existing TrueForge handling for `get_file_contents` content, resource, and metadata result shapes without a custom GitHub client.
+- [x] Explicitly select the GitHub `get_file_contents` MCP tool if filtering permits and add source-shaped handling coverage for embedded resource text, without claiming the remote runtime delivers it.
+- [x] Run the bounded read-only content-attempt budget against `Aayushashsahu/sentinelforge` README.md through the TrueForge/GitHub-MCP path; neither attempt produced observable non-empty file text, so no workflow/package claim was made.
+- [x] Add deterministic MCP embedded-resource coverage and create `docs/GITHUB_MCP_CONTENT_BLOCKER.md` with the observed metadata response, bounded-attempt diagnosis, and supported next step.

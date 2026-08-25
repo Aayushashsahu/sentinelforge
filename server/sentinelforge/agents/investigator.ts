@@ -31,7 +31,7 @@ export function buildReadOnlyInvestigatorSpec(input: { model: string; githubMcpN
       "Return only a JSON object with finding, root_cause, confidence, evidence [{source, detail}], and recommended_next_step.",
       "Every conclusion must cite evidence actually observed through the GitHub MCP connector. If evidence is insufficient, say so in the finding and recommended_next_step instead of inventing facts.",
     ].join(" "),
-    mcp_servers: [{ name: input.githubMcpName, enable_tools: ["@read-only"], require_approval_for_tools: ["@write", "@destructive"], preload: true }],
+    mcp_servers: [{ name: input.githubMcpName, enable_tools: ["@read-only", "search_repositories", "get_file_contents"], require_approval_for_tools: ["@write", "@destructive"], preload: true }],
     config: {
       iteration_limit: 12,
       sandbox: { enabled: false, file_downloads: false },

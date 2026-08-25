@@ -28,7 +28,7 @@ export type TrueForgeInlineAgentSpec = {
   instructions: string;
   mcp_servers?: Array<{
     name: string;
-    enable_tools: ["@read-only"];
+    enable_tools: string[];
     require_approval_for_tools: Array<"@write" | "@destructive">;
     preload: true;
   }>;
