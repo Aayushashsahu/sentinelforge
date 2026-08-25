@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildIncidentInvestigationMessage, buildStreamAuditInputs, selectSemanticStreamEventsForAudit } from "./liveWorkflow";
+import { buildIncidentInvestigationMessage, buildStreamAuditInputs, findTrueForgeApprovalProbePause, selectSemanticStreamEventsForAudit } from "./liveWorkflow";
 
 describe("incident investigation message", () => {
   it("uses the mission repository and requires the fixture evidence files", () => {
@@ -46,5 +46,11 @@ describe("incident investigation message", () => {
       expect.objectContaining({ remoteType: "model.message", remoteEventId: "e1" }),
       expect.objectContaining({ remoteType: "turn.done", remoteEventId: "e2" }),
     ]);
+  });
+
+  it("accepts one actual provider approval pause and rejects unrelated or ambiguous approval events", () => {
+    const pause = { type: "tool.approval_required", id: "approval_event_1", created_at: "2026-08-25T15:00:00.000Z", thread_id: "thread_1", tool_calls: [{ id: "call_1", source_event_id: "model_event_1" }] };
+    expect(findTrueForgeApprovalProbePause([{ event: "message", data: { type: "model.message" } }, { event: "message", data: pause }])).toEqual(pause);
+    expect(findTrueForgeApprovalProbePause([{ event: "message", data: { ...pause, tool_calls: [] } }])).toBeNull();
   });
 });

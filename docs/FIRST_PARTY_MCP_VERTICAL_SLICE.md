@@ -8,13 +8,13 @@
 | --- | --- |
 | Allowed repository | Exactly `Aayushashsahu/sentinelforge-incident-fixture` |
 | GitHub access | Backend-only `GITHUB_READ_TOKEN`; never returned, logged, or persisted |
-| Permitted operations | Read repository metadata, decoded file text, issues, and workflow-run metadata |
+| Permitted operations | Read repository metadata, decoded file text, issues, workflow-run metadata, and the constant-returning non-mutating `approval_probe` |
 | Prohibited operations | Any GitHub mutation, arbitrary repository access, token disclosure, sandbox execution, approval continuation, branch, commit, or pull request |
 | MCP result format | Exactly ordinary `{ content: [{ type: "text", text: ... }] }`; no `EmbeddedResource` or `ResourceLink` |
 
 The endpoint implements session-aware Streamable HTTP MCP transport. Each MCP client is assigned an isolated MCP session, allowing standard `initialize`, `notifications/initialized`, tool calls, and close semantics.
 
-SentinelForge also exposes the token-safe read-only tRPC observation `tools.status`. It reports the MCP name, endpoint path, transport, allowlisted repository, four tool names, and boolean configuration state; it never returns the GitHub token and never enables a write action.
+SentinelForge also exposes the token-safe read-only tRPC observation `tools.status`. It reports the MCP name, endpoint path, transport, allowlisted repository, five tool names, and boolean configuration state; it never returns the GitHub token and never enables a write action.
 
 ## Available Tools
 
@@ -24,6 +24,9 @@ SentinelForge also exposes the token-safe read-only tRPC observation `tools.stat
 | `get_file` | `owner`, `repo`, `path`, `ref` | Repository/path/ref header followed by decoded UTF-8 file body |
 | `get_issue` | `owner`, `repo`, `issue_number` | Allowlisted issue JSON |
 | `get_workflow_run` | `owner`, `repo`, `run_id` | Allowlisted Actions run JSON |
+| `approval_probe` | None | The constant `sentinelforge-approval-probe: harmless`; no mutation or network write |
+
+The Investigator and Repair Engineer policies remain limited to the original four read tools. `approval_probe` is enabled only by the dedicated approval-mechanism agent, which uses TrueForge's source-verified literal-tool approval selector and disables sandboxing and all other tools. Its one authorized provider pause is recorded in [Approval Probe Feasibility](./APPROVAL_PROBE_FEASIBILITY.md).
 
 ## Verified Fixture Evidence
 
@@ -92,7 +95,7 @@ The external TrueForge runtime has registered a remote MCP server named `sentine
 /api/mcp/sentinelforge-tools
 ```
 
-The runtime permits only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` for the Investigator and Repairer policies. SentinelForge cannot register this server through the currently exposed TrueForge HTTP API and did not modify TrueForge internals; the runtime owner completed the host-side registration and SentinelForge validated the active catalog before either authorized live turn.
+The runtime permits only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` for the Investigator and Repairer policies. The separate approval-probe policy selects only `approval_probe` and requires approval using its literal tool name. SentinelForge cannot register this server through the currently exposed TrueForge HTTP API and did not modify TrueForge internals; the runtime owner completed the host-side registration and SentinelForge validated the active catalog before either authorized live investigation turn.
 
 The official registry example uses an `mcp_servers` entry with a `name` and `url`. The runtime owner should add the equivalent of the following to the runtime-owned registry, substituting the stable published SentinelForge origin (not a browser-visible secret and not a localhost URL):
 
@@ -108,8 +111,8 @@ No MCP header credential is required for the current public-fixture-only impleme
 
 The server has deterministic unit coverage for decoded ordinary-text output, token non-disclosure, and allowlist rejection. Its real MCP contract test passed using the fixture. The user has prohibited GitHub writes, so Qodo-backed source pull requests and all branch/commit/PR actions remain **BLOCKED / not attempted**. Sandbox verification remains separately blocked and is never represented as real.
 
-The existing approval persistence and idempotency contracts remain intact, but they remain **GATED** behind the required ordered prerequisites: a real first-party-MCP Investigator result, a valid read-only repair proposal, a real verifier result, and a real approval-required event. No code path grants the Actor GitHub mutation capability before those prerequisites and an explicit new authorization.
+The existing approval persistence and idempotency contracts remain intact. A genuine `tool.approval_required` event has now been captured and persisted for the non-mutating dedicated probe only; it does **not** satisfy the separate repair-verifier, repair-fingerprint, or GitHub-write prerequisites. No code path grants the Actor GitHub mutation capability before those prerequisites and an explicit new authorization.
 
 The requested Qodo Dev integration is not currently configured as a task connector. SentinelForge has therefore not requested a Qodo review and has not created a branch, commit, or pull request. A Qodo-backed review or PR remains a separate user-authorized step after a connector is available and the existing evidence, verification, approval, and GitHub-write gates have been satisfied.
 
-The runtime’s supported MCP API remains catalog-only, so registration remains a runtime-host concern. The active catalog now lists the registered first-party server with the exact four permitted tools and no authorization requirement.
+The runtime’s supported MCP API remains catalog-only, so registration remains a runtime-host concern. The Investigator and Repairer catalog policy remains the exact four read tools, while the dedicated approval-probe agent selects the separate harmless probe by literal name.

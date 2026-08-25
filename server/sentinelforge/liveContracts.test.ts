@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertLiveGitHubPrExecutionAllowed, buildIdempotentGitHubPullRequestIntent, buildTrueForgeApprovalContinuation, createRepairFingerprint, getLiveExecutionContractStatus, parseTrueForgeApprovalRequiredEvent, type LiveRepairProposal } from "./liveContracts";
+import { assertLiveGitHubPrExecutionAllowed, buildIdempotentGitHubPullRequestIntent, buildTrueForgeApprovalContinuation, createRepairFingerprint, getLiveExecutionContractStatus, parseTrueForgeApprovalRequiredEvent, parseTrueForgeProviderApprovalPauseEvent, type LiveRepairProposal } from "./liveContracts";
 
 const proposal: LiveRepairProposal = { summary: "Fix failing build", patch: "diff --git a/a b/a", files_changed: ["src/a.ts"], expected_effect: "Build passes", risk: "LOW" };
 
@@ -7,6 +7,13 @@ describe("live provider-neutral execution contracts", () => {
   it("parses only a real approval-required event with correlated identifiers", () => {
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "github.create_pull_request" })).toMatchObject({ thread_id: "thread_1", tool_call_id: "call_1" });
     expect(parseTrueForgeApprovalRequiredEvent({ type: "mcp.initialize" })).toBeNull();
+  });
+
+  it("parses the actual provider pause shape only when it has one correlated tool-call identity", () => {
+    const event = { type: "tool.approval_required", id: "approval_event_1", created_at: "2026-08-25T15:00:00.000Z", thread_id: "thread_1", tool_calls: [{ id: "call_1", source_event_id: "model_event_1" }] };
+    expect(parseTrueForgeProviderApprovalPauseEvent(event)).toMatchObject({ thread_id: "thread_1", tool_calls: [{ id: "call_1" }] });
+    expect(parseTrueForgeProviderApprovalPauseEvent({ ...event, tool_calls: [] })).toBeNull();
+    expect(parseTrueForgeProviderApprovalPauseEvent({ ...event, tool_calls: [...event.tool_calls, { id: "call_2", source_event_id: "model_event_1" }] })).toBeNull();
   });
 
   it("rejects oversized untrusted approval-event fields before they can exceed persistence limits", () => {

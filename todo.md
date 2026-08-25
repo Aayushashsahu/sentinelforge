@@ -145,3 +145,5 @@
 - [x] Align `docs/BACKEND_SPRINT_BASELINE.md` with the verified 61-test checkpoint and later fail-closed approval/continuation/execution hardening, without invoking any live or write-capable workflow.
 - [x] Reject whitespace-padded TrueForge approval correlation identifiers deterministically before persistence or dormant continuation construction.
 - [x] Reject whitespace-padded TrueForge approval-event tool names before they can produce divergent persisted action types.
+- [x] Verify whether TrueForge can honestly require approval for a harmless dedicated MCP probe tool; otherwise document the `@write`/`@destructive` approval-test blocker without adding a probe or fabricating an event. TrueForge v0.1.4 supports an exact literal tool selector.
+- [x] Add the non-mutating `approval_probe` tool with literal-name approval selection, then use exactly one authorized TrueForge turn to persist a genuine paused provider event without continuation or underlying tool execution.

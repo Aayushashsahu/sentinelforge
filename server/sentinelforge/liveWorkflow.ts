@@ -2,6 +2,8 @@ import type { Risk } from "../../shared/sentinelforge";
 import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./agents/investigator";
 import { buildReadOnlyRepairEngineerSpec, parseRepairEngineerOutcome } from "./agents/repairEngineer";
 import { buildSandboxProbeSpec } from "./agents/sandboxProbe";
+import { APPROVAL_PROBE_TOOL_NAME, buildApprovalProbeMessage, buildApprovalProbeSpec } from "./agents/approvalProbe";
+import { parseTrueForgeProviderApprovalPauseEvent } from "./liveContracts";
 import { addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, recoverPlanningMissionAfterRepairParsingFailure, setMissionPlanningArtifacts, setMissionStatus } from "./repository";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { readTrueForgeSse, TrueForgeSseAbortedError, type TrueForgeStreamEvent } from "./trueforge/stream";
@@ -62,6 +64,14 @@ export function buildRepairEngineerMessage(input: { repository: string; incident
   ].join(" ");
 }
 
+export function findTrueForgeApprovalProbePause(events: readonly TrueForgeStreamEvent[]) {
+  for (const event of events) {
+    const pause = parseTrueForgeProviderApprovalPauseEvent(event.data);
+    if (pause) return pause;
+  }
+  return null;
+}
+
 function sanitizeStreamMetadata(event: TrueForgeStreamEvent) {
   const data = event.data && typeof event.data === "object" && !Array.isArray(event.data) ? event.data as Record<string, unknown> : {};
   const eventType = typeof data.type === "string" ? data.type : null;
@@ -101,6 +111,13 @@ export function containsMcpToolEvent(events: readonly TrueForgeStreamEvent[], mc
   return events.some(event => {
     const metadata = sanitizeStreamMetadata(event);
     return metadata.toolCalls.some(tool => tool.provider === "mcp" && tool.server === mcpName && Boolean(tool.name));
+  });
+}
+
+function containsNamedMcpToolEvent(events: readonly TrueForgeStreamEvent[], mcpName: string, toolName: string): boolean {
+  return events.some(event => {
+    const metadata = sanitizeStreamMetadata(event);
+    return metadata.toolCalls.some(tool => tool.provider === "mcp" && tool.server === mcpName && tool.name === toolName);
   });
 }
 
@@ -297,5 +314,39 @@ export async function runLiveSandboxProbe(missionId: string) {
     const result = await addSandboxRun({ missionId, status: "UNKNOWN", runner: "trueforge-sandbox", command: "printf sentinel-forge-sandbox-ok", stdout: "", stderr: detail, exitCode: 2, durationMs: 0, timedOut: false });
     await appendMissionEvent({ missionId, eventType: "SANDBOX_UNAVAILABLE", actor: "TrueForge", result: detail, payload: { sandboxRunId: result.id } });
     return getMissionBundle(missionId);
+  }
+}
+
+export async function runLiveApprovalProbe() {
+  const config = getTrueForgeRuntimeConfig();
+  const mission = await createMission({
+    title: "TrueForge approval mechanism probe",
+    repository: "Aayushashsahu/sentinelforge-incident-fixture",
+    incident: "Capture one genuine provider approval pause for the harmless approval_probe tool without continuation or execution.",
+    risk: "LOW",
+    mode: "LIVE",
+  });
+  const client = new TrueForgeClient(config);
+  try {
+    const resolvedModel = await client.resolveModelName(config.model);
+    const session = await client.createInlineSession(buildApprovalProbeSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
+    await linkTrueForgeSession({ missionId: mission.id, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "APPROVAL_PROBE" });
+    await appendMissionEvent({ missionId: mission.id, eventType: "TRUEFORGE_APPROVAL_PROBE_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${APPROVAL_PROBE_TOOL_NAME}`, result: "A dedicated one-tool approval-probe session was created. The probe is non-mutating; sandboxing and all other tools are disabled.", payload: { mcpServer: config.toolsMcpName, tool: APPROVAL_PROBE_TOOL_NAME, sandbox: "disabled", continuation: "forbidden" } });
+    const events = await readBoundedTurn({ client, sessionId: session.id, message: buildApprovalProbeMessage() });
+    const pause = findTrueForgeApprovalProbePause(events);
+    const turnId = findFirstString(events.map(event => event.data), ["turn_id", "turnId"]);
+    if (!pause || !turnId || !containsNamedMcpToolEvent(events, config.toolsMcpName, APPROVAL_PROBE_TOOL_NAME)) {
+      throw new Error("TrueForge approval probe did not stream the required approval event, turn identity, and approval_probe tool call.");
+    }
+    const toolCall = pause.tool_calls[0]!;
+    await recordTrueForgeTurn({ missionId: mission.id, trueforgeSessionId: session.id, turnId, status: "WAITING_APPROVAL", threadId: pause.thread_id, requiredActionId: pause.id, toolCallId: toolCall.id });
+    await appendMissionEvents(buildStreamAuditInputs({ missionId: mission.id, turnId, events }));
+    const providerEvent = await addEvidence({ missionId: mission.id, kind: "OBSERVED", title: "TrueForge approval-required provider event", content: "The live runtime emitted tool.approval_required for the non-mutating approval_probe before any continuation or underlying tool execution.", source: "trueforge/approval-probe" });
+    await appendMissionEvent({ missionId: mission.id, eventType: "TRUEFORGE_TOOL_APPROVAL_REQUIRED", actor: "TrueForge", correlationId: toolCall.id, tool: `mcp:${config.toolsMcpName}/${APPROVAL_PROBE_TOOL_NAME}`, result: "A genuine TrueForge approval-required event was persisted. The turn is paused; no approval, continuation, sandbox action, GitHub action, or underlying probe execution was sent.", payload: { eventId: pause.id, createdAt: pause.created_at, threadId: pause.thread_id, toolCallId: toolCall.id, sourceEventId: toolCall.source_event_id, eventType: pause.type }, evidenceRefs: [providerEvent.id] });
+    return getMissionBundle(mission.id);
+  } catch (error) {
+    await setMissionStatus(mission.id, "FAILED");
+    await appendMissionEvent({ missionId: mission.id, eventType: "APPROVAL_PROBE_FAILED", actor: "TrueForge", result: sanitizeLiveProviderError(error) });
+    throw error;
   }
 }
