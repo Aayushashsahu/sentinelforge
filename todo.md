@@ -59,3 +59,8 @@
 - [ ] Fix and live-verify TrueForge SSE termination so `missions.investigate` returns promptly after a real `turn.done` without reconciliation fallback.
 - [x] Add a bounded turn-stream timeout that performs safe read-only remote-history reconciliation instead of leaving a live request open indefinitely.
 - [x] Re-run the bounded live TrueForge sandbox probe after the user-requested retry and record the actual provider outcome: provider bootstrap fails to install `pydantic` through its configured proxy.
+- [x] Investigate the actual TrueForge sandbox provider, image/snapshot, dynamic pydantic bootstrap, and package-index/proxy configuration without changing SentinelForge architecture; private remote provider/image details are not exposed through the public API.
+- [x] Evaluate supported prebuilt-image or snapshot remedies and run one additional harmless probe only if a real infrastructure-side remedy is available; no such remote configuration change was available to SentinelForge.
+- [x] Create and maintain `docs/SANDBOX_BLOCKER.md` with provider, image, proxy/index facts, attempts, exact failures, and safe next steps.
+- [ ] Continue independent repair, verifier, approval-persistence, approval-resume, GitHub-idempotency, failure-handling, test, and API contracts after recording the sandbox blocker; real repair and live provider continuations remain prerequisite-blocked.
+- [x] Define and test provider-neutral repair proposal, verifier result, approval-required event, approval continuation, idempotent GitHub-action guard contracts, and a read-only execution-contract API without invoking a remote write; API returned HTTP 200 with guarded/blocked status values.

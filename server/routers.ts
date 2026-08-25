@@ -4,11 +4,13 @@ import { getMissionBundle, listMissionBundles } from "./sentinelforge/repository
 import { launchDeterministicFixtureMission, resolveApproval } from "./sentinelforge/workflow";
 import { probeConfiguredTrueForge } from "./sentinelforge/trueforge/client";
 import { createLiveMission, investigateLiveMission, reconcileLiveInvestigation, runLiveSandboxProbe } from "./sentinelforge/liveWorkflow";
+import { getLiveExecutionContractStatus } from "./sentinelforge/liveContracts";
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ ok: true, service: "sentinelforge" })),
   trueforge: router({
     status: publicProcedure.query(async () => probeConfiguredTrueForge()),
+    executionContracts: publicProcedure.query(() => getLiveExecutionContractStatus()),
     sandboxProbe: publicProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).mutation(async ({ input }) => runLiveSandboxProbe(input.missionId)),
   }),
   missions: router({
