@@ -66,6 +66,8 @@ The exact live blockers are maintained in [OVERNIGHT_BLOCKERS.md](./OVERNIGHT_BL
 
 The requested direct hotfix cannot be applied from this task because the active TrueForge server runs on the user's local WSL host. SentinelForge can use its tunnelled HTTP API but has neither that host's source/build artifact nor process-restart control; the only connected local capability is browser access. The isolated offline package reference in Manus was deliberately not patched. See [TRUEFORGE_MCP_RESOURCE_BLOCKER.md](./TRUEFORGE_MCP_RESOURCE_BLOCKER.md) for the exact source target and host-attachment procedure.
 
+An isolated colocation test subsequently confirmed that this managed environment can build and bind a private loopback Node service, but the exact public TrueForge `v0.1.4` tag exposes `/v1/*` and no `/healthz`, whereas SentinelForge's verified runtime contract requires `/healthz` and `/api/v1/*`. The tag also lacks the managed environment's NIM and GitHub MCP credentials. It is therefore not a safe canonical replacement for the current runtime; see [TRUEFORGE_COLOCATION_BLOCKER.md](./TRUEFORGE_COLOCATION_BLOCKER.md).
+
 ## Commits and Checkpoint State
 
 No manual Git commit was created during this sprint. The next step is to save a verified managed checkpoint containing the client, persistence migration, tests, blocker report, and this report. The existing working tree also includes inherited pre-sprint modifications; this report distinguishes the current live-integration work from that earlier baseline.
