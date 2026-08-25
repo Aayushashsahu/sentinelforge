@@ -2,7 +2,7 @@ import type { Risk } from "../../shared/sentinelforge";
 import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./agents/investigator";
 import { buildReadOnlyRepairEngineerSpec, parseRepairEngineerOutcome } from "./agents/repairEngineer";
 import { buildSandboxProbeSpec } from "./agents/sandboxProbe";
-import { addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, setMissionPlanningArtifacts, setMissionStatus } from "./repository";
+import { addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, recoverPlanningMissionAfterRepairParsingFailure, setMissionPlanningArtifacts, setMissionStatus } from "./repository";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { readTrueForgeSse, TrueForgeSseAbortedError, type TrueForgeStreamEvent } from "./trueforge/stream";
 
@@ -249,6 +249,28 @@ export async function runLiveRepairPlan(missionId: string) {
     await appendMissionEvent({ missionId, eventType: "MISSION_FAILED", actor: "Repair Engineer", correlationId: session.id, result: error instanceof Error ? error.message : "Live Repair Engineer failed." });
     throw error;
   }
+}
+
+export async function recoverCompletedLiveRepairPlan(missionId: string) {
+  const bundle = await getMissionBundle(missionId);
+  if (!bundle) throw new Error("Mission was not found.");
+  if (bundle.events.some(event => event.eventType === "REPAIR_PROPOSED")) return bundle;
+  if (bundle.mission.status !== "FAILED") throw new Error("Only a failed Repair Engineer parsing attempt may be recovered.");
+  const repairSessions = bundle.trueforgeSessions.filter(session => session.status === "REPAIR_PLANNING");
+  if (repairSessions.length !== 1) throw new Error("Repair Engineer recovery requires exactly one persisted repair-planning session.");
+  const session = repairSessions[0];
+  const events = mapTrueForgeSessionHistory(await new TrueForgeClient(getTrueForgeRuntimeConfig()).listSessionEvents(session.sessionId));
+  if (!containsMcpToolEvent(events, getTrueForgeRuntimeConfig().toolsMcpName)) throw new Error("Repair Engineer history contained no sentinelforge-tools MCP call; refusing recovery.");
+  const outcome = parseRepairEngineerOutcome(events.map(event => event.data));
+  if (outcome.kind !== "PROPOSAL") throw new Error("Repair Engineer history contains an evidence limitation, not a recoverable patch proposal.");
+  const turn = bundle.trueforgeTurns.find(item => item.trueforgeSessionId === session.sessionId);
+  if (!turn) throw new Error("Repair Engineer recovery requires the completed persisted turn record.");
+  const repair = outcome.proposal;
+  const patchEvidence = await addEvidence({ missionId, kind: "PATCH_PROPOSAL", title: "Recovered read-only Repair Engineer proposal", content: repair.patch, source: "trueforge/repair-engineer" });
+  const limitationEvidence = await Promise.all(repair.evidence_limitations.map(detail => addEvidence({ missionId, kind: "REPAIR_LIMITATION", title: "Repair evidence limitation", content: detail, source: "trueforge/repair-engineer" })));
+  await recoverPlanningMissionAfterRepairParsingFailure(missionId, { repairSummary: repair.summary, patch: repair.patch });
+  await appendMissionEvent({ missionId, eventType: "REPAIR_PROPOSAL_RECOVERED", actor: "Repair Engineer", correlationId: turn.turnId, tool: `mcp:${getTrueForgeRuntimeConfig().toolsMcpName}`, result: "A completed read-only Repair Engineer turn was recovered from remote session history after safe structured-output normalization. The proposal remains un-applied, unverified, unapproved, and has not been sent to GitHub.", payload: { filesChanged: repair.files_changed, expectedEffect: repair.expected_effect, risk: repair.risk, evidenceLimitations: repair.evidence_limitations }, evidenceRefs: [patchEvidence.id, ...limitationEvidence.map(item => item.id)] });
+  return getMissionBundle(missionId);
 }
 
 export async function runLiveSandboxProbe(missionId: string) {

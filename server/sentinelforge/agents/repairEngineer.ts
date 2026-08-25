@@ -1,13 +1,43 @@
 import { z } from "zod";
 import type { TrueForgeInlineAgentSpec } from "../trueforge/client";
 
+const versionStringSchema = z.string().regex(/^\d+(?:\.\d+){1,3}(?:[-+][A-Za-z0-9.-]+)?$/, "Patch version must be a bounded semantic version string.");
+const manifestVersionPatchSchema = z.object({
+  file: z.literal("release-manifest.json"),
+  old_version: versionStringSchema,
+  new_version: versionStringSchema,
+}).strict();
+
+function normalizeRisk(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const match = /^(low|medium|high)\b/i.exec(value.trim());
+  return match ? match[1].toUpperCase() : value;
+}
+
+function renderManifestVersionPatch(input: z.infer<typeof manifestVersionPatchSchema>): string {
+  return [
+    `--- a/${input.file}`,
+    `+++ b/${input.file}`,
+    "@@",
+    `-  \"version\": \"${input.old_version}\"`,
+    `+  \"version\": \"${input.new_version}\"`,
+  ].join("\n");
+}
+
 export const repairEngineerResultSchema = z.object({
   summary: z.string().min(1),
-  patch: z.string().min(1),
+  patch: z.union([z.string().min(1), manifestVersionPatchSchema]).transform(value => typeof value === "string" ? value : renderManifestVersionPatch(value)),
   files_changed: z.array(z.string().min(1)).min(1).max(10),
   expected_effect: z.string().min(1),
-  risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
-  evidence_limitations: z.array(z.string()).default([]),
+  risk: z.preprocess(normalizeRisk, z.enum(["LOW", "MEDIUM", "HIGH"])),
+  evidence_limitations: z.union([z.string(), z.array(z.string())]).default([]).transform(value => Array.isArray(value) ? value : [value]),
+}).superRefine((value, context) => {
+  if (value.files_changed.some(file => file !== "release-manifest.json")) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Repair proposals may change only release-manifest.json." });
+  }
+  if (!value.patch.includes("release-manifest.json")) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Repair proposal patch must identify release-manifest.json." });
+  }
 });
 
 export const repairEngineerLimitationSchema = z.object({

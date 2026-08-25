@@ -69,7 +69,7 @@
 - [x] Record the final sandbox infrastructure result in `docs/SANDBOX_BLOCKER.md`, mark it BLOCKED if no permitted local remedy is available, and stop sandbox changes after the two-fix limit.
 - [x] Create and validate the public `Aayushashsahu/sentinelforge-incident-fixture` repository containing the safe, reproducible release-manifest mismatch fixture.
 - [x] Run the real read-only TrueForge Investigator against the incident fixture and persist repository evidence, root cause, and structured output; the first-party MCP delivered actual file text and the completed session persisted the `1.4.0` versus `1.3.0` root cause.
-- [ ] Implement and exercise a read-only Repair Engineer that produces the expected manifest-version patch without a GitHub write; one real session was attempted and safely rejected a no-patch, malformed-limits response.
+- [x] Implement and exercise a read-only Repair Engineer that produces the expected manifest-version patch without a GitHub write; one separately authorized first-party-MCP session produced and persisted the minimal un-applied manifest alignment proposal.
 - [x] Implement the verifier abstraction and use the deterministic verifier only when the real sandbox remains blocked, clearly labeling the status.
 - [ ] Implement actual approval-required capture, exact TrueForge resume/reject handling, and one guarded GitHub PR path only after live verification passes.
 - [x] Update the backend report capability matrix with only verified REAL, PARTIAL, SIMULATED, or BLOCKED status values.
@@ -79,8 +79,8 @@
 - [x] Wire the deterministic verifier abstraction into a read-only SentinelForge backend observation API and verify its explicit `SIMULATED`/no-sandbox status end-to-end.
 - [ ] Verify the bounded live Investigator timeout path end-to-end after the AbortError fix: backend remains up and returns a safe pending or reconciled response without manual recovery.
 - [x] Bound and batch semantic live stream audit persistence so completed TrueForge investigations avoid one sequential database round trip per retained event; repeated delta events remain filtered.
-- [ ] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist its proposed patch with evidence limitations, and perform no GitHub write.
-- [ ] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist a valid proposed patch with evidence limitations, and perform no GitHub write.
+- [x] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist its proposed patch with evidence limitations, and perform no GitHub write.
+- [x] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist a valid proposed patch with evidence limitations, and perform no GitHub write.
 - [x] Exercise one bounded real read-only Repair Engineer session and reject its malformed no-patch output fail-closed, with no sandbox, approval continuation, or GitHub write.
 - [x] Adjust Repair Engineer handling so an evidence-limited non-proposal output is persisted explicitly as a limitation without failing a future planning mission; valid proposal persistence remains blocked until direct source evidence is available.
 - [ ] Verify the real Repair Engineer limitation branch end-to-end: persist `REPAIR_LIMITATION` evidence and `REPAIR_LIMITED` audit state while keeping the mission in planning with no approval or GitHub action.
@@ -128,4 +128,6 @@
 - [x] Correct the opt-in Investigator test to use the mission identifier returned inside the live mission bundle; the first setup call created no Investigator turn because it passed an undefined mission ID.
 - [x] Correct the opt-in Investigator assertion to validate persisted `OBSERVED` evidence sources rather than an obsolete GitHub-MCP-file-text kind; no additional turn is required.
 - [x] Add deterministic proposal coverage grounded in the verified first-party ordinary-text release-version evidence without invoking a Repair Engineer session.
-- [ ] Obtain a separate explicit authorization before creating one read-only Repair Engineer session for mission `SF_xF37FKFqr1NvtA`; it must use only sentinelforge-tools and persist a proposal without applying it.
+- [x] Obtain a separate explicit authorization before creating one read-only Repair Engineer session for mission `SF_xF37FKFqr1NvtA`; it must use only sentinelforge-tools and persist a proposal without applying it.
+- [x] Execute the separately authorized single live Repair Engineer session for `SF_xF37FKFqr1NvtA`, validate its persisted proposal evidence, and retain the no-sandbox/no-write/no-approval boundary.
+- [x] Normalize the completed Repair Engineer turn’s object-shaped, evidence-backed patch from read-only session history and persist it without issuing a second turn or any external action.
