@@ -138,3 +138,4 @@
 - [x] Normalize the completed Repair Engineer turn’s object-shaped, evidence-backed patch from read-only session history and persist it without issuing a second turn or any external action.
 - [x] Add deterministic fail-closed approval-persistence regression coverage for invalid repair fingerprints, missing correlated turns, and notification-unavailable pauses without invoking approval continuation or a GitHub action.
 - [x] Fail closed in the live approval-event adapter before any repository lookup when the stream event or repair fingerprint is invalid, with deterministic adapter-level regressions.
+- [x] Bound untrusted TrueForge approval-event identifiers to the compatible persistence limits and reject oversized stream fields deterministically before approval persistence.
