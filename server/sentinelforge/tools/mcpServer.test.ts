@@ -1,11 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { GitHubReadApi } from "./githubRead";
-import { SentinelForgeTools } from "./mcpServer";
+import { getSentinelForgeToolsStatus, SentinelForgeTools } from "./mcpServer";
 
 const fixtureOwner = "Aayushashsahu";
 const fixtureRepo = "sentinelforge-incident-fixture";
 
 describe("sentinelforge-tools", () => {
+  it("reports only the read-only tool surface and fixture allowlist without returning a credential", () => {
+    const status = getSentinelForgeToolsStatus();
+    expect(status).toMatchObject({ name: "sentinelforge-tools", endpointPath: "/api/mcp/sentinelforge-tools", writeActionsEnabled: false, sandboxEnabled: false });
+    expect(status.allowedRepositories).toEqual([`${fixtureOwner}/${fixtureRepo}`]);
+    expect(status.tools).toEqual(["get_repository", "get_file", "get_issue", "get_workflow_run"]);
+    expect(JSON.stringify(status)).not.toContain("GITHUB_READ_TOKEN");
+  });
+
   it("returns decoded allowlisted file text as ordinary MCP text content without returning the token", async () => {
     const token = "server-only-test-token";
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from('{"version":"1.4.0"}\n').toString("base64"), size: 20 }), { status: 200 }));
