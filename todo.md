@@ -92,3 +92,7 @@
 - [x] Normalize agent-visible MCP `text`, `resource`, and `resource_link` blocks safely when they are present in a TrueForge event, preserving only resource text and metadata supported by the event contract.
 - [x] Perform one newly authorized bounded live read-only verification for the SentinelForge README, workflow, and package paths; it observed a real MCP call but no body text, so no repair, approval, sandbox, or GitHub-write work was started.
 - [x] Create `docs/GITHUB_MCP_RESOURCE_BLOCKER.md` with the public v0.1.4 conversion location, observed event shape, public API limitation, and safest runtime-host remediation.
+- [x] Verify whether SentinelForge can access the actual running local TrueForge v0.1.4 source artifact and process before attempting the requested hotfix; this task has only tunnel/browser access, not the WSL host or process filesystem.
+- [ ] Apply the smallest tested `executeToolCalls.ts` resource-text preservation patch only to the active local TrueForge runtime artifact, then rebuild and restart that runtime.
+- [ ] Perform the newly requested bounded read-only MCP verification against the SentinelForge README and workflow only after the patched runtime is confirmed active.
+- [x] Create `docs/TRUEFORGE_MCP_RESOURCE_BLOCKER.md` and stop this runtime-hotfix task because the active local runtime cannot be accessed or safely patched from this environment.
