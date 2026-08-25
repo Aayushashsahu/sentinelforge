@@ -41,9 +41,9 @@ export function buildIncidentInvestigationMessage(input: { repository: string; i
     : ["package.json", "release-manifest.json", "test.js", ".github/workflows/test.yml"];
   return [
     `Investigate this engineering incident in repository ${owner}/${repo}: ${input.incident}`,
-    `First use the GitHub MCP read-only tool search_repositories to identify ${owner}/${repo}, then use get_file_contents to inspect, in order, ${paths.join(", ")} with owner "${owner}" and repo "${repo}".`,
-    "Inspect repository metadata and GitHub Actions status when available.",
-    "Do not return a response until actual non-empty file text is available. Do not treat SHA, URL, filename, metadata, or search snippets as file content. If the MCP result includes an embedded resource, consume its text before responding.",
+    `Use sentinelforge-tools get_file to inspect, in order, ${paths.join(", ")} with owner "${owner}", repo "${repo}", and ref "main".`,
+    "Use get_repository and get_workflow_run only when their direct evidence is needed.",
+    "Do not return a response until ordinary MCP text contains actual non-empty file bodies. Do not treat SHA, URL, filename, metadata, or an error string as file content.",
     "Return the required JSON only after identifying evidence-backed root cause and recommended next step.",
   ].join(" ");
 }
@@ -56,7 +56,7 @@ export function buildRepairEngineerMessage(input: { repository: string; incident
     `Produce a proposal only for repository ${owner}/${repo}. The mission incident is: ${input.incident}`,
     `The prior Investigator finding is: ${input.rootCause ?? "No root cause was persisted."}`,
     `Use only the exact owner "${owner}" and repo "${repo}"; do not substitute, autocomplete, or search for a different repository name.`,
-    "Use GitHub MCP read-only calls before proposing a patch. If file contents remain unavailable, include that exact limitation in evidence_limitations.",
+    "Use sentinelforge-tools read-only calls before proposing a patch. If file contents remain unavailable, include that exact limitation in evidence_limitations.",
     "For the release-manifest mismatch fixture, propose only the smallest release-manifest version alignment diff when the available incident evidence supports it.",
     "Do not apply the patch, run a sandbox, create a branch, commit, pull request, or any GitHub write. Return the required JSON proposal only.",
   ].join(" ");
@@ -97,10 +97,10 @@ export function buildStreamAuditInputs(input: { missionId: string; turnId: strin
   }));
 }
 
-export function containsGithubMcpToolEvent(events: readonly TrueForgeStreamEvent[], githubMcpName: string): boolean {
+export function containsMcpToolEvent(events: readonly TrueForgeStreamEvent[], mcpName: string): boolean {
   return events.some(event => {
     const metadata = sanitizeStreamMetadata(event);
-    return metadata.toolCalls.some(tool => tool.provider === "mcp" && tool.server === githubMcpName && Boolean(tool.name));
+    return metadata.toolCalls.some(tool => tool.provider === "mcp" && tool.server === mcpName && Boolean(tool.name));
   });
 }
 
@@ -146,11 +146,11 @@ async function ingestCompletedInvestigation(input: { missionId: string; sessionI
     await appendMissionEvent({ missionId: input.missionId, eventType: "TURN_CREATED", actor: "TrueForge", correlationId: turnId, result: "TrueForge Investigator turn completed and its event stream was captured.", payload: { streamEventCount: input.streamEvents.length, persistedSemanticEventCount: semanticEvents.length } });
     await appendMissionEvents(buildStreamAuditInputs({ missionId: input.missionId, turnId, events: input.streamEvents }));
   }
-  if (!containsGithubMcpToolEvent(input.streamEvents, getTrueForgeRuntimeConfig().githubMcpName)) throw new Error("Investigator stream contained no actual GitHub MCP tool call; refusing to treat model text as evidence-backed.");
+  if (!containsMcpToolEvent(input.streamEvents, getTrueForgeRuntimeConfig().toolsMcpName)) throw new Error("Investigator stream contained no actual sentinelforge-tools MCP call; refusing to treat model text as evidence-backed.");
   const result = parseInvestigatorResult(input.streamEvents.map(event => event.data));
   const observedEvidence = await Promise.all(result.evidence.map(item => addEvidence({ missionId: input.missionId, kind: "OBSERVED", title: "GitHub MCP observation", content: item.detail, source: item.source })));
   const inference = await addEvidence({ missionId: input.missionId, kind: "INFERENCE", title: "Investigator root-cause inference", content: result.root_cause, source: "trueforge/investigator" });
-  await appendMissionEvent({ missionId: input.missionId, eventType: "MCP_CALL_COMPLETED", actor: "Investigator", correlationId: turnId, tool: `mcp:${getTrueForgeRuntimeConfig().githubMcpName}`, result: "Read-only GitHub MCP-backed evidence was returned by the Investigator.", evidenceRefs: observedEvidence.map(item => item.id) });
+  await appendMissionEvent({ missionId: input.missionId, eventType: "MCP_CALL_COMPLETED", actor: "Investigator", correlationId: turnId, tool: `mcp:${getTrueForgeRuntimeConfig().toolsMcpName}`, result: "Read-only sentinelforge-tools evidence was returned by the Investigator.", evidenceRefs: observedEvidence.map(item => item.id) });
   await appendMissionEvent({ missionId: input.missionId, eventType: "ROOT_CAUSE_IDENTIFIED", actor: "Investigator", correlationId: turnId, result: result.root_cause, payload: { confidence: result.confidence, recommendedNextStep: result.recommended_next_step }, evidenceRefs: [...observedEvidence.map(item => item.id), inference.id] });
   await setMissionStatus(input.missionId, "PLANNING_FIX", { rootCause: result.root_cause });
   return getMissionBundle(input.missionId);
@@ -159,15 +159,15 @@ async function ingestCompletedInvestigation(input: { missionId: string; sessionI
 export async function createLiveMission(input: { title: string; repository: string; incident: string; risk: Risk }) {
   const config = getTrueForgeRuntimeConfig();
   if (!config.model) throw new Error("TRUEFORGE_MODEL is not configured.");
-  if (!config.githubMcpName) throw new Error("TRUEFORGE_GITHUB_MCP_NAME is not configured.");
+  if (!config.toolsMcpName) throw new Error("TRUEFORGE_SENTINELFORGE_TOOLS_MCP_NAME is not configured.");
 
   const mission = await createMission({ ...input, mode: "LIVE" });
   const client = new TrueForgeClient(config);
   try {
     const resolvedModel = await client.resolveModelName(config.model);
-    const session = await client.createInlineSession(buildReadOnlyInvestigatorSpec({ model: resolvedModel, githubMcpName: config.githubMcpName }));
+    const session = await client.createInlineSession(buildReadOnlyInvestigatorSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
     await linkTrueForgeSession({ missionId: mission.id, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "CREATED" });
-    await appendMissionEvent({ missionId: mission.id, eventType: "TRUEFORGE_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, result: "Live TrueForge session created with the read-only GitHub MCP policy.", payload: { model: resolvedModel, mcpServer: config.githubMcpName, sandbox: "disabled" } });
+    await appendMissionEvent({ missionId: mission.id, eventType: "TRUEFORGE_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, result: "Live TrueForge session created with the read-only sentinelforge-tools MCP policy.", payload: { model: resolvedModel, mcpServer: config.toolsMcpName, sandbox: "disabled" } });
     return getMissionBundle(mission.id);
   } catch (error) {
     await setMissionStatus(mission.id, "FAILED");
@@ -184,7 +184,7 @@ export async function investigateLiveMission(missionId: string) {
   if (bundle.mission.status !== "CREATED") throw new Error("Live investigation can start only from a newly created mission.");
 
   await setMissionStatus(missionId, "INVESTIGATING");
-  await appendMissionEvent({ missionId, eventType: "AGENT_STARTED", actor: "Investigator", correlationId: session.sessionId, tool: `mcp:${getTrueForgeRuntimeConfig().githubMcpName}`, result: "Read-only Investigator turn started. GitHub writes and sandbox execution are disabled." });
+  await appendMissionEvent({ missionId, eventType: "AGENT_STARTED", actor: "Investigator", correlationId: session.sessionId, tool: `mcp:${getTrueForgeRuntimeConfig().toolsMcpName}`, result: "Read-only Investigator turn started. GitHub writes and sandbox execution are disabled." });
   try {
     const client = new TrueForgeClient(getTrueForgeRuntimeConfig());
     const streamEvents = await readBoundedTurn({ client, sessionId: session.sessionId, message: buildIncidentInvestigationMessage({ repository: bundle.mission.repository, incident: bundle.mission.incident }) });
@@ -222,27 +222,27 @@ export async function runLiveRepairPlan(missionId: string) {
   const config = getTrueForgeRuntimeConfig();
   const client = new TrueForgeClient(config);
   const resolvedModel = await client.resolveModelName(config.model);
-  const session = await client.createInlineSession(buildReadOnlyRepairEngineerSpec({ model: resolvedModel, githubMcpName: config.githubMcpName }));
+  const session = await client.createInlineSession(buildReadOnlyRepairEngineerSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
   await linkTrueForgeSession({ missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "REPAIR_PLANNING" });
-  await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, result: "Separate read-only Repair Engineer session created. No GitHub write or sandbox capability is attached.", payload: { model: resolvedModel, mcpServer: config.githubMcpName, sandbox: "disabled" } });
+  await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, result: "Separate read-only Repair Engineer session created. No GitHub write or sandbox capability is attached.", payload: { model: resolvedModel, mcpServer: config.toolsMcpName, sandbox: "disabled" } });
   try {
     const events = await readBoundedTurn({ client, sessionId: session.id, message: buildRepairEngineerMessage({ repository: bundle.mission.repository, incident: bundle.mission.incident, rootCause: bundle.mission.rootCause }) });
     const turnId = findFirstString(events.map(event => event.data), ["turn_id", "turnId"]);
     if (!turnId) throw new Error("TrueForge Repair Engineer streamed no identifiable turn ID.");
     const threadId = findFirstString(events, ["thread_id", "threadId"]);
     await recordTrueForgeTurn({ missionId, trueforgeSessionId: session.id, turnId, status: "COMPLETED", ...(threadId ? { threadId } : {}) });
-    if (!containsGithubMcpToolEvent(events, config.githubMcpName)) throw new Error("Repair Engineer stream contained no actual GitHub MCP tool call; refusing to persist a proposal.");
+    if (!containsMcpToolEvent(events, config.toolsMcpName)) throw new Error("Repair Engineer stream contained no actual sentinelforge-tools MCP call; refusing to persist a proposal.");
     const outcome = parseRepairEngineerOutcome(events.map(event => event.data));
     if (outcome.kind === "LIMITATION") {
       const limitations = await Promise.all(outcome.limitations.map(detail => addEvidence({ missionId, kind: "REPAIR_LIMITATION", title: "Read-only Repair Engineer limitation", content: detail, source: "trueforge/repair-engineer" })));
-      await appendMissionEvent({ missionId, eventType: "REPAIR_LIMITED", actor: "Repair Engineer", correlationId: turnId, tool: `mcp:${config.githubMcpName}`, result: "Repair Engineer could not create a patch because read-only evidence was incomplete. The mission remains in planning and no external action is permitted.", payload: { summary: outcome.summary }, evidenceRefs: limitations.map(item => item.id) });
+      await appendMissionEvent({ missionId, eventType: "REPAIR_LIMITED", actor: "Repair Engineer", correlationId: turnId, tool: `mcp:${config.toolsMcpName}`, result: "Repair Engineer could not create a patch because read-only evidence was incomplete. The mission remains in planning and no external action is permitted.", payload: { summary: outcome.summary }, evidenceRefs: limitations.map(item => item.id) });
       return getMissionBundle(missionId);
     }
     const repair = outcome.proposal;
     const patchEvidence = await addEvidence({ missionId, kind: "PATCH_PROPOSAL", title: "Read-only Repair Engineer proposal", content: repair.patch, source: "trueforge/repair-engineer" });
     const limitationEvidence = await Promise.all(repair.evidence_limitations.map(detail => addEvidence({ missionId, kind: "REPAIR_LIMITATION", title: "Repair evidence limitation", content: detail, source: "trueforge/repair-engineer" })));
     await setMissionPlanningArtifacts(missionId, { repairSummary: repair.summary, patch: repair.patch });
-    await appendMissionEvent({ missionId, eventType: "REPAIR_PROPOSED", actor: "Repair Engineer", correlationId: turnId, tool: `mcp:${config.githubMcpName}`, result: "A read-only patch proposal was persisted. It has not been applied, sandbox-verified, approved, or sent to GitHub.", payload: { filesChanged: repair.files_changed, expectedEffect: repair.expected_effect, risk: repair.risk, evidenceLimitations: repair.evidence_limitations }, evidenceRefs: [patchEvidence.id, ...limitationEvidence.map(item => item.id)] });
+    await appendMissionEvent({ missionId, eventType: "REPAIR_PROPOSED", actor: "Repair Engineer", correlationId: turnId, tool: `mcp:${config.toolsMcpName}`, result: "A read-only patch proposal was persisted. It has not been applied, sandbox-verified, approved, or sent to GitHub.", payload: { filesChanged: repair.files_changed, expectedEffect: repair.expected_effect, risk: repair.risk, evidenceLimitations: repair.evidence_limitations }, evidenceRefs: [patchEvidence.id, ...limitationEvidence.map(item => item.id)] });
     return getMissionBundle(missionId);
   } catch (error) {
     await setMissionStatus(missionId, "FAILED");

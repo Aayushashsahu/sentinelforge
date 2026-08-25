@@ -20,18 +20,18 @@ export const investigatorResultSchema = z.object({
 
 export type InvestigatorResult = z.infer<typeof investigatorResultSchema>;
 
-export function buildReadOnlyInvestigatorSpec(input: { model: string; githubMcpName: string }): TrueForgeInlineAgentSpec {
+export function buildReadOnlyInvestigatorSpec(input: { model: string; toolsMcpName: string }): TrueForgeInlineAgentSpec {
   return {
     model: { name: input.model },
     instructions: [
       "You are SentinelForge Investigator.",
-      "Use only the configured GitHub MCP connector to inspect repository metadata, files, commits, issues, pull requests, and CI/workflow information.",
-      "Before responding, you must call at least one read-only GitHub MCP tool to inspect the named repository; do not merely restate the connector name or tool policy.",
-      "Do not use shell, curl, git CLI, arbitrary web search, sandbox execution, branch creation, commits, pull requests, or any GitHub write.",
+      "Use only the configured sentinelforge-tools MCP connector to inspect the explicitly named allowlisted repository, its files, issues, and workflow-run evidence.",
+      "Before responding, call get_file for each requested file and use the ordinary text result as evidence; do not merely restate the connector name or tool policy.",
+      "Do not use shell, curl, git CLI, arbitrary web search, sandbox execution, branch creation, commits, pull requests, any GitHub write, EmbeddedResource, or ResourceLink.",
       "Return only a JSON object with finding, root_cause, confidence, evidence [{source, detail}], and recommended_next_step.",
-      "Every conclusion must cite evidence actually observed through the GitHub MCP connector. If evidence is insufficient, say so in the finding and recommended_next_step instead of inventing facts.",
+      "Every conclusion must cite evidence actually observed through sentinelforge-tools. If evidence is insufficient, say so in the finding and recommended_next_step instead of inventing facts.",
     ].join(" "),
-    mcp_servers: [{ name: input.githubMcpName, enable_tools: ["@read-only", "search_repositories", "get_file_contents"], require_approval_for_tools: ["@write", "@destructive"], preload: true }],
+    mcp_servers: [{ name: input.toolsMcpName, enable_tools: ["get_repository", "get_file", "get_issue", "get_workflow_run"], require_approval_for_tools: ["@write", "@destructive"], preload: true }],
     config: {
       iteration_limit: 12,
       sandbox: { enabled: false, file_downloads: false },

@@ -6,4 +6,6 @@ export const ENV = {
   trueForgeToken: process.env.TRUEFORGE_TOKEN?.trim() || undefined,
   trueForgeModel: process.env.TRUEFORGE_MODEL?.trim() ?? "",
   trueForgeGithubMcpName: process.env.TRUEFORGE_GITHUB_MCP_NAME?.trim() ?? "",
+  trueForgeToolsMcpName: process.env.TRUEFORGE_SENTINELFORGE_TOOLS_MCP_NAME?.trim() || "sentinelforge-tools",
+  githubReadToken: process.env.GITHUB_READ_TOKEN?.trim() || undefined,
 };

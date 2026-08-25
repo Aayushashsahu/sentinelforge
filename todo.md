@@ -110,3 +110,11 @@
 - [x] Read the completed authorized session history without creating a new turn; the `{ data, pagination }` envelope and recursive raw scan contained zero MCP `resource` blocks.
 - [x] Determine whether the remote TrueForge API exposes the raw MCP `CallToolResult` immediately after `remoteMcpClient.callTool` and before `executeToolCalls`; it does not expose that in-process boundary, so neither runtime was modified.
 - [x] Decline to perform another README MCP diagnostic because the requested pre-conversion boundary is not observable through the remote API; report the exact observability limitation without secrets or additional external actions.
+- [x] Stop GitHub embedded-resource and tunnel investigations; keep the existing UI unchanged and retain only the external TrueForge runtime integration needed for the release-incident vertical slice.
+- [x] Implement the `sentinelforge-tools` first-party MCP server with allowlisted read-only `get_repository`, `get_file`, `get_issue`, and `get_workflow_run` tools that return only ordinary MCP text content.
+- [x] Add a server-only GitHub read token configuration and test the allowlisted `get_file(Aayushashsahu/sentinelforge-incident-fixture, package.json)` path returns decoded actual file text without leaking credentials.
+- [x] Confirm the deterministic public incident fixture contains the release-manifest version mismatch and an intentionally failing test, without making any new GitHub mutation.
+- [ ] Integrate a TrueForge Investigator that uses only `sentinelforge-tools` for repository evidence; keep Repairer read-only, sandbox verification accurately labeled, and GitHub writes unavailable pending approval and prerequisites.
+- [ ] Document the new vertical-slice architecture, capability matrix, and blocked dependencies; do not create external GitHub branches, commits, or PRs until separately authorized.
+- [ ] Have the external TrueForge runtime register the published `/api/mcp/sentinelforge-tools` endpoint as `sentinelforge-tools` with only the four read methods, then authorize one real Investigator session using that connector.
+- [x] Align Repair Engineer test fixtures and stream-tool metadata with the first-party `sentinelforge-tools` connector so deterministic workflow coverage remains valid after the MCP pivot.

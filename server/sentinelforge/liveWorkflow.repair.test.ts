@@ -29,7 +29,7 @@ vi.mock("./repository", () => ({
 }));
 
 vi.mock("./trueforge/client", () => ({
-  getTrueForgeRuntimeConfig: () => ({ baseUrl: "https://runtime.example", model: "nemotron", githubMcpName: "github" }),
+  getTrueForgeRuntimeConfig: () => ({ baseUrl: "https://runtime.example", model: "nemotron", githubMcpName: "github", toolsMcpName: "sentinelforge-tools" }),
   TrueForgeClient: class {
     resolveModelName = mocks.resolveModelName;
     createInlineSession = mocks.createInlineSession;
@@ -53,8 +53,8 @@ describe("live Repair Engineer limitation handling", () => {
     mocks.createTurnStream.mockResolvedValue(new Response(""));
     mocks.readTrueForgeSse.mockResolvedValue([
       { event: "turn.created", data: { type: "turn.created", turn_id: "repair-turn" } },
-      { event: "message", data: { type: "model.message", thread_id: "main", tool_calls: [{ function: { name: "get_file_contents" }, tool_info: { type: "mcp", server_name: "github" } }] } },
-      { event: "message", data: { type: "model.message", content: JSON.stringify({ summary: "File body unavailable", patch: null, files_changed: [], expected_effect: null, risk: "none", evidence_limitations: "GitHub MCP returned metadata only." }) } },
+      { event: "message", data: { type: "model.message", thread_id: "main", tool_calls: [{ function: { name: "get_file" }, tool_info: { type: "mcp", server_name: "sentinelforge-tools" } }] } },
+      { event: "message", data: { type: "model.message", content: JSON.stringify({ summary: "File body unavailable", patch: null, files_changed: [], expected_effect: null, risk: "none", evidence_limitations: "sentinelforge-tools returned no usable ordinary file text." }) } },
     ]);
     mocks.addEvidence.mockResolvedValue({ id: "evd_limited" });
     mocks.getMissionBundle.mockResolvedValue({ mission: { id: "m1", status: "PLANNING_FIX", repository: "Aayushashsahu/sentinelforge-incident-fixture", incident: "manifest mismatch", rootCause: "file body unavailable" } });

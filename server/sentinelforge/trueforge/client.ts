@@ -6,6 +6,7 @@ export type TrueForgeRuntimeConfig = {
   token?: string;
   model: string;
   githubMcpName: string;
+  toolsMcpName: string;
 };
 
 export type TrueForgeConnectionStatus = {
@@ -73,6 +74,7 @@ export function getTrueForgeRuntimeConfig(): TrueForgeRuntimeConfig {
     ...(ENV.trueForgeToken ? { token: ENV.trueForgeToken } : {}),
     model: ENV.trueForgeModel,
     githubMcpName: ENV.trueForgeGithubMcpName,
+    toolsMcpName: ENV.trueForgeToolsMcpName,
   };
 }
 
