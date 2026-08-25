@@ -50,12 +50,20 @@ export function parseTrueForgeApprovalRequiredEvent(input: unknown): TrueForgeAp
 }
 
 export function buildTrueForgeApprovalContinuation(input: { threadId: string; toolCallId: string; approve: boolean; denialReason?: string }) {
-  if (!input.threadId || !input.toolCallId) throw new Error("TrueForge approval continuation requires both thread and tool-call identifiers.");
+  const validThreadId = approvalCorrelationIdentifierSchema.safeParse(input.threadId);
+  const validToolCallId = approvalCorrelationIdentifierSchema.safeParse(input.toolCallId);
+  if (!validThreadId.success || !validToolCallId.success || !input.threadId.trim() || !input.toolCallId.trim()) {
+    throw new Error("TrueForge approval continuation requires bounded non-blank thread and tool-call identifiers.");
+  }
+  const denialReason = input.denialReason?.trim();
+  if (input.denialReason !== undefined && (!denialReason || denialReason.length > 4_000)) {
+    throw new Error("TrueForge approval continuation denial reason must be non-blank and at most 4,000 characters.");
+  }
   return {
     type: "user.tool_approval" as const,
     thread_id: input.threadId,
     tool_call_id: input.toolCallId,
-    approval: input.approve ? { status: "allow" as const } : { status: "deny" as const, ...(input.denialReason ? { reason: input.denialReason } : {}) },
+    approval: input.approve ? { status: "allow" as const } : { status: "deny" as const, ...(denialReason ? { reason: denialReason } : {}) },
   };
 }
 
