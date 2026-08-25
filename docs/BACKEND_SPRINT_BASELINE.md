@@ -2,8 +2,8 @@
 
 **Recorded:** 2026-08-25  
 **Working branch:** `main`  
-**Baseline revision:** `7b2efdd`  
-**Worktree at record time:** This baseline document, the backend report update, and the corresponding checklist update are the only uncommitted main-branch changes.  
+**Stable main checkpoint:** `4644493d`
+**Worktree at record time:** The deterministic approval-persistence regression hardening, this baseline update, and the corresponding checklist update are the only uncommitted main-branch changes.
 **Scope:** Backend-only release-incident vertical slice. No dashboard redesign is in scope.
 
 ## Current Main-Branch Baseline
@@ -16,7 +16,7 @@
 | Verifier | **SIMULATED**. The deterministic fixture verifier is explicit about `didExecuteSandbox: false`; it is not a sandbox pass. |
 | Sandbox | **BLOCKED**. The provider bootstrap cannot install `pydantic` through its configured proxy. This blocker is not to be retried absent an infrastructure-side remedy. |
 | Approval and repair write | **GATED**. No genuine required-action event, approval continuation, sandbox pass, write-scoped repair credential, or repair-action authorization exists. |
-| Deterministic verification | **PASS**. `pnpm check`, `pnpm test` (53 passing, 9 opt-in live tests skipped), `pnpm build`, and `git diff --check` passed at the current baseline. |
+| Deterministic verification | **PASS**. `pnpm check`, `pnpm test` (57 passing, 9 opt-in live tests skipped), `pnpm build`, and `git diff --check` passed at the current milestone. |
 
 ## Architecture, Persistence, and Workflow
 
@@ -32,10 +32,10 @@ The live workflow is deliberately ordered as **ordinary-text evidence → read-o
 
 ## Repository and Review State
 
-The baseline branch remains separate from the open Qodo governance pull request. PR [#1](https://github.com/Aayushashsahu/sentinelforge/pull/1) is a narrow repository-review-policy and CI-consistency change, not a repair action and not a substitute for an evidence-bearing incident implementation diff. It remains open pending Qodo’s asynchronous reassessment and a later, separate merge decision.
+The baseline branch remains separate from the open Qodo governance pull request. PR [#1](https://github.com/Aayushashsahu/sentinelforge/pull/1) is a narrow repository-review-policy and CI-consistency change, not a repair action and not a substitute for an evidence-bearing incident implementation diff. A single bounded status inspection found the GitHub `quality` check successful and four Qodo `COMMENTED` reviews through commit `9f1f652`; it found no formal review decision and no Qodo result shown for the later pnpm-alignment commit. The PR therefore remains open pending Qodo’s asynchronous reassessment and a later, separate merge decision.
 
 > **Safety boundary:** No PR review, Qodo policy, or CI change authorizes applying the persisted repair proposal. The sandbox, approval, and repair-write gates remain unchanged.
 
 ## Next Independent Backend Work
 
-The safe next implementation work is to strengthen deterministic failure handling and read-only observation contracts. Live sandbox, approval continuation, and repair GitHub-write execution remain dormant until their separate verified prerequisites and explicit authorizations exist.
+This milestone adds regression coverage that fails closed before any persistence when the repair fingerprint is invalid or no correlated TrueForge turn exists, and confirms that an owner-notification outage leaves the action paused and audited. The safe next implementation work is to continue strengthening deterministic failure handling and read-only observation contracts. Live sandbox, approval continuation, and repair GitHub-write execution remain dormant until their separate verified prerequisites and explicit authorizations exist.
