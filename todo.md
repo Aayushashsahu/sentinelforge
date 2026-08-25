@@ -88,3 +88,7 @@
 - [x] Explicitly select the GitHub `get_file_contents` MCP tool if filtering permits and add source-shaped handling coverage for embedded resource text, without claiming the remote runtime delivers it.
 - [x] Run the bounded read-only content-attempt budget against `Aayushashsahu/sentinelforge` README.md through the TrueForge/GitHub-MCP path; neither attempt produced observable non-empty file text, so no workflow/package claim was made.
 - [x] Add deterministic MCP embedded-resource coverage and create `docs/GITHUB_MCP_CONTENT_BLOCKER.md` with the observed metadata response, bounded-attempt diagnosis, and supported next step.
+- [x] Trace one GitHub MCP `get_file_contents` result through TrueForge session events to identify the exact public boundary that drops `content[].resource.text`, without direct GitHub access or a sandbox.
+- [x] Normalize agent-visible MCP `text`, `resource`, and `resource_link` blocks safely when they are present in a TrueForge event, preserving only resource text and metadata supported by the event contract.
+- [x] Perform one newly authorized bounded live read-only verification for the SentinelForge README, workflow, and package paths; it observed a real MCP call but no body text, so no repair, approval, sandbox, or GitHub-write work was started.
+- [x] Create `docs/GITHUB_MCP_RESOURCE_BLOCKER.md` with the public v0.1.4 conversion location, observed event shape, public API limitation, and safest runtime-host remediation.
