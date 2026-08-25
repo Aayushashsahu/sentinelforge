@@ -22,7 +22,7 @@ The live Investigator established that the configured target repository is empty
 | GitHub MCP evidence | **REAL** | The Investigator issued real read-only `get_file_contents`, branch, tag, release, and commit calls. Observed results are stored separately from inference. |
 | Investigator structured result | **REAL** | The completed reconciled turn passed local Zod validation and advanced the mission to `PLANNING_FIX`. |
 | Repair Engineer | **BLOCKED** | The target repository has no source, workflow, branch, or CI artifact to repair. |
-| TrueForge sandbox verification | **BLOCKED** | A dedicated sandbox-enabled probe session/turn completed without a sandbox lifecycle event; recorded as `UNKNOWN`, not `PASS`. |
+| TrueForge sandbox verification | **BLOCKED** | The first probe emitted no sandbox lifecycle event. The user-requested retry reached the real sandbox `exec` tool, but bootstrap failed because the sandbox could not install `pydantic` through its configured proxy; no terminal `turn.done` arrived before the bounded client timeout. Both outcomes are recorded as `UNKNOWN`, never `PASS`. |
 | Human approval pause/resume | **UNAVAILABLE** | No repair proposal or sandbox pass exists, so no genuine required-action event was created or continued. |
 | GitHub branch, commit, or pull request | **NOT PERFORMED** | These remain intentionally blocked by missing repair, sandbox, and approval prerequisites. |
 | Deterministic offline fixture | **SIMULATED / PRESERVED** | The existing fixture verifier and simulated approval action remain available and clearly distinct from live mode. |
@@ -59,7 +59,7 @@ The production build issued only the pre-existing bundle-size warning for a clie
 
 ## Blockers and Their Effect
 
-The exact live blockers are maintained in [OVERNIGHT_BLOCKERS.md](./OVERNIGHT_BLOCKERS.md). The important current boundaries are the runtime/API-envelope compatibility mismatch, live SSE response completion requiring reconciliation, a sandbox provider that is unverified by the harmless probe, and an empty target repository. Each blocks progressively later workflow stages. SentinelForge fails closed rather than simulating a repair, approval, or GitHub write.
+The exact live blockers are maintained in [OVERNIGHT_BLOCKERS.md](./OVERNIGHT_BLOCKERS.md). The important current boundaries are the runtime/API-envelope compatibility mismatch, live SSE response completion requiring reconciliation, a sandbox provider whose Python bootstrap cannot reach its dependency source through the configured proxy, and an empty target repository. Each blocks progressively later workflow stages. SentinelForge fails closed rather than simulating a repair, approval, or GitHub write.
 
 ## Commits and Checkpoint State
 
@@ -67,4 +67,4 @@ No manual Git commit was created during this sprint. The next step is to save a 
 
 ## Exact Morning Next Action
 
-> Configure and validate the TrueForge runtime’s sandbox provider, then rerun exactly `printf sentinel-forge-sandbox-ok` in a dedicated sandbox-enabled session. In parallel, point SentinelForge at a non-empty repository and a reproducible CI incident. Only after both produce real evidence should the team create a bounded Repair Engineer proposal, require a real approval action, and consider one idempotent GitHub pull-request action.
+> Make the sandbox image self-contained with compatible `pydantic` installed, or restore its package-index proxy/network route. Then rerun exactly `printf sentinel-forge-sandbox-ok` in a dedicated sandbox-enabled session and require both a successful tool response and terminal `turn.done`. In parallel, point SentinelForge at a non-empty repository and a reproducible CI incident. Only after both produce real evidence should the team create a bounded Repair Engineer proposal, require a real approval action, and consider one idempotent GitHub pull-request action.

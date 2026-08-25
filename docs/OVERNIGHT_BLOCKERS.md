@@ -28,6 +28,16 @@ The first failed code path exposed the local transition guard (`CREATED → FAIL
 | Impact | Real sandbox verification, a repair proposal, approval continuation, and GitHub PR execution remain blocked. SentinelForge will not represent the deterministic fixture verifier as a real TrueForge sandbox run. |
 | Next move | Configure and validate the live TrueForge sandbox provider (for example, its documented Daytona settings) on the runtime side, then repeat this exact harmless probe before any repair or approval work. |
 
+### Retry outcome — provider configured but sandbox bootstrap cannot install dependencies
+
+At the user’s request, SentinelForge repeated the exact same isolated `printf sentinel-forge-sandbox-ok` probe. This time, the live runtime created a sandbox-enabled session and the model issued the actual `truefoundry-system` `exec` tool call. The provider then returned a concrete failure while initializing the sandbox environment:
+
+> `Sandbox initialization failed: Failed to pip install pydantic>=2.0.0,<3.0.0 into sandbox .venv` because the sandbox’s configured proxy closed the connection to the Python package index.
+
+The remote turn had not emitted `turn.done` when the bounded client request timed out, but its read-only event history contains two real `exec` attempts and the same provider bootstrap error. This is stronger evidence than the first probe: **the sandbox path is enabled, but it is not usable until its proxy/network or prebuilt environment can satisfy the required `pydantic` dependency.** No GitHub MCP connector, repository access, credentials, or write action was attached to this retry.
+
+| Updated next move | Configure the sandbox image with compatible `pydantic` already installed, or restore the sandbox provider’s package-index proxy/network access. Then rerun the same harmless command and require an observed successful tool response plus terminal `turn.done` before unblocking verification. |
+
 ## 2026-08-25 — Real GitHub MCP investigation found no repairable repository content
 
 The bounded, read-only Investigator successfully created a live TrueForge session and turn, initialized the GitHub MCP connector, and made real read-only calls including `get_file_contents`, branch, tag, release, and commit reads. The connector returned that `Aayushashsahu/sentinelforge` is empty, with no default branch, tags, releases, commits, or readable `README.md`. SentinelForge persisted observed MCP evidence separately from the model’s root-cause inference and advanced the mission only to `PLANNING_FIX`.
