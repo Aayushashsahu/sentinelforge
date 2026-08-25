@@ -30,6 +30,14 @@ The retry emitted two real `exec` attempts. It did **not** emit a successful exe
 | What image or snapshot is active? | **Not observable through the public runtime API.** No configuration endpoint was exposed. | High |
 | Why is pydantic installed dynamically? | The active runtime/snapshot initializes a sandbox `.venv` and requests `pydantic>=2.0.0,<3.0.0`; this differs from the public v0.1.4 sandbox prompt, which describes pydantic as pre-installed. | High for the observed mismatch |
 
+## Final Local-Sandbox Timebox Finding
+
+The final source inspection used the official `v0.1.4` tag as the authority. The tag’s sandbox scripts declare PEP 723-style inline dependencies: `git_downloader.py` declares `pydantic==2.12.5`, while `mcp_client.py` declares `fastmcp==3.2.4`, `pydantic==2.12.5`, and `nats-py==2.15.0`. Those declarations explain why a script runner may create an isolated `.venv` and fetch Python dependencies at first use. The tag’s sandbox prompt nevertheless states that pydantic is pre-installed, so a healthy intended snapshot should satisfy the requirement without the observed failing bootstrap.
+
+The official `v0.1.4` server exposes only a Daytona provider configured through private `SANDBOX_SETTINGS` with a required `snapshotName`; its source contains no local-provider implementation, no local image/environment setting, no opt-out environment variable for the script dependencies, and no pip/PyPI proxy override. Its smoke coverage tests provider-schema validation and sandbox object identity rather than a local provider. Because the user explicitly prohibited Daytona and host execution, no permitted official local-sandbox fix exists that SentinelForge can apply from this environment.
+
+> **Final status: BLOCKED.** The active tunnel runtime’s `pydantic>=2,<3` proxy bootstrap does not match the public `v0.1.4` source’s exact inline dependency declarations or its documented Daytona-only provider contract. SentinelForge cannot safely infer, alter, or bypass the active local runtime’s image, environment, proxy, index, or credentials.
+
 ## Read-Only Configuration Discovery Attempts
 
 | Attempt | Result | Why it did not reveal private configuration |
@@ -59,6 +67,8 @@ The provider can admit a sandbox-enabled agent session and dispatch the sandbox 
 ## Recommended Next Step
 
 The runtime operator should provide a non-secret confirmation of the active provider type and snapshot/image identifier, or change it to a prebuilt Daytona snapshot containing compatible pydantic. SentinelForge can then run the same harmless probe once, capture the raw tool result and terminal turn state, and only then re-evaluate real verification.
+
+For the current user constraints, the permitted future remedy is instead to align the local runtime’s intended sandbox artifact with its own dependency declarations and repair its package-index/proxy reachability outside SentinelForge. No host fallback, sandbox disabling, credential hardcoding, or external provider was used.
 
 ## References
 

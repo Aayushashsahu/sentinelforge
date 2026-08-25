@@ -1,10 +1,19 @@
 import { z } from "zod";
 import type { TrueForgeInlineAgentSpec } from "../trueforge/client";
 
+const confidenceSchema = z.preprocess(value => {
+  if (typeof value !== "string") return value;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "low") return 0.35;
+  if (normalized === "medium") return 0.6;
+  if (normalized === "high") return 0.85;
+  return value;
+}, z.number().min(0).max(1));
+
 export const investigatorResultSchema = z.object({
   finding: z.string().min(1),
   root_cause: z.string().min(1),
-  confidence: z.number().min(0).max(1),
+  confidence: confidenceSchema,
   evidence: z.array(z.object({ source: z.string().min(1), detail: z.string().min(1) })).min(1),
   recommended_next_step: z.string().min(1),
 });

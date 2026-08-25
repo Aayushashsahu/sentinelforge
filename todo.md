@@ -65,3 +65,22 @@
 - [ ] Continue independent repair, verifier, approval-persistence, approval-resume, GitHub-idempotency, failure-handling, test, and API contracts after recording the sandbox blocker; real repair and live provider continuations remain prerequisite-blocked.
 - [x] Define and test provider-neutral repair proposal, verifier result, approval-required event, approval continuation, idempotent GitHub-action guard contracts, and a read-only execution-contract API without invoking a remote write; API returned HTTP 200 with guarded/blocked status values.
 - [x] Persist a future real `tool.approval_required` event into the existing approval, turn, mission-status, audit, and owner-notification boundaries without invoking a continuation or GitHub action; live provider event capture and continuation remain pending.
+- [x] Perform one final bounded investigation of the exact TrueForge v0.1.4 local sandbox bootstrap, local environment/image options, proxy settings, and smoke-test expectations without configuring Daytona or host execution.
+- [x] Record the final sandbox infrastructure result in `docs/SANDBOX_BLOCKER.md`, mark it BLOCKED if no permitted local remedy is available, and stop sandbox changes after the two-fix limit.
+- [x] Create and validate the public `Aayushashsahu/sentinelforge-incident-fixture` repository containing the safe, reproducible release-manifest mismatch fixture.
+- [ ] Run the real read-only TrueForge Investigator against the incident fixture and persist repository evidence, root cause, and structured output; real MCP calls completed but file content did not reach the model and a retry transcribed the repository name incorrectly.
+- [ ] Implement and exercise a read-only Repair Engineer that produces the expected manifest-version patch without a GitHub write; one real session was attempted and safely rejected a no-patch, malformed-limits response.
+- [x] Implement the verifier abstraction and use the deterministic verifier only when the real sandbox remains blocked, clearly labeling the status.
+- [ ] Implement actual approval-required capture, exact TrueForge resume/reject handling, and one guarded GitHub PR path only after live verification passes.
+- [x] Update the backend report capability matrix with only verified REAL, PARTIAL, SIMULATED, or BLOCKED status values.
+- [x] Fix the real Investigator timeout AbortError so an aborted bounded SSE read reconciles safely without crashing the SentinelForge backend; regression coverage verifies rejected cancellation is contained.
+- [x] Accept and normalize the observed real TrueForge Investigator `Low`/`Medium`/`High` confidence format while retaining raw MCP evidence requirements and without inventing file contents.
+- [ ] Address the observed GitHub MCP checksum-only file-response limitation with truthful inspectable fixture metadata, while retaining explicit MCP file-read attempts and no repository repair write.
+- [x] Wire the deterministic verifier abstraction into a read-only SentinelForge backend observation API and verify its explicit `SIMULATED`/no-sandbox status end-to-end.
+- [ ] Verify the bounded live Investigator timeout path end-to-end after the AbortError fix: backend remains up and returns a safe pending or reconciled response without manual recovery.
+- [ ] Bound and batch live stream audit persistence so completed TrueForge investigations do not exceed the API request timeout while writing repeated delta events.
+- [ ] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist its proposed patch with evidence limitations, and perform no GitHub write.
+- [ ] Wire and exercise one bounded read-only Repair Engineer session for a planning-stage incident fixture mission, persist a valid proposed patch with evidence limitations, and perform no GitHub write.
+- [x] Exercise one bounded real read-only Repair Engineer session and reject its malformed no-patch output fail-closed, with no sandbox, approval continuation, or GitHub write.
+- [x] Adjust Repair Engineer handling so an evidence-limited non-proposal output is persisted explicitly as a limitation without failing a future planning mission; valid proposal persistence remains blocked until direct source evidence is available.
+- [ ] Verify the real Repair Engineer limitation branch end-to-end: persist `REPAIR_LIMITATION` evidence and `REPAIR_LIMITED` audit state while keeping the mission in planning with no approval or GitHub action.

@@ -43,3 +43,15 @@ The remote turn had not emitted `turn.done` when the bounded client request time
 The bounded, read-only Investigator successfully created a live TrueForge session and turn, initialized the GitHub MCP connector, and made real read-only calls including `get_file_contents`, branch, tag, release, and commit reads. The connector returned that `Aayushashsahu/sentinelforge` is empty, with no default branch, tags, releases, commits, or readable `README.md`. SentinelForge persisted observed MCP evidence separately from the model’s root-cause inference and advanced the mission only to `PLANNING_FIX`.
 
 Because there is no source, workflow, or reproducible CI failure in the target repository, there is no bounded repair proposal to verify, approve, or write. No repair-engineer session, approval request, GitHub branch, commit, pull request, merge, deployment, workflow modification, repository administration action, or secrets action was performed.
+
+## 2026-08-25 — Incident-fixture Investigator evidence limitation
+
+SentinelForge created the public `Aayushashsahu/sentinelforge-incident-fixture` repository and verified that its deterministic initial `npm test` exits non-zero for the intended `package.json` `1.4.0` versus `release-manifest.json` `1.3.0` mismatch.
+
+Two real read-only TrueForge Investigator sessions were attempted. The first initialized GitHub MCP and called `get_file_contents` for each required file plus branch and release reads. The connector returned success messages and file SHAs but did not return file text to the model; the model correctly reported insufficient evidence rather than inventing contents. The second session transcribed the repository name as `sentinelforce-incident-fixture` (with `force` rather than `forge`) despite the mission and prompt containing the correct name, and its MCP calls returned GitHub 404 responses. Both turns reached a real `turn.done`; no sandbox, approval continuation, branch, commit, pull request, or other GitHub write was issued.
+
+**Impact:** GitHub MCP read connectivity is real, but the current model/tool interaction cannot yet produce a fully evidence-backed file-content root cause. The fixture remains publicly accessible and non-empty. The next safe work is a bounded Repair Engineer contract and verifier abstraction driven by the explicit fixture incident, while keeping its status non-live until direct MCP file evidence is available.
+
+### Bounded Repair Engineer result
+
+One separate real Repair Engineer session was created with only the GitHub MCP `@read-only` policy and sandbox disabled. It made real `get_file_contents` and branch reads but again transcribed `sentinelforge-incident-fixture` as `sentinelforce-incident-fixture` on follow-up calls. Its final output explicitly declared that file bodies were unavailable and returned `patch: null`, an empty changed-file list, a non-enum risk, and a string rather than array evidence limit. SentinelForge’s strict proposal parser rejected that output and recorded the mission as failed-safe. No patch was persisted, applied, approved, or sent to GitHub.

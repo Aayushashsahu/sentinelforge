@@ -27,6 +27,12 @@ export async function setMissionStatus(missionId: string, status: MissionStatus,
   assertAllowedMissionTransition(mission.status, status);
   await db.update(missions).set({ status, updatedAt: now(), ...updates }).where(eq(missions.id, missionId));
 }
+
+export async function setMissionPlanningArtifacts(missionId: string, updates: Pick<Partial<Mission>, "repairSummary" | "patch">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable.");
+  await db.update(missions).set({ ...updates, updatedAt: now() }).where(eq(missions.id, missionId));
+}
 export async function getMissionBundle(missionId: string) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const [mission] = await db.select().from(missions).where(eq(missions.id, missionId)).limit(1); if (!mission) return null;
   const [events, missionEvidence, runs, approvals, actions, trueforgeSessionRecords, trueforgeTurnRecords] = await Promise.all([db.select().from(missionEvents).where(eq(missionEvents.missionId, missionId)).orderBy(asc(missionEvents.sequence)), db.select().from(evidence).where(eq(evidence.missionId, missionId)).orderBy(asc(evidence.createdAt)), db.select().from(sandboxRuns).where(eq(sandboxRuns.missionId, missionId)).orderBy(desc(sandboxRuns.createdAt)), db.select().from(approvalRequests).where(eq(approvalRequests.missionId, missionId)).orderBy(desc(approvalRequests.createdAt)), db.select().from(externalActions).where(eq(externalActions.missionId, missionId)).orderBy(desc(externalActions.createdAt)), db.select().from(trueforgeSessions).where(eq(trueforgeSessions.missionId, missionId)).orderBy(desc(trueforgeSessions.createdAt)), db.select().from(trueforgeTurns).where(eq(trueforgeTurns.missionId, missionId)).orderBy(desc(trueforgeTurns.createdAt))]);

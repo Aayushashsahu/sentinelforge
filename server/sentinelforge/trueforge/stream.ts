@@ -21,6 +21,22 @@ function isTerminalTurnEvent(event: TrueForgeStreamEvent): boolean {
   return event.event === "turn.done" || (event.data !== null && typeof event.data === "object" && !Array.isArray(event.data) && (event.data as Record<string, unknown>).type === "turn.done");
 }
 
+function readWithAbort(reader: ReadableStreamDefaultReader<Uint8Array>, signal: AbortSignal | undefined): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (!signal) return reader.read();
+  if (signal.aborted) return Promise.reject(new TrueForgeSseAbortedError());
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(new TrueForgeSseAbortedError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    void reader.read().then(
+      value => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      error => { signal.removeEventListener("abort", onAbort); reject(error); },
+    );
+  });
+}
+
 export async function readTrueForgeSse(response: Response, signal?: AbortSignal): Promise<TrueForgeStreamEvent[]> {
   if (!response.body) throw new Error("TrueForge turn stream did not include a response body.");
   const reader = response.body.getReader();
@@ -28,25 +44,33 @@ export async function readTrueForgeSse(response: Response, signal?: AbortSignal)
   const events: TrueForgeStreamEvent[] = [];
   let pending = "";
   let aborted = signal?.aborted ?? false;
-  const onAbort = () => { aborted = true; void reader.cancel("TrueForge turn stream timeout."); };
+  const onAbort = () => {
+    aborted = true;
+    void reader.cancel("TrueForge turn stream timeout.").catch(() => undefined);
+  };
   signal?.addEventListener("abort", onAbort, { once: true });
   try {
     if (aborted) throw new TrueForgeSseAbortedError();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (aborted) throw new TrueForgeSseAbortedError();
-      if (done) break;
-      pending += decoder.decode(value, { stream: true });
-      const frames = pending.split(/\r?\n\r?\n/);
-      pending = frames.pop() ?? "";
-      for (const frame of frames) {
-        const parsed = parseSseFrames(frame);
-        events.push(...parsed);
-        if (parsed.some(isTerminalTurnEvent)) {
-          await reader.cancel("Terminal TrueForge turn event received.");
-          return events;
+    try {
+      while (true) {
+        const { done, value } = await readWithAbort(reader, signal);
+        if (aborted) throw new TrueForgeSseAbortedError();
+        if (done) break;
+        pending += decoder.decode(value, { stream: true });
+        const frames = pending.split(/\r?\n\r?\n/);
+        pending = frames.pop() ?? "";
+        for (const frame of frames) {
+          const parsed = parseSseFrames(frame);
+          events.push(...parsed);
+          if (parsed.some(isTerminalTurnEvent)) {
+            await reader.cancel("Terminal TrueForge turn event received.");
+            return events;
+          }
         }
       }
+    } catch (error) {
+      if (aborted || (error instanceof DOMException && error.name === "AbortError")) throw new TrueForgeSseAbortedError();
+      throw error;
     }
     pending += decoder.decode();
     const finalEvents = parseSseFrames(pending);
