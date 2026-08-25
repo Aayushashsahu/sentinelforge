@@ -136,3 +136,4 @@
 - [x] Obtain a separate explicit authorization before creating one read-only Repair Engineer session for mission `SF_xF37FKFqr1NvtA`; it must use only sentinelforge-tools and persist a proposal without applying it.
 - [x] Execute the separately authorized single live Repair Engineer session for `SF_xF37FKFqr1NvtA`, validate its persisted proposal evidence, and retain the no-sandbox/no-write/no-approval boundary.
 - [x] Normalize the completed Repair Engineer turn’s object-shaped, evidence-backed patch from read-only session history and persist it without issuing a second turn or any external action.
+- [x] Add deterministic fail-closed approval-persistence regression coverage for invalid repair fingerprints, missing correlated turns, and notification-unavailable pauses without invoking approval continuation or a GitHub action.
