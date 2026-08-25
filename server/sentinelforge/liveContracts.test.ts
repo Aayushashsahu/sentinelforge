@@ -50,6 +50,10 @@ describe("live provider-neutral execution contracts", () => {
   });
 
   it("reports contracts as guarded or blocked rather than claiming a live approval or write", () => {
-    expect(getLiveExecutionContractStatus()).toMatchObject({ sandbox: "BLOCKED_BY_PROVIDER_BOOTSTRAP", githubWrite: "GUARDED_NO_REMOTE_WRITE_IMPLEMENTED" });
+    expect(getLiveExecutionContractStatus()).toMatchObject({
+      repairProposal: "PERSISTED_UNAPPLIED_READ_ONLY_PROPOSAL",
+      sandbox: "BLOCKED_BY_PROVIDER_BOOTSTRAP",
+      githubWrite: "GUARDED_NO_REMOTE_WRITE_IMPLEMENTED",
+    });
   });
 });

@@ -119,7 +119,7 @@ export function buildIdempotentGitHubPullRequestIntent(input: { missionId: strin
 
 export function getLiveExecutionContractStatus() {
   return {
-    repairProposal: "CONTRACT_READY_NO_LIVE_REPAIR_ARTIFACT",
+    repairProposal: "PERSISTED_UNAPPLIED_READ_ONLY_PROPOSAL",
     verifier: "REQUIRES_REAL_SANDBOX_PASS",
     approvalPersistence: "CONTRACT_READY_REQUIRES_REAL_TOOL_APPROVAL_EVENT",
     approvalResume: "CONTRACT_READY_REQUIRES_REAL_THREAD_AND_TOOL_CALL",

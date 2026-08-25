@@ -140,3 +140,4 @@
 - [x] Fail closed in the live approval-event adapter before any repository lookup when the stream event or repair fingerprint is invalid, with deterministic adapter-level regressions.
 - [x] Bound untrusted TrueForge approval-event identifiers to the compatible persistence limits and reject oversized stream fields deterministically before approval persistence.
 - [x] Fail closed when constructing a dormant TrueForge approval-continuation payload with blank or oversized correlation identifiers, or an oversized denial reason.
+- [x] Correct the read-only execution-contract status surface to report the persisted un-applied Repair Engineer proposal without implying approval or write readiness.
