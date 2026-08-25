@@ -36,11 +36,14 @@ export function buildIncidentInvestigationMessage(input: { repository: string; i
   const match = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/.exec(input.repository.trim());
   if (!match) throw new Error("Live investigation requires a GitHub repository in owner/repository form.");
   const [, owner, repo] = match;
+  const paths = repo === "sentinelforge"
+    ? ["README.md", "server/sentinelforge/workflow.ts", "package.json"]
+    : ["package.json", "release-manifest.json", "test.js", ".github/workflows/test.yml"];
   return [
     `Investigate this engineering incident in repository ${owner}/${repo}: ${input.incident}`,
-    `Use the GitHub MCP read-only tool get_file_contents to inspect, in order, package.json, release-manifest.json, test.js, and .github/workflows/test.yml with owner "${owner}" and repo "${repo}".`,
+    `First use the GitHub MCP read-only tool search_repositories to identify ${owner}/${repo}, then use get_file_contents to inspect, in order, ${paths.join(", ")} with owner "${owner}" and repo "${repo}".`,
     "Inspect repository metadata and GitHub Actions status when available.",
-    "Do not return a response until at least the file tool results are available.",
+    "Do not return a response until actual non-empty file text is available. Do not treat SHA, URL, filename, metadata, or search snippets as file content. If the MCP result includes an embedded resource, consume its text before responding.",
     "Return the required JSON only after identifying evidence-backed root cause and recommended next step.",
   ].join(" ");
 }

@@ -6,11 +6,18 @@ describe("incident investigation message", () => {
     const message = buildIncidentInvestigationMessage({ repository: "Aayushashsahu/sentinelforge-incident-fixture", incident: "package version does not match release manifest" });
     expect(message).toContain('owner "Aayushashsahu"');
     expect(message).toContain('repo "sentinelforge-incident-fixture"');
-    expect(message).toContain("package.json, release-manifest.json, test.js, and .github/workflows/test.yml");
+    expect(message).toContain("package.json, release-manifest.json, test.js, .github/workflows/test.yml");
   });
 
   it("rejects a malformed repository before creating a remote turn", () => {
     expect(() => buildIncidentInvestigationMessage({ repository: "not-a-repository", incident: "x" })).toThrow(/owner\/repository/);
+  });
+
+  it("uses the requested README, workflow, and package file set for the SentinelForge content probe", () => {
+    const message = buildIncidentInvestigationMessage({ repository: "Aayushashsahu/sentinelforge", incident: "prove MCP file text delivery" });
+    expect(message).toContain("search_repositories");
+    expect(message).toContain("README.md, server/sentinelforge/workflow.ts, package.json");
+    expect(message).toContain("embedded resource");
   });
 
   it("retains semantic tool and terminal events but omits repeated model deltas from the audit write set", () => {

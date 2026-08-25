@@ -4,7 +4,7 @@ import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./invest
 describe("read-only Investigator", () => {
   it("restricts its configured GitHub MCP tools to read-only and disables sandboxing", () => {
     const spec = buildReadOnlyInvestigatorSpec({ model: "nemotron", githubMcpName: "github" });
-    expect(spec.mcp_servers).toEqual([{ name: "github", enable_tools: ["@read-only"], require_approval_for_tools: ["@write", "@destructive"], preload: true }]);
+    expect(spec.mcp_servers).toEqual([{ name: "github", enable_tools: ["@read-only", "search_repositories", "get_file_contents"], require_approval_for_tools: ["@write", "@destructive"], preload: true }]);
     expect(spec.config.sandbox.enabled).toBe(false);
   });
 
