@@ -83,7 +83,9 @@ export function assertLiveGitHubPrExecutionAllowed(input: LiveExecutionGateInput
   if (input.missionStatus !== "WAITING_APPROVAL") throw new Error("GitHub action refused: mission is not waiting for approval.");
   if (input.approvalStatus !== "APPROVED") throw new Error("GitHub action refused: persisted approval is not approved.");
   if (input.verificationStatus !== "PASS") throw new Error("GitHub action refused: real verification did not pass.");
-  if (!input.approvedFingerprint || input.approvedFingerprint !== input.currentFingerprint) throw new Error("GitHub action refused: repair proposal changed after approval.");
+  if (!input.approvedFingerprint || !isValidRepairFingerprint(input.approvedFingerprint) || !isValidRepairFingerprint(input.currentFingerprint) || input.approvedFingerprint !== input.currentFingerprint) {
+    throw new Error("GitHub action refused: repair proposal changed after approval or has an invalid fingerprint.");
+  }
   if (!input.requiredActionId || !input.toolCallId) throw new Error("GitHub action refused: no correlated TrueForge approval-required action exists.");
   if (input.existingActionCount !== 0) throw new Error("GitHub action refused: an idempotent action record already exists.");
 }
