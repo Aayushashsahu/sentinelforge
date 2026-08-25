@@ -38,6 +38,10 @@ Attach the user-controlled WSL/local computer that contains the running TrueForg
 
 Until the actual runtime host is accessible and patched, SentinelForge must remain **BLOCKED** for live source-evidence investigation.
 
+## Patched-Runtime Availability Update
+
+The runtime owner later reported that the local hotfix had been applied and the server restarted. SentinelForge then used its single authorized verification attempt, but the tunnel failed before the model-catalogue preflight: `GET /api/v1/models` returned Cloudflare **HTTP 530 / Error 1033**, reporting that the tunnel origin was unreachable. No session, GitHub MCP call, resource result, or README text reached SentinelForge. The exact resource-text patch therefore remains **unverified**, rather than failed. No retry is allowed without fresh authorization after the tunnel becomes reachable.
+
 ## References
 
 - [TrueForge v0.1.4 `executeToolCalls.ts`](https://github.com/truefoundry/trueforge/blob/v0.1.4/packages/harness/src/core/mcp/executeToolCalls.ts)

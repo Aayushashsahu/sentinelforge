@@ -96,3 +96,5 @@
 - [ ] Apply the smallest tested `executeToolCalls.ts` resource-text preservation patch only to the active local TrueForge runtime artifact, then rebuild and restart that runtime.
 - [ ] Perform the newly requested bounded read-only MCP verification against the SentinelForge README and workflow only after the patched runtime is confirmed active.
 - [x] Create `docs/TRUEFORGE_MCP_RESOURCE_BLOCKER.md` and stop this runtime-hotfix task because the active local runtime cannot be accessed or safely patched from this environment.
+- [x] Perform exactly one newly authorized read-only verification against the user-patched TrueForge v0.1.4 runtime using GitHub MCP `get_file_contents` for `Aayushashsahu/sentinelforge` `README.md` at `main`; the tunnel returned HTTP 530 before session creation, so no MCP result or resource-derived file text was received and no retry was made.
+- [x] Gate ambient TrueForge health checks behind an explicit opt-in flag so transient tunnel failure is reported by the authorized live probe without making the deterministic SentinelForge regression suite fail.
