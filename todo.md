@@ -57,3 +57,4 @@
 - [x] Redact runtime URLs and SQL parameter values from persisted live-provider failures, including the first sandbox-probe persistence error.
 - [ ] Implement and verify live required-action/tool-call correlation persistence for approval-capable turns.
 - [ ] Fix and live-verify TrueForge SSE termination so `missions.investigate` returns promptly after a real `turn.done` without reconciliation fallback.
+- [x] Re-run the bounded live TrueForge sandbox probe after the user-requested retry and record the actual provider outcome: provider bootstrap fails to install `pydantic` through its configured proxy.
