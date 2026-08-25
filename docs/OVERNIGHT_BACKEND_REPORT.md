@@ -17,7 +17,7 @@ The live Investigator established that the configured target repository is empty
 | Server-side configuration boundary | **REAL** | Base URL, short model name, and GitHub MCP name are server-only environment settings; a token remains optional and omitted when blank. |
 | Model resolution | **REAL** | The runtime catalogue resolved the supplied short name to a fully qualified NVIDIA NIM model name before session creation. |
 | TrueForge session creation | **REAL** | Multiple live sessions were created and correlated to one mission after correcting the one-session-per-mission persistence constraint. |
-| TrueForge turn/event correlation | **REAL / PARTIAL** | Session, turn, thread, and append-only event correlation are persisted. Live SSE termination required read-only `/events` reconciliation after the runtime held the response open past `turn.done`. |
+| TrueForge turn/event correlation | **REAL / PARTIAL** | Session, turn, thread, and append-only event correlation are persisted. The live reader now has an abort-aware 75-second bound and falls back to read-only `/events` reconciliation when a completed terminal event is available; end-to-end live SSE closure remains unverified. |
 | GitHub MCP initialization | **REAL** | A live session initialized the configured GitHub MCP server. |
 | GitHub MCP evidence | **REAL** | The Investigator issued real read-only `get_file_contents`, branch, tag, release, and commit calls. Observed results are stored separately from inference. |
 | Investigator structured result | **REAL** | The completed reconciled turn passed local Zod validation and advanced the mission to `PLANNING_FIX`. |
@@ -49,7 +49,7 @@ Mission bundles do not return the stored runtime base URL. Remote correlation st
 | Check | Result |
 | --- | --- |
 | Type check | Passed: `pnpm check` |
-| Full test suite | Passed: 6 files, 24 tests |
+| Full test suite | Passed: 6 files, 25 tests |
 | Production build | Passed: `pnpm build` |
 | Live health test | Passed: 2 live configuration/health tests |
 | Secret-boundary response check | Passed: the runtime base URL is omitted from the mission-status response |

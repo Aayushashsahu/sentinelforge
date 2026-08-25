@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSseFrames, readTrueForgeSse } from "./stream";
+import { parseSseFrames, readTrueForgeSse, TrueForgeSseAbortedError } from "./stream";
 
 describe("TrueForge SSE parser", () => {
   it("preserves named events and JSON payloads for append-only audit persistence", () => {
@@ -15,6 +15,20 @@ describe("TrueForge SSE parser", () => {
     }));
 
     await expect(readTrueForgeSse(response)).resolves.toEqual([{ event: "turn.done", data: { type: "turn.done" } }]);
+    expect(cancelled).toBe(true);
+  });
+
+  it("cancels an open stream and reports an abort instead of returning partial events", async () => {
+    let cancelled = false;
+    const response = new Response(new ReadableStream({
+      start() {},
+      cancel() { cancelled = true; },
+    }));
+    const controller = new AbortController();
+    const pending = readTrueForgeSse(response, controller.signal);
+    controller.abort();
+
+    await expect(pending).rejects.toBeInstanceOf(TrueForgeSseAbortedError);
     expect(cancelled).toBe(true);
   });
 });
