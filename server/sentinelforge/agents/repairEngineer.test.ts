@@ -3,9 +3,9 @@ import { buildReadOnlyRepairEngineerSpec, parseRepairEngineerOutcome, parseRepai
 import { buildRepairEngineerMessage } from "../liveWorkflow";
 
 describe("read-only Repair Engineer", () => {
-  it("uses only read-only GitHub MCP and disables sandbox execution", () => {
-    const spec = buildReadOnlyRepairEngineerSpec({ model: "nemotron", githubMcpName: "github" });
-    expect(spec.mcp_servers[0]).toMatchObject({ name: "github", enable_tools: ["@read-only"], require_approval_for_tools: ["@write", "@destructive"] });
+  it("uses only explicit first-party MCP reads and disables sandbox execution", () => {
+    const spec = buildReadOnlyRepairEngineerSpec({ model: "nemotron", toolsMcpName: "sentinelforge-tools" });
+    expect(spec.mcp_servers[0]).toMatchObject({ name: "sentinelforge-tools", enable_tools: ["get_repository", "get_file", "get_issue", "get_workflow_run"], require_approval_for_tools: ["@write", "@destructive"] });
     expect(spec.config.sandbox.enabled).toBe(false);
   });
 

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./investigator";
 
 describe("read-only Investigator", () => {
-  it("restricts its configured GitHub MCP tools to read-only and disables sandboxing", () => {
-    const spec = buildReadOnlyInvestigatorSpec({ model: "nemotron", githubMcpName: "github" });
-    expect(spec.mcp_servers).toEqual([{ name: "github", enable_tools: ["@read-only", "search_repositories", "get_file_contents"], require_approval_for_tools: ["@write", "@destructive"], preload: true }]);
+  it("restricts its configured first-party MCP tools to allowlisted reads and disables sandboxing", () => {
+    const spec = buildReadOnlyInvestigatorSpec({ model: "nemotron", toolsMcpName: "sentinelforge-tools" });
+    expect(spec.mcp_servers).toEqual([{ name: "sentinelforge-tools", enable_tools: ["get_repository", "get_file", "get_issue", "get_workflow_run"], require_approval_for_tools: ["@write", "@destructive"], preload: true }]);
     expect(spec.config.sandbox.enabled).toBe(false);
   });
 

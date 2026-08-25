@@ -15,9 +15,9 @@ describe("incident investigation message", () => {
 
   it("uses the requested README, workflow, and package file set for the SentinelForge content probe", () => {
     const message = buildIncidentInvestigationMessage({ repository: "Aayushashsahu/sentinelforge", incident: "prove MCP file text delivery" });
-    expect(message).toContain("search_repositories");
+    expect(message).toContain("sentinelforge-tools get_file");
     expect(message).toContain("README.md, server/sentinelforge/workflow.ts, package.json");
-    expect(message).toContain("embedded resource");
+    expect(message).toContain("ordinary MCP text");
   });
 
   it("retains semantic tool and terminal events but omits repeated model deltas from the audit write set", () => {

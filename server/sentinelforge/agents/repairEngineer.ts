@@ -26,18 +26,18 @@ export const repairEngineerLimitationSchema = z.object({
 export type RepairEngineerResult = z.infer<typeof repairEngineerResultSchema>;
 export type RepairEngineerOutcome = { kind: "PROPOSAL"; proposal: RepairEngineerResult } | z.infer<typeof repairEngineerLimitationSchema>;
 
-export function buildReadOnlyRepairEngineerSpec(input: { model: string; githubMcpName: string }): TrueForgeInlineAgentSpec {
+export function buildReadOnlyRepairEngineerSpec(input: { model: string; toolsMcpName: string }): TrueForgeInlineAgentSpec {
   return {
     model: { name: input.model },
     instructions: [
       "You are SentinelForge Repair Engineer.",
-      "Use only read-only GitHub MCP tools to inspect the named repository and reason about the smallest repair proposal.",
+      "Use only sentinelforge-tools read-only MCP tools to inspect the named repository and reason about the smallest repair proposal.",
       "Never execute shell commands, use sandbox execution, create a branch, commit, pull request, release, workflow change, or any GitHub write.",
       "If direct file contents are unavailable, state that limitation explicitly and do not claim verification passed.",
       "Return only JSON with summary, patch, files_changed, expected_effect, risk, and evidence_limitations.",
       "A patch is a proposal only; it must not be applied or represented as a repository mutation.",
     ].join(" "),
-    mcp_servers: [{ name: input.githubMcpName, enable_tools: ["@read-only"], require_approval_for_tools: ["@write", "@destructive"], preload: true }],
+    mcp_servers: [{ name: input.toolsMcpName, enable_tools: ["get_repository", "get_file", "get_issue", "get_workflow_run"], require_approval_for_tools: ["@write", "@destructive"], preload: true }],
     config: {
       iteration_limit: 10,
       sandbox: { enabled: false, file_downloads: false },
