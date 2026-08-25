@@ -22,12 +22,16 @@ const approvalCorrelationIdentifierSchema = z.string().min(1).max(128).refine(va
   message: "Approval correlation identifiers must not include surrounding whitespace.",
 });
 
+const approvalToolNameSchema = z.string().min(1).max(110).refine(value => value === value.trim(), {
+  message: "Approval tool names must not include surrounding whitespace.",
+});
+
 const approvalRequiredEventSchema = z.object({
   type: z.literal("tool.approval_required"),
   thread_id: approvalCorrelationIdentifierSchema,
   tool_call_id: approvalCorrelationIdentifierSchema,
   required_action_id: approvalCorrelationIdentifierSchema.optional(),
-  tool_name: z.string().min(1).max(110),
+  tool_name: approvalToolNameSchema,
 }).passthrough();
 
 export type LiveRepairProposal = z.infer<typeof liveRepairProposalSchema>;

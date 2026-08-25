@@ -16,6 +16,7 @@ describe("live provider-neutral execution contracts", () => {
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", tool_name: "g".repeat(111) })).toBeNull();
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: " thread_1", tool_call_id: "call_1", tool_name: "github.create_pull_request" })).toBeNull();
     expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1 ", tool_name: "github.create_pull_request" })).toBeNull();
+    expect(parseTrueForgeApprovalRequiredEvent({ type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", tool_name: " github.create_pull_request" })).toBeNull();
   });
 
   it("builds an explicit allow or deny continuation without executing it", () => {

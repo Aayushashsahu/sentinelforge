@@ -144,3 +144,4 @@
 - [x] Require both matching repair fingerprints at the dormant GitHub execution gate to have valid SHA-256 format before any future write can be permitted.
 - [x] Align `docs/BACKEND_SPRINT_BASELINE.md` with the verified 61-test checkpoint and later fail-closed approval/continuation/execution hardening, without invoking any live or write-capable workflow.
 - [x] Reject whitespace-padded TrueForge approval correlation identifiers deterministically before persistence or dormant continuation construction.
+- [x] Reject whitespace-padded TrueForge approval-event tool names before they can produce divergent persisted action types.
