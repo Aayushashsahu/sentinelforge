@@ -44,6 +44,15 @@ describe("live fixture proof coordinator", () => {
     expect(p.appendAudit).toHaveBeenCalledWith(expect.objectContaining({ eventType: "FIXTURE_GITHUB_PROOF_STAGED" }));
   });
 
+  it("audits the idempotently returned persisted action rather than a discarded duplicate candidate", async () => {
+    const p = makePort();
+    const persisted = { ...buildFixtureProofIntent({ missionId: "SF_fixture", proposalFingerprint: "b".repeat(64) }) };
+    p.stageAction.mockImplementationOnce(async candidate => ({ ...candidate, id: "act_existing", intent: { ...candidate.intent, ...persisted } }));
+    const action = await stageLiveFixtureProofAction({ missionId: "SF_fixture", github: github(), port: p });
+    expect(action.id).toBe("act_existing");
+    expect(p.appendAudit).toHaveBeenCalledWith(expect.objectContaining({ correlationId: "act_existing", payload: expect.objectContaining({ actionId: "act_existing" }) }));
+  });
+
   it("refuses wrong mission repository, state, proposal, or duplicate proof action", async () => {
     const invalidBundles = [
       { repository: "Aayushashsahu/sentinelforge" },

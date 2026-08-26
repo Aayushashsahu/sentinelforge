@@ -27,7 +27,7 @@ export async function stageLiveFixtureProofAction(input: { missionId: string; gi
     remote: {},
   };
   const staged = await input.port.stageAction(action);
-  await input.port.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PROOF_STAGED", correlationId: action.id, result: "A fixture-only GitHub proof action was persisted with exact target, file, content SHA, base SHA, branch, and idempotency data. No provider approval, continuation, or GitHub mutation has occurred.", payload: { actionId: action.id, target: intent.repository, base: intent.baseBranch, file: intent.filePath, branchName: intent.branchName, proposalFingerprint: intent.proposalFingerprint } });
+  await input.port.appendAudit({ missionId: staged.missionId, eventType: "FIXTURE_GITHUB_PROOF_STAGED", correlationId: staged.id, result: "A fixture-only GitHub proof action was persisted with exact target, file, content SHA, base SHA, branch, and idempotency data. No provider approval, continuation, or GitHub mutation has occurred.", payload: { actionId: staged.id, target: staged.intent.repository, base: staged.intent.baseBranch, file: staged.intent.filePath, branchName: staged.intent.branchName, proposalFingerprint: staged.intent.proposalFingerprint } });
   return staged;
 }
 
