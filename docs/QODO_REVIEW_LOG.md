@@ -73,7 +73,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Findings | **Seven valid findings.** They covered staged-action approval binding, proof-gate tool identity, concurrent execution claiming, partial-PR identity persistence, adapter-level content enforcement, canonical patch validation, and idempotent staging audit correlation. |
 | Remediation | Finding 7 was fixed in `499b1f1`. Findings 1–6 were fixed in `9084bbe`: exact staged-action lookup and fingerprint binding; exact gate-tool validation; atomic `STAGED` → `EXECUTING` claim; `PARTIAL_PR_CREATED` with retained PR identity; adapter re-read plus exact transformation check; and canonical one-file patch validation. Deterministic coverage and full local validation passed. |
 | Follow-up | **REAL** — Qodo confirmed finding 7’s code remediation at [issue comment 5428778621](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428778621), then confirmed findings 1–6 were remediated at [issue comment 5428873893](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428873893). Its later status-only recheck formally states that **finding 7 remains dismissed** and that no code change or further action is required at [issue comment 5428975584](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428975584). |
-| Merge status | **Open, unmerged.** No merge, auto-merge, or fixture repository mutation has been requested or performed. |
+| Merge status | **Merged into `main`** as `8fa85a90e48ae5dc5b3d183fb07ca372e5d30e05` after separate explicit authorization. |
 
 ## PR #5 — GitHub Write-Capability Evidence Hardening
 
@@ -85,7 +85,21 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Findings | **None issued.** Qodo provided an assessment and change summary, not a High, Medium, or Low defect report. No remediation was required. |
 | Follow-up | **REAL** — the owner invoked `/agentic_review`; Qodo created follow-up review `PRR_kwDOUDCFQ88AAAABLBKItA` and confirmed its review was updated through the same commit. [3] |
 | Deferred findings | None. |
-| Merge status | **Open, unmerged.** No merge, auto-merge, provider action, sandbox action, or fixture-repository mutation occurred. |
+| Merge status | **Merged into `main`** as `71a2e41d4042541f06166fb6b298b2dd9a7fed8c` after separate explicit authorization. No provider action, sandbox action, or fixture-repository mutation occurred. |
+
+## PR #6 — Opt-In Live Fixture Proof Harness
+
+| Field | Record |
+| --- | --- |
+| PR | [#6](https://github.com/Aayushashsahu/sentinelforge/pull/6) — `test/live-fixture-proof-harness` → `main` |
+| Scope | Adds a disabled-by-default integration harness that composes the existing live Investigator, Repair Engineer, fixture-gate approval capture, durable approval persistence, continuation bridge, immutable executor, audit persistence, allowlists, and write-capability policy. The harness itself was **not** enabled or run. |
+| Initial Qodo review | **REAL** — review `PRR_kwDOUDCFQ88AAAABLBVYVA`, submitted 26 August 2026 UTC for `7a06a9e`. Qodo reported two valid correctness findings. [4] |
+| Finding 1 | **High / MUST_FIX / valid.** The proof sequence accepted file-call ordering without proving the exact allowlisted owner, repository, `main` ref, successful response correlation, or observed package/manifest versions. |
+| Finding 2 | **Medium / SHOULD_FIX / valid.** The approval pause and provider turn could be selected independently of the fixture-gate model event, risking a false checkpoint or wrong continuation correlation. |
+| Remediation | Commit `118787d` validates exact request arguments; binds response bodies to their corresponding same-turn calls and expected versions; requires the gate after both reads; and requires the approval pause’s tool-call and `source_event_id` to match the gate event. Eight focused deterministic sequence tests cover success plus fail-closed owner, repository, ref, body, source-event, ordering, and missing-pause cases. |
+| Follow-up | **REAL** — the owner invoked `/agentic_review`; Qodo created follow-up review `PRR_kwDOUDCFQ88AAAABLBYlig` and confirmed review coverage through `118787d`. [5] The update did not publish a separate formal dismissal message, so this log records the evidenced code fix and Qodo’s updated review without overstating formal clearance. |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** No merge, auto-merge, provider action, approval, continuation, sandbox action, fixture branch, fixture commit, or fixture PR occurred. |
 
 ## References
 
@@ -94,3 +108,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 [2] [PR #5 Qodo initial review comment](https://github.com/Aayushashsahu/sentinelforge/pull/5#issuecomment-5430144582) — Qodo’s real initial assessment for the write-capability hardening commit.
 
 [3] [PR #5 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/5#issuecomment-5430174693) — Qodo’s real update after the documented `/agentic_review` request.
+
+[4] [PR #6 Qodo initial review comment](https://github.com/Aayushashsahu/sentinelforge/pull/6#issuecomment-5430417799) — real Qodo High and Medium correctness findings for the original harness implementation.
+
+[5] [PR #6 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/6#issuecomment-5430491188) — real Qodo update through the remediation commit.
