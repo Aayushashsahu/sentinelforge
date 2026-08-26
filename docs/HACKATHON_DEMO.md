@@ -41,3 +41,17 @@ The prepared GitHub execution plan stays `BLOCKED_SANDBOX_VERIFICATION`. It requ
 ## Operator Notes
 
 Do not retry the sandbox in the demo. Do not represent the deterministic fixture verifier as a real provider pass. Do not create a branch, commit, pull request, or GitHub write. The intended demonstration outcome is safe refusal with an explanatory audit trail.
+
+## Final Rehearsal Status
+
+The persisted mission and readiness views were rehearsed against the judging flow. The only presentation defect found was a sparse first-load message; it was replaced with an intentional persisted-evidence loading panel that explicitly states no provider action, sandbox retry, or GitHub write is occurring.
+
+| Checklist | Status |
+| --- | --- |
+| Three-minute flow can be completed | **Ready** |
+| Root cause is obvious within the first minute | **Ready** — observed versions are visible in the evidence ledger |
+| Real MCP interaction, approval, and continuation are visible | **Ready** — persisted audit and state cards distinguish provider-real stages |
+| Sandbox blocker and GitHub refusal are explained | **Ready** — both use explicit blocked/guarded state language |
+| Safe completion is visible | **Ready** — `COMPLETED_SAFE` is explicitly not a repaired repository |
+| No secrets in frontend, fake provider events, unsafe fallback, or GitHub write | **Confirmed by boundary design and deterministic checks** |
+| Qodo review | **Configured, not yet run** — no artificial pull request was created |

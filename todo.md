@@ -174,3 +174,6 @@
 - [x] Add deterministic coverage that a sandbox-blocked mission cannot unlock a branch, commit, pull request, GitHub write tool, or an externally applied repair.
 - [x] Make the minimum existing-dashboard changes required to display the final demo timeline, traceable evidence, blocker, write-blocked decision, and audit trail clearly.
 - [x] Create `docs/HACKATHON_DEMO.md`, update `docs/ARCHITECTURE.md`, and record the Qodo status for the final demo without creating a pull request.
+- [x] Rehearse mission `SF_xF37FKFqr1NvtA` against the final judging checklist and identify only concrete clarity defects in its real-data demo presentation.
+- [x] Apply only necessary UI polish to make key evidence, approval-versus-write separation, blocked verification, and major audit transitions immediately understandable.
+- [x] Reconcile final demo documentation with the rendered presentation and add a completed hackathon-readiness checklist without making unsupported provider or Qodo claims.
