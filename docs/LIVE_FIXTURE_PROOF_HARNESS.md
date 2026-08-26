@@ -1,0 +1,9 @@
+# Opt-In Live Fixture Proof Harness
+
+**SentinelForge** is the submitted product repository. The participant-owned [`Aayushashsahu/sentinelforge-incident-fixture`](https://github.com/Aayushashsahu/sentinelforge-incident-fixture) repository remains an external integration target; it is not copied into this repository and is never treated as product source.
+
+`server/sentinelforge/githubFixtureProof.live.test.ts` is disabled by default. It runs only when `RUN_LIVE_FIXTURE_GITHUB_PROOF=1` is explicitly set and then requires server-side `GITHUB_SCRATCH_PR_TOKEN`, the exact `GITHUB_SCRATCH_OWNER=Aayushashsahu`, the exact `GITHUB_SCRATCH_REPO=sentinelforge-incident-fixture`, and independently established response-shaped `GITHUB_SCRATCH_WRITE_CAPABILITY_EVIDENCE`. Secrets, provider authorization headers, cookies, and token values are never written to source, test output, or mission evidence.
+
+When separately authorized and explicitly enabled, the harness composes the existing real SentinelForge Investigator, Repair Engineer, fixture-gate approval capture, durable approval persistence, same-turn continuation bridge, immutable executor, audit persistence, allowlists, and write-capability policy. It requires the exact `release-manifest.json` transformation `1.3.0` → `1.4.0`, can create at most one deterministic branch, one commit, and one **open, unmerged** PR, and never merges or deletes that PR.
+
+The harness fails closed before any protected GitHub write if write-capability evidence is absent, invalid, cross-repository, or operation-mismatched. Read access, ownership, rulesets visibility, and a complete fine-grained-token manifest are not used as substitutes for write authority. It also does **not** demonstrate sandbox verification: the real repair path remains sandbox-gated, and the harness must be enabled only under a separate live-proof authorization.

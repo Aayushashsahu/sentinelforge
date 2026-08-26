@@ -22,7 +22,7 @@ class LiveTurnPendingError extends Error {
   constructor() { super("TrueForge turn is still running after the bounded stream timeout; mission remains pending reconciliation."); }
 }
 
-function findFirstString(value: unknown, keys: readonly string[]): string | null {
+export function findFirstString(value: unknown, keys: readonly string[]): string | null {
   if (Array.isArray(value)) {
     for (const item of value) { const found = findFirstString(item, keys); if (found) return found; }
     return null;
@@ -154,7 +154,7 @@ function hasTerminalTurn(events: readonly TrueForgeStreamEvent[]): boolean {
   return events.some(event => event.event === "turn.done" || (event.data !== null && typeof event.data === "object" && !Array.isArray(event.data) && (event.data as Record<string, unknown>).type === "turn.done"));
 }
 
-async function readBoundedTurn(input: { client: TrueForgeClient; sessionId: string; message: string }) {
+export async function readBoundedTurn(input: { client: TrueForgeClient; sessionId: string; message: string }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), LIVE_TURN_TIMEOUT_MS);
   try {
