@@ -25,7 +25,7 @@ const sessionEnvelopeSchema = z.union([sessionSchema, z.object({ data: sessionSc
 const modelCatalogueSchema = z.object({ data: z.array(z.object({ name: z.string().min(1) })) });
 
 export type TrueForgeInlineAgentSpec = {
-  model: { name: string };
+  model: { name: string; params?: { parallel_tool_calls?: boolean; [key: string]: unknown } };
   instructions: string;
   mcp_servers?: Array<{
     name: string;

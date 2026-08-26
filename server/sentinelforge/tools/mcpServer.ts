@@ -6,7 +6,7 @@ import { GitHubReadApi } from "./githubRead";
 
 export type McpTextResponse = { content: [{ type: "text"; text: string }]; isError?: true };
 
-export const SENTINELFORGE_TOOLS = ["get_repository", "get_file", "get_issue", "get_workflow_run", "approval_probe"] as const;
+export const SENTINELFORGE_TOOLS = ["get_repository", "get_file", "get_issue", "get_workflow_run", "approval_probe", "repair_proposal_gate"] as const;
 
 export function getSentinelForgeToolsStatus() {
   return {
@@ -48,6 +48,7 @@ export class SentinelForgeTools {
   async call(name: string, args: Record<string, unknown>): Promise<McpTextResponse> {
     try {
       if (name === "approval_probe") return textResponse("sentinelforge-approval-probe: harmless");
+      if (name === "repair_proposal_gate") return textResponse("sentinelforge-repair-proposal-gate: approval required before any future external repair action; no mutation or network write was performed");
       const owner = stringArgument(args, "owner");
       const repo = stringArgument(args, "repo");
       if (name === "get_repository") return textResponse(JSON.stringify(await this.github.getRepository(owner, repo), null, 2));
@@ -73,6 +74,7 @@ export function createSentinelForgeToolsMcpServer(tools = new SentinelForgeTools
       { name: "get_issue", description: "Read an issue from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "issue_number"], properties: { owner: { type: "string" }, repo: { type: "string" }, issue_number: { type: "integer", minimum: 1 } } } },
       { name: "get_workflow_run", description: "Read an Actions workflow run from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "run_id"], properties: { owner: { type: "string" }, repo: { type: "string" }, run_id: { type: "integer", minimum: 1 } } } },
       { name: "approval_probe", description: "Return a constant harmless value for approval-mechanism verification only; it performs no mutation or network write.", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
+      { name: "repair_proposal_gate", description: "Return a constant non-mutating repair-gate acknowledgement. It exists only to capture a TrueForge approval checkpoint before any separately authorized external repair action.", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     ],
   }));
   server.setRequestHandler(CallToolRequestSchema, async request => tools.call(request.params.name, (request.params.arguments ?? {}) as Record<string, unknown>));
