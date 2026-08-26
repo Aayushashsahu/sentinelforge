@@ -59,9 +59,9 @@ Use the mission dashboard to inspect persisted missions and, if desired, launch 
 | PR | [#2 — CI workflow compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2) |
 | Scope | Adds the second deterministic CI workflow Node.js compatibility scenario and fixes the PR quality workflow package-manager configuration. |
 | Qodo review date | 26 August 2026 UTC |
-| Material findings | Qodo reported two correctness issues: simulated-action target used a hardcoded fixture repository; workflow audit wording retained release-manifest language. |
-| Fixes made | The simulated target now comes from the persisted mission repository; verification and approval text are scenario metadata. Both fixes have regression coverage. |
-| Follow-up status | Qodo updated its review to commit `51779da`; the original two findings remain visible as prior-review context. |
+| Material findings | One **High / MUST_FIX** correctness issue: simulated-action target used a hardcoded fixture repository. One **Medium / SHOULD_FIX** correctness issue: workflow audit wording retained release-manifest language. Both were valid. |
+| Fixes made | The simulated target now comes from the persisted mission repository; verification and approval text are scenario metadata. Both fixes are in `51779da` with regression coverage. |
+| Follow-up status | **REAL** — 26 August 2026 UTC. Qodo updated its review to `51779da`; prior findings remain visible as review history and no additional active finding was issued. |
 | Deferred findings | None. |
 | Merge status | **Open and unmerged.** No merge has been requested or performed. |
 
