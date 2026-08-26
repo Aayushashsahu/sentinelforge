@@ -146,6 +146,14 @@ describe("fixture GitHub proof contract", () => {
     expect(persistence.audits.at(-1)?.eventType).toBe("FIXTURE_GITHUB_BRANCH_PARTIAL");
   });
 
+  it("strips query-bearing credential fragments from fallback write-error endpoints before partial persistence", async () => {
+    const action = makeAction();
+    const persistence = makePersistence(action);
+    const failure = new Error("write response unavailable");
+    await expect(executeApprovedFixtureProof({ github: makeGithub({ createBranch: vi.fn(async () => { throw failure; }) }), persistence, actionId: action.id })).rejects.toThrow();
+    expect(persistence.updates.at(-1)).toMatchObject({ failure: { endpoint: "/git/refs", classification: "UNKNOWN" } });
+  });
+
   it("refuses a lost concurrent claim before final preflight or any GitHub mutation", async () => {
     const action = makeAction();
     const persistence = makePersistence(action);
