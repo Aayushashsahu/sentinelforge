@@ -10,7 +10,7 @@ describe("sentinelforge-tools", () => {
     const status = getSentinelForgeToolsStatus();
     expect(status).toMatchObject({ name: "sentinelforge-tools", endpointPath: "/api/mcp/sentinelforge-tools", writeActionsEnabled: false, sandboxEnabled: false });
     expect(status.allowedRepositories).toEqual([`${fixtureOwner}/${fixtureRepo}`]);
-    expect(status.tools).toEqual(["get_repository", "get_file", "get_issue", "get_workflow_run", "approval_probe", "repair_proposal_gate"]);
+    expect(status.tools).toEqual(["get_repository", "get_file", "get_issue", "get_workflow_run", "approval_probe", "repair_proposal_gate", "fixture_github_pr_gate"]);
     expect(JSON.stringify(status)).not.toContain("GITHUB_READ_TOKEN");
   });
 
@@ -55,6 +55,17 @@ describe("sentinelforge-tools", () => {
     const result = await tools.call("repair_proposal_gate", {});
 
     expect(result.content[0].text).toContain("approval required");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("returns the fixture-proof approval gate acknowledgement without receiving a write credential or performing a GitHub request", async () => {
+    const fetchImpl = vi.fn();
+    const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch));
+
+    const result = await tools.call("fixture_github_pr_gate", {});
+
+    expect(result.content[0].text).toContain("fixture-only GitHub branch");
+    expect(result.content[0].text).toContain("no mutation");
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

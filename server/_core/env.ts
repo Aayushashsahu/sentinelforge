@@ -8,4 +8,5 @@ export const ENV = {
   trueForgeGithubMcpName: process.env.TRUEFORGE_GITHUB_MCP_NAME?.trim() ?? "",
   trueForgeToolsMcpName: process.env.TRUEFORGE_SENTINELFORGE_TOOLS_MCP_NAME?.trim() || "sentinelforge-tools",
   githubReadToken: process.env.GITHUB_READ_TOKEN?.trim() || undefined,
+  githubScratchPrToken: process.env.GITHUB_SCRATCH_PR_TOKEN?.trim() || undefined,
 };

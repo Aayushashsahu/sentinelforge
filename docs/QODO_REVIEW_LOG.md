@@ -63,6 +63,18 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Merged into `main`** as `a1bfe3804a75275d6986a1947b00a1e5777c86f8` after separate explicit authorization. |
 
+## PR #4 — Approval-Gated Fixture GitHub Proof Executor
+
+| Field | Record |
+| --- | --- |
+| PR | [#4](https://github.com/Aayushashsahu/sentinelforge/pull/4) — `feature/approval-gated-fixture-proof` → `main` |
+| Scope | Adds a server-only, exact-fixture GitHub proof adapter, immutable target and content guards, durable staged action state, proof-specific non-mutating approval gate, continuation correlation binding, partial-outcome stop states, and deterministic tests. No live proof action is invoked by the implementation. |
+| Initial Qodo review | **REAL** — 26 August 2026 UTC. Qodo Code Review created review `PRR_kwDOUDCFQ88AAAABLAHQqQ` and reported seven valid bugs at [issue comment 5428739743](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428739743). |
+| Findings | **Seven valid findings.** They covered staged-action approval binding, proof-gate tool identity, concurrent execution claiming, partial-PR identity persistence, adapter-level content enforcement, canonical patch validation, and idempotent staging audit correlation. |
+| Remediation | Finding 7 was fixed in `499b1f1`. Findings 1–6 were fixed in `9084bbe`: exact staged-action lookup and fingerprint binding; exact gate-tool validation; atomic `STAGED` → `EXECUTING` claim; `PARTIAL_PR_CREATED` with retained PR identity; adapter re-read plus exact transformation check; and canonical one-file patch validation. Deterministic coverage and full local validation passed. |
+| Follow-up | **REAL** — Qodo confirmed finding 7’s code remediation at [issue comment 5428778621](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428778621), then confirmed findings 1–6 were remediated at [issue comment 5428873893](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428873893). Its later status-only recheck formally states that **finding 7 remains dismissed** and that no code change or further action is required at [issue comment 5428975584](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428975584). |
+| Merge status | **Open, unmerged.** No merge, auto-merge, or fixture repository mutation has been requested or performed. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.

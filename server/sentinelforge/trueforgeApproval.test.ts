@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { persistTrueForgeApprovalRequired, persistTrueForgeRepairProposalApprovalRequired } from "./trueforgeApproval";
+import { persistTrueForgeApprovalRequired, persistTrueForgeFixtureProofApprovalRequired, persistTrueForgeRepairProposalApprovalRequired } from "./trueforgeApproval";
+import { buildFixtureProofIntent } from "./fixtureGithubProof";
 
 function makePort(status: "VERIFYING" | "PLANNING_FIX" = "VERIFYING") {
   return {
@@ -11,6 +12,7 @@ function makePort(status: "VERIFYING" | "PLANNING_FIX" = "VERIFYING") {
     appendMissionEvent: vi.fn().mockResolvedValue(undefined),
     notifyOwner: vi.fn().mockResolvedValue(true),
     getMissionBundle: vi.fn().mockResolvedValue({ mission: { id: "SF_1", status: "WAITING_APPROVAL" } }),
+    getFixtureProofAction: vi.fn().mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }) }),
   };
 }
 
@@ -72,5 +74,13 @@ describe("TrueForge approval-required persistence", () => {
     expect(port.updateTrueForgeTurn).toHaveBeenCalledWith({ turnId: "turn_1", status: "WAITING_APPROVAL", threadId: "thread_1", requiredActionId: "action_1", toolCallId: "call_1" });
     expect(port.setMissionStatus).toHaveBeenCalledWith("SF_1", "WAITING_APPROVAL");
     expect(port.appendMissionEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: "TRUEFORGE_REPAIR_PROPOSAL_APPROVAL_REQUIRED" }));
+  });
+
+  it("persists the proof-specific gate through the same approval state machine without a continuation or GitHub action", async () => {
+    const port = makePort("PLANNING_FIX");
+    await expect(persistTrueForgeFixtureProofApprovalRequired(port, { missionId: "SF_1", event: { type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "fixture_github_pr_gate" }, risk: "HIGH", repairFingerprint: "c".repeat(64), proofActionId: "act_proof", proposalEvidenceRefs: ["action_proof"] })).resolves.toMatchObject({ mission: { status: "WAITING_APPROVAL" } });
+    expect(port.addApprovalRequest).toHaveBeenCalledWith(expect.objectContaining({ actionType: "TRUEFORGE_FIXTURE_GITHUB_PR_GATE:fixture_github_pr_gate" }));
+    expect(port.updateTrueForgeTurn).toHaveBeenCalledWith({ turnId: "turn_1", status: "WAITING_APPROVAL", threadId: "thread_1", requiredActionId: "action_1", toolCallId: "call_1" });
+    expect(port.appendMissionEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: "TRUEFORGE_FIXTURE_GITHUB_PROOF_APPROVAL_REQUIRED" }));
   });
 });
