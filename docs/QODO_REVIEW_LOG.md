@@ -31,6 +31,8 @@ The next meaningful reviewable backend scope is **PR 5: final hardening and demo
 
 No pull request was opened for this record. Consequently, Qodo has not run a review and there are no review findings to accept, reject, or remediate. Opening a pull request, invoking Qodo, or merging remains outside the current authorization.
 
+The final demo implementation now adds an evidence-linked derived timeline (`INVESTIGATING` through `COMPLETED_SAFE`), explicit blocked-verification and write-refusal presentation, a three-minute demo runbook, and architecture documentation. This remains the intended meaningful Qodo review scope once a separately authorized PR is available; no artificial PR or review invocation was created.
+
 ## Review Entry Format
 
 For each future pull request, append the PR number and URL, Qodo’s review state, material findings, the implemented fixes, and any justified disagreement. Do not silently dismiss a Qodo finding. No GitHub token or Qodo credential may be copied into this log.

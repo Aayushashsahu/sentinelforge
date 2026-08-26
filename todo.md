@@ -170,3 +170,7 @@
 - [x] Classify mission `SF_xF37FKFqr1NvtA` and the backend capability surface as `SANDBOX_VERIFICATION_BLOCKED` while preserving the existing failed sandbox session, turn, run, evidence, and audit trail.
 - [x] Finalize deterministic GitHub repair PR-intent and idempotency contracts that refuse execution unless a real sandbox verification pass and separately authorized write conditions are present; do not call GitHub.
 - [x] Update the Qodo review trail and final-demo documentation to show Investigated → Proposed → Approved → Verification BLOCKED → no unsafe write, without creating a pull request.
+- [x] Build a persisted final demo mission timeline for `SF_xF37FKFqr1NvtA` covering investigation, root cause, proposal, approval, continuation, sandbox verification blocked, write blocked, and safe completion without claiming the repair was applied.
+- [x] Add deterministic coverage that a sandbox-blocked mission cannot unlock a branch, commit, pull request, GitHub write tool, or an externally applied repair.
+- [x] Make the minimum existing-dashboard changes required to display the final demo timeline, traceable evidence, blocker, write-blocked decision, and audit trail clearly.
+- [x] Create `docs/HACKATHON_DEMO.md`, update `docs/ARCHITECTURE.md`, and record the Qodo status for the final demo without creating a pull request.

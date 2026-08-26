@@ -5,6 +5,7 @@ import type { MissionStatus, Risk } from "../../shared/sentinelforge";
 import { getDb } from "../db";
 import { assertAllowedMissionTransition } from "./transitions";
 import { createImmutableAuditEvent, nextAuditSequence } from "./audit";
+import { buildFinalDemoTimeline } from "./finalDemo";
 
 const now = () => Date.now();
 const id = (prefix: string) => `${prefix}_${nanoid(14)}`;
@@ -67,7 +68,8 @@ export async function getMissionBundle(missionId: string) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const [mission] = await db.select().from(missions).where(eq(missions.id, missionId)).limit(1); if (!mission) return null;
   const [events, missionEvidence, runs, approvals, actions, continuations, trueforgeSessionRecords, trueforgeTurnRecords] = await Promise.all([db.select().from(missionEvents).where(eq(missionEvents.missionId, missionId)).orderBy(asc(missionEvents.sequence)), db.select().from(evidence).where(eq(evidence.missionId, missionId)).orderBy(asc(evidence.createdAt)), db.select().from(sandboxRuns).where(eq(sandboxRuns.missionId, missionId)).orderBy(desc(sandboxRuns.createdAt)), db.select().from(approvalRequests).where(eq(approvalRequests.missionId, missionId)).orderBy(desc(approvalRequests.createdAt)), db.select().from(externalActions).where(eq(externalActions.missionId, missionId)).orderBy(desc(externalActions.createdAt)), db.select().from(approvalContinuations).where(eq(approvalContinuations.missionId, missionId)).orderBy(desc(approvalContinuations.createdAt)), db.select().from(trueforgeSessions).where(eq(trueforgeSessions.missionId, missionId)).orderBy(desc(trueforgeSessions.createdAt)), db.select().from(trueforgeTurns).where(eq(trueforgeTurns.missionId, missionId)).orderBy(desc(trueforgeTurns.createdAt))]);
   const publicTrueForgeSessions = trueforgeSessionRecords.map(({ baseUrl: _baseUrl, ...session }) => session);
-  return { mission, events, evidence: missionEvidence, runs, approvals, actions, continuations, trueforgeSessions: publicTrueForgeSessions, trueforgeTurns: trueforgeTurnRecords };
+  const demoTimeline = buildFinalDemoTimeline({ missionStatus: mission.status, events, runs, actions });
+  return { mission, events, evidence: missionEvidence, runs, approvals, actions, continuations, trueforgeSessions: publicTrueForgeSessions, trueforgeTurns: trueforgeTurnRecords, demoTimeline };
 }
 export async function listMissionBundles() { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const list = await db.select().from(missions).orderBy(desc(missions.updatedAt)); return Promise.all(list.map(mission => getMissionBundle(mission.id))); }
 export async function getApprovalWithMission(requestId: string) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const [approval] = await db.select().from(approvalRequests).where(eq(approvalRequests.id, requestId)).limit(1); if (!approval) return null; const [mission] = await db.select().from(missions).where(eq(missions.id, approval.missionId)).limit(1); return mission ? { approval, mission } : null; }
