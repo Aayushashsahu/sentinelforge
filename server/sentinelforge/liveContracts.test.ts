@@ -66,6 +66,13 @@ describe("live provider-neutral execution contracts", () => {
     expect(buildGuardedGitHubRepairExecutionPlan({ missionId: "SF_1", repository: "owner/repo", proposal, fingerprint, verificationStatus: "PASS" }).status).toBe("REQUIRES_SEPARATE_WRITE_AUTHORIZATION");
   });
 
+  it("refuses every GitHub execution precondition for a sandbox-blocked mission", () => {
+    const fingerprint = createRepairFingerprint(proposal);
+    const blocked = { missionStatus: "COMPLETED" as const, approvalStatus: "APPROVED" as const, verificationStatus: "FAIL" as const, approvedFingerprint: fingerprint, currentFingerprint: fingerprint, requiredActionId: "action_1", toolCallId: "call_1", existingActionCount: 0, risk: "LOW" as const };
+    expect(() => assertLiveGitHubPrExecutionAllowed(blocked)).toThrow(/mission is not waiting/);
+    expect(buildGuardedGitHubRepairExecutionPlan({ missionId: "SF_1", repository: "owner/repo", proposal, fingerprint, verificationStatus: "FAIL" }).operations.map(operation => operation.kind)).toEqual(["create_branch", "commit_patch", "create_pull_request"]);
+  });
+
   it("fails closed for unsafe dormant PR-intent targets", () => {
     const fingerprint = createRepairFingerprint(proposal);
     expect(() => buildIdempotentGitHubPullRequestIntent({ missionId: "mission_1", repository: "owner/repo", proposal, fingerprint })).toThrow(/SentinelForge mission/);
