@@ -1,22 +1,26 @@
 import { notifyOwner } from "../_core/notification";
-import { fixtureIncident, investigatorResult, repairProposal, runFixtureVerification } from "./fixture";
+import { getDeterministicScenario, runDeterministicScenarioVerification, type DeterministicScenarioId } from "./scenarios";
 import { addApprovalRequest, addEvidence, addSandboxRun, appendMissionEvent, countExternalActions, createMission, createSimulatedExternalAction, decideApproval, getApprovalWithMission, getMissionBundle, setMissionStatus } from "./repository";
 import { resolvePersistedApproval } from "./approvalWorkflow";
 
-export async function launchDeterministicFixtureMission() {
-  const mission = await createMission({ ...fixtureIncident, risk: "LOW" });
+export async function launchDeterministicFixtureMission(scenarioId: DeterministicScenarioId = "release_manifest_version_drift") {
+  const scenario = getDeterministicScenario(scenarioId);
+  const { investigatorResult, repairProposal } = scenario;
+  const mission = await createMission({ ...scenario.incident, risk: repairProposal.risk });
   await setMissionStatus(mission.id, "INVESTIGATING");
-  await appendMissionEvent({ missionId: mission.id, eventType: "INVESTIGATION_STARTED", actor: "TrueForge adapter", tool: "fixture-investigator", result: "Investigator received a deterministic CI incident and bounded fixture evidence." });
-  const investigationEvidence = await addEvidence({ missionId: mission.id, kind: "INVESTIGATION", title: "Version drift detected", content: investigatorResult.finding, source: "fixtures/broken-repo" });
-  await addEvidence({ missionId: mission.id, kind: "ROOT_CAUSE", title: "Root cause", content: investigatorResult.rootCause, source: "fixture-investigator" });
-  await appendMissionEvent({ missionId: mission.id, eventType: "ROOT_CAUSE_IDENTIFIED", actor: "Investigator", result: investigatorResult.rootCause, evidenceRefs: [investigationEvidence.id] });
+  await appendMissionEvent({ missionId: mission.id, eventType: "INVESTIGATION_STARTED", actor: "Deterministic fixture adapter", tool: "fixture-investigator", result: `Investigator received the ${scenario.label.toLowerCase()} incident and bounded fixture evidence.` });
+  const observationEvidence = await Promise.all(scenario.evidence.map(item => addEvidence({ missionId: mission.id, kind: "OBSERVED", title: `${item.file} observation`, content: item.observation, source: `fixtures/${scenario.id}/${item.file}` })));
+  const investigationEvidence = await addEvidence({ missionId: mission.id, kind: "INVESTIGATION", title: "Investigation finding", content: investigatorResult.finding, source: `fixture-investigator/${scenario.id}` });
+  await addEvidence({ missionId: mission.id, kind: "ROOT_CAUSE", title: "Root cause", content: investigatorResult.rootCause, source: `fixture-investigator/${scenario.id}` });
+  await appendMissionEvent({ missionId: mission.id, eventType: "ROOT_CAUSE_IDENTIFIED", actor: "Investigator", result: investigatorResult.rootCause, evidenceRefs: [investigationEvidence.id, ...observationEvidence.map(item => item.id)] });
   await setMissionStatus(mission.id, "PLANNING_FIX");
-  const patchEvidence = await addEvidence({ missionId: mission.id, kind: "PATCH", title: "Minimal repair proposal", content: repairProposal.patch, source: "fixture-repair-engineer" });
-  await appendMissionEvent({ missionId: mission.id, eventType: "REPAIR_PROPOSED", actor: "Repair Engineer", result: repairProposal.summary, evidenceRefs: [patchEvidence.id] });
+  const patchEvidence = await addEvidence({ missionId: mission.id, kind: "PATCH", title: "Minimal repair proposal", content: repairProposal.patch, source: `fixture-repair-engineer/${scenario.id}` });
+  const fingerprintEvidence = await addEvidence({ missionId: mission.id, kind: "REPAIR_FINGERPRINT", title: "Repair fingerprint", content: scenario.repairFingerprint, source: `fixture-repair-engineer/${scenario.id}` });
+  await appendMissionEvent({ missionId: mission.id, eventType: "REPAIR_PROPOSED", actor: "Repair Engineer", result: repairProposal.summary, evidenceRefs: [patchEvidence.id, fingerprintEvidence.id] });
   await setMissionStatus(mission.id, "VERIFYING", { rootCause: investigatorResult.rootCause, repairSummary: repairProposal.summary, patch: repairProposal.patch });
-  await appendMissionEvent({ missionId: mission.id, eventType: "VERIFICATION_STARTED", actor: "TrueForge adapter", tool: "fixture-isolation", result: "Starting deterministic no-shell verification with a 90ms hard timeout." });
-  const verification = await runFixtureVerification();
-  const sandboxRun = await addSandboxRun({ missionId: mission.id, status: verification.result.status, runner: "fixture-isolation/no-shell", command: "release-check :: package.version === manifest.version", stdout: verification.stdout, stderr: verification.stderr, exitCode: verification.exitCode, durationMs: verification.durationMs, timedOut: verification.timedOut });
+  await appendMissionEvent({ missionId: mission.id, eventType: "VERIFICATION_STARTED", actor: "Deterministic fixture adapter", tool: "fixture-isolation", result: "Starting deterministic no-shell verification with a 90ms hard timeout." });
+  const verification = await runDeterministicScenarioVerification(scenario.id);
+  const sandboxRun = await addSandboxRun({ missionId: mission.id, status: verification.result.status, runner: "fixture-isolation/no-shell", command: scenario.verification.command, stdout: verification.stdout, stderr: verification.stderr, exitCode: verification.exitCode, durationMs: verification.durationMs, timedOut: verification.timedOut });
   const verificationEvidence = await addEvidence({ missionId: mission.id, kind: "VERIFICATION", title: `Verification ${verification.result.status}`, content: verification.stdout || verification.stderr, source: "fixture-isolation" });
   if (verification.result.status !== "PASS") { await setMissionStatus(mission.id, "FAILED"); await appendMissionEvent({ missionId: mission.id, eventType: "VERIFICATION_FAILED", actor: "Verifier", tool: "fixture-isolation", result: verification.stderr || "Verification failed closed.", evidenceRefs: [verificationEvidence.id, sandboxRun.id] }); return getMissionBundle(mission.id); }
   await appendMissionEvent({ missionId: mission.id, eventType: "VERIFICATION_PASSED", actor: "Verifier", tool: "fixture-isolation", result: "Release-check passed. The repair is eligible for review, not for autonomous action.", evidenceRefs: [verificationEvidence.id, sandboxRun.id] });
