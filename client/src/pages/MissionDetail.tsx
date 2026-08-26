@@ -11,7 +11,7 @@ export default function MissionDetail() {
   const bundle = trpc.missions.get.useQuery({ id: missionId }, { enabled: Boolean(missionId) });
   const utils = trpc.useUtils();
   const decide = trpc.missions.decideApproval.useMutation({ onSuccess: () => { utils.missions.get.invalidate({ id: missionId }); utils.missions.list.invalidate(); } });
-  if (bundle.isLoading) return <div className="forge-page p-8 text-slate-400">Loading persisted mission…</div>;
+  if (bundle.isLoading) return <div className="forge-page"><section className="mx-auto max-w-4xl rounded-[28px] border border-white/10 bg-slate-950/70 p-8 md:p-12"><p className="eyebrow">Safe demo record</p><div className="mt-5 flex items-start gap-4"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-amber-300/25 bg-amber-300/[0.08] text-amber-200"><TerminalSquare className="h-5 w-5" /></div><div><h1 className="text-2xl font-semibold tracking-[-0.03em] text-white">Loading persisted mission evidence</h1><p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">Retrieving the immutable timeline, evidence ledger, approval correlation, and verification boundary. No provider action, sandbox retry, or GitHub write is being performed.</p><div className="mt-5 h-1.5 w-52 overflow-hidden rounded-full bg-white/10"><span className="block h-full w-2/3 rounded-full bg-amber-300/80" /></div></div></div></section></div>;
   if (!bundle.data) return <div className="forge-page p-8 text-slate-400">Mission not found.</div>;
   const { mission, events, evidence, runs, approvals, actions, demoTimeline } = bundle.data;
   const approval = approvals[0];
