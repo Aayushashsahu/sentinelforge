@@ -140,6 +140,16 @@ export function mapTrueForgeSessionHistory(payload: unknown): TrueForgeStreamEve
   });
 }
 
+export function orderTrueForgeSessionHistoryChronologically(events: readonly TrueForgeStreamEvent[]): TrueForgeStreamEvent[] {
+  const typeAt = (index: number) => {
+    const event = events[index];
+    if (!event) return null;
+    if (event.event) return event.event;
+    return event.data && typeof event.data === "object" && !Array.isArray(event.data) ? (event.data as Record<string, unknown>).type : null;
+  };
+  return typeAt(0) === "turn.done" && typeAt(events.length - 1) === "turn.created" ? [...events].reverse() : [...events];
+}
+
 function hasTerminalTurn(events: readonly TrueForgeStreamEvent[]): boolean {
   return events.some(event => event.event === "turn.done" || (event.data !== null && typeof event.data === "object" && !Array.isArray(event.data) && (event.data as Record<string, unknown>).type === "turn.done"));
 }
@@ -156,7 +166,7 @@ async function readBoundedTurn(input: { client: TrueForgeClient; sessionId: stri
     const historyTimeout = setTimeout(() => historyController.abort(), LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS);
     let history: TrueForgeStreamEvent[];
     try {
-      history = mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal));
+      history = orderTrueForgeSessionHistoryChronologically(mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal)));
     } catch (historyError) {
       if (historyController.signal.aborted) throw new LiveTurnPendingError();
       throw historyError;
@@ -411,10 +421,47 @@ export async function runLiveRepairProposalApprovalCapture(missionId: string) {
         if (!persisted) throw new Error("TrueForge repair approval reconciliation persisted no mission bundle.");
         return persisted;
       },
+      finalizeInterruptedCheckpoint: async () => {
+        throw new Error("A newly captured repair approval turn cannot finalize a pre-existing interrupted checkpoint.");
+      },
     }, { missionId, sessionId: session.id, events, toolsMcpName: config.toolsMcpName });
   } catch (error) {
     await setMissionStatus(missionId, "FAILED");
     await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_APPROVAL_CAPTURE_FAILED", actor: "TrueForge", result: sanitizeLiveProviderError(error) });
     throw error;
   }
+}
+
+export async function reconcileExistingLiveRepairProposalApproval(input: { missionId: string; sessionId: string }) {
+  const bundle = await getMissionBundle(input.missionId);
+  if (!bundle) throw new Error("Mission was not found.");
+  if (!bundle.mission.patch || !bundle.mission.patch.includes("release-manifest.json")) throw new Error("Repair approval reconciliation requires the persisted release-manifest.json proposal.");
+  if (!bundle.trueforgeSessions.some(session => session.sessionId === input.sessionId && session.status === "REPAIR_PROPOSAL_APPROVAL_CAPTURE")) {
+    throw new Error("Repair approval reconciliation requires an existing repair approval-capture session for this mission.");
+  }
+  const config = getTrueForgeRuntimeConfig();
+  const fingerprint = repairProposalGateFingerprint({ summary: bundle.mission.repairSummary, patch: bundle.mission.patch });
+  const events = orderTrueForgeSessionHistoryChronologically(mapTrueForgeSessionHistory(await new TrueForgeClient(config).listSessionEvents(input.sessionId)));
+  return reconcileRepairApprovalHistory({
+    getBundle: async id => { const latest = await getMissionBundle(id); if (!latest) throw new Error("Mission was not found."); return latest; },
+    recordTurn: async turn => { await recordTrueForgeTurn({ missionId: turn.missionId, trueforgeSessionId: turn.sessionId, turnId: turn.turnId, status: "WAITING_APPROVAL", threadId: turn.threadId, requiredActionId: turn.requiredActionId, toolCallId: turn.toolCallId }); },
+    appendStreamAudit: async audit => { await appendMissionEvents(buildStreamAuditInputs(audit)); },
+    addProviderEvidence: async evidence => addEvidence({ missionId: evidence.missionId, kind: "OBSERVED", title: "TrueForge repair proposal approval-required provider event", content: "The provider history emitted tool.approval_required for repair_proposal_gate after the required first-party file reads and before any continuation or external action.", source: "trueforge/repair-proposal-approval" }),
+    persistApproval: async approval => {
+      const persisted = await persistTrueForgeRepairProposalApprovalRequired({
+        getMission: async id => { const latest = await getMissionBundle(id); return latest ? { id: latest.mission.id, status: latest.mission.status } : null; },
+        getLatestTrueForgeTurn: async id => { const turn = await getTrueForgeTurnByMission(id); return turn ? { turnId: turn.turnId } : null; },
+        addApprovalRequest, updateTrueForgeTurn, setMissionStatus, appendMissionEvent, notifyOwner, getMissionBundle,
+      }, { missionId: input.missionId, event: approval.event, risk: bundle.mission.risk, repairFingerprint: fingerprint, proposalEvidenceRefs: approval.evidenceRefs });
+      if (!persisted) throw new Error("TrueForge repair approval reconciliation persisted no mission bundle.");
+      return persisted;
+    },
+    finalizeInterruptedCheckpoint: async interrupted => {
+      await setMissionStatus(input.missionId, "WAITING_APPROVAL");
+      await appendMissionEvent({ missionId: input.missionId, eventType: "TRUEFORGE_REPAIR_PROPOSAL_APPROVAL_REQUIRED", actor: "TrueForge", tool: REPAIR_PROPOSAL_GATE_TOOL_NAME, correlationId: interrupted.toolCallId, result: "An interrupted local reconciliation was completed from the already persisted genuine provider approval event. The mission remains paused; no continuation or external action has occurred.", payload: { approvalRequestId: interrupted.approvalRequestId, turnId: interrupted.turnId } });
+      const latest = await getMissionBundle(input.missionId);
+      if (!latest) throw new Error("Mission was not found after completing its approval checkpoint.");
+      return latest;
+    },
+  }, { missionId: input.missionId, sessionId: input.sessionId, events, toolsMcpName: config.toolsMcpName });
 }

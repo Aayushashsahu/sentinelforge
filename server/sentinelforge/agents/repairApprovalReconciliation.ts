@@ -16,6 +16,7 @@ export type RepairApprovalReconciliationPort<TBundle extends ReconciliationBundl
   appendStreamAudit(input: { missionId: string; turnId: string; events: readonly TrueForgeStreamEvent[] }): Promise<void>;
   addProviderEvidence(input: { missionId: string }): Promise<{ id: string }>;
   persistApproval(input: { event: TrueForgeApprovalRequired; evidenceRefs: string[] }): Promise<TBundle>;
+  finalizeInterruptedCheckpoint(input: { approvalRequestId: string; turnId: string; toolCallId: string }): Promise<TBundle>;
 };
 
 function hasTerminalTurn(events: readonly TrueForgeStreamEvent[]): boolean {
@@ -28,15 +29,18 @@ export async function reconcileRepairApprovalHistory<TBundle extends Reconciliat
   if (!hasTerminalTurn(input.events) && !pause) throw new Error("TrueForge repair approval reconciliation requires a terminal turn or an approval pause.");
 
   const bundle = await port.getBundle(input.missionId);
+  const toolCall = pause.tool_calls[0];
+  if (!toolCall) throw new Error("TrueForge repair approval reconciliation requires one valid provider tool-call correlation.");
   const actionType = "TRUEFORGE_REPAIR_PROPOSAL_GATE:repair_proposal_gate";
   const existingApproval = bundle.approvals.find(approval => approval.actionType === actionType);
   const existingTurn = bundle.trueforgeTurns.find(turn => turn.turnId === turnId && turn.trueforgeSessionId === input.sessionId);
   if (existingApproval && existingTurn && bundle.mission.status === "WAITING_APPROVAL") return bundle;
+  if (existingApproval && existingTurn && bundle.mission.status === "PLANNING_FIX") {
+    return port.finalizeInterruptedCheckpoint({ approvalRequestId: existingApproval.id, turnId, toolCallId: toolCall.id });
+  }
   if (existingApproval) throw new Error("TrueForge repair approval reconciliation found an approval request without a matching durable waiting checkpoint.");
   if (bundle.mission.status !== "PLANNING_FIX") throw new Error("TrueForge repair approval reconciliation requires a planning-stage mission without a prior approval request.");
 
-  const toolCall = pause.tool_calls[0];
-  if (!toolCall) throw new Error("TrueForge repair approval reconciliation requires one valid provider tool-call correlation.");
   const approvalEvent: TrueForgeApprovalRequired = {
     type: "tool.approval_required",
     thread_id: pause.thread_id,
