@@ -37,6 +37,22 @@ The final demo implementation now adds an evidence-linked derived timeline (`INV
 
 For each future pull request, append the PR number and URL, Qodo’s review state, material findings, the implemented fixes, and any justified disagreement. Do not silently dismiss a Qodo finding. No GitHub token or Qodo credential may be copied into this log.
 
+## PR #2 — CI Workflow Compatibility Incident Scenario
+
+| Field | Record |
+| --- | --- |
+| PR | [#2](https://github.com/Aayushashsahu/sentinelforge/pull/2) — `review/ci-workflow-mismatch` → `main` |
+| Scope | Adds a deterministic CI workflow Node.js compatibility scenario with evidence, root cause, minimal workflow patch, canonical repair fingerprint, no-shell verifier expectation, dashboard selector, and regression coverage. |
+| Initial Qodo review | **REAL** — 26 August 2026 UTC; Qodo reported two correctness bugs. |
+| Finding 1 | **High / MUST_FIX / valid.** A simulated approval action targeted the hardcoded release-manifest fixture repository rather than the persisted mission repository. |
+| Fix 1 | `createSimulatedExternalAction` now receives the approved mission repository through the approval port; a regression test verifies the workflow fixture target. Remediation: `51779da`. |
+| Finding 2 | **Medium / SHOULD_FIX / valid.** Workflow-scenario audit records retained release-check and manifest-patch wording. |
+| Fix 2 | Verification-passed and approval-justification text are scenario metadata; a regression test verifies Node compatibility wording. Remediation: `51779da`. |
+| Follow-up | **REAL** — 26 August 2026 UTC. Qodo updated its review to remediation commit `51779da`; the original findings are retained under previous-review context and no additional active finding was issued. |
+| CI | GitHub quality workflow initially failed on duplicate pnpm version declarations, then passed after the exact package-manager declaration became the single source of truth. |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** No merge has been requested or performed. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.

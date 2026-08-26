@@ -1,46 +1,74 @@
 # SentinelForge
 
-> **Investigate. Verify. Approve. Act.**
+> **Investigate. Propose. Approve. Verify. Refuse unsafe writes.**
 
-SentinelForge is an approval-gated engineering incident command center. It persists an incident mission, gathers deterministic fixture evidence, proposes a minimal repair, verifies that proposal through a bounded no-shell fixture adapter, and pauses for explicit human approval before recording a simulated external action.
+SentinelForge is an approval-gated engineering incident responder built around a real TrueForge runtime and a fail-closed external-action boundary. It gathers evidence, persists an unapplied repair proposal, pauses at a genuine provider approval event, and records an exact `user.tool_approval` continuation. It does **not** apply a repair when isolated verification is unavailable.
 
-## Problem and solution
+## Status in 60 seconds
 
-Incident tools often either summarize a failure or move from diagnosis to a write without a durable human checkpoint. SentinelForge makes the decision boundary visible and captures evidence, repair, verification, approval, and outcome as append-only mission events.
+| Capability | Current status | What is evidenced |
+| --- | --- | --- |
+| TrueForge sessions, turns, and SSE | **REAL** | Persisted provider session/turn correlation and streamed event audit. |
+| First-party MCP evidence | **REAL** | `sentinelforge-tools` supplied ordinary read-only repository file text to the Investigator and Repair Engineer. |
+| Repair proposal | **REAL** | A minimal `release-manifest.json` `1.3.0` → `1.4.0` proposal was persisted without application. |
+| Human approval | **REAL** | A genuine `tool.approval_required` event was persisted with session, turn, thread, tool-call, and required-action correlation. |
+| Approval continuation | **REAL** | One exact `user.tool_approval` continuation was sent and completed. |
+| Sandbox verification | **BLOCKED** | Real sandbox `exec` admission reached bootstrap, but the provider proxy could not install `pydantic`; no verifier command ran. |
+| GitHub repair write | **REFUSED** | Branch, commit, pull request, and GitHub mutation require a real sandbox pass plus further guarded conditions. |
 
-## What works now
+## How the safety boundary works
 
-The demonstrator identifies a release-manifest version mismatch, proposes a one-file patch, verifies the known invariant without a shell or network request, persists a `WAITING_APPROVAL` checkpoint, and notifies the project owner. Approval records a **simulated** pull-request action only. No GitHub branch, commit, pull request, MCP write, or generated-code execution occurs.
-
-## Why TrueForge
-
-SentinelForge keeps future provider functionality behind a typed adapter. The intended production path is TrueForge sessions, GitHub MCP reads and writes, specialist subagents, provider sandboxing, approval pause/resume, and persistent context. The current UI exposes readiness honestly rather than claiming live access to tools.
-
-## Architecture
-
-```mermaid
-flowchart TD
-  UI[Command center] --> API[Mission API]
-  API --> ORCH[Mission orchestrator]
-  ORCH --> ADAPTER[Typed TrueForge adapter boundary]
-  ADAPTER --> INVESTIGATOR[Investigator result]
-  ADAPTER --> REPAIR[Repair proposal]
-  ADAPTER --> VERIFY[Bounded fixture verifier]
-  VERIFY --> AUDIT[(Mission tables + immutable events)]
-  AUDIT --> APPROVAL{Human approval}
-  APPROVAL -->|Reject| STOP[REJECTED: no external action]
-  APPROVAL -->|Approve| SIM[Simulated external action]
-  SIM --> COMPLETE[COMPLETED]
+```text
+Read-only first-party MCP evidence
+  → Investigator root cause
+  → Repair Engineer unapplied proposal + fingerprint
+  → TrueForge approval_required
+  → durable operator decision + exact continuation
+  → isolated verification
+      ├─ PASS: still requires separate write authority
+      └─ BLOCKED/FAIL: GitHub write remains refused
 ```
 
-## Quickstart and demo
+Approval is not execution. A completed safe workflow can mean that SentinelForge correctly withheld a repair because verification could not establish safety.
 
-Install dependencies with `pnpm install`, apply the generated database migration, and run `pnpm dev`. Choose **Run deterministic fixture**, review evidence and verification output, then either approve or decline the simulated external action. Inspect the append-only audit timeline and the integration-readiness panel.
+## Deterministic incident scenarios
 
-## Safety and development
+The dashboard also contains no-shell, deterministic contract fixtures. They do not contact TrueForge, a sandbox, MCP, or GitHub; they make the orchestration, evidence, repair-fingerprint, verification, and approval contracts reviewable.
 
-The current verifier runs no shell commands, generated code, network requests, or filesystem mutations. Mission IDs, approval state, and state transitions are validated server-side. A declined approval changes the mission to `REJECTED`, creates an audit event, and never creates an external action. Run `pnpm check` and `pnpm test` before every PR. See [SECURITY.md](./SECURITY.md) and [docs/TRUEFORGE_READINESS.md](./docs/TRUEFORGE_READINESS.md).
+| Scenario | Evidence | Minimal proposal | Deterministic expectation |
+| --- | --- | --- | --- |
+| Release-manifest version drift | `package.json` `1.0.1` versus `release-manifest.json` `1.0.0` | Align the manifest version | Release check passes after the fixture-only patch. |
+| CI workflow Node.js mismatch | `engines.node >=20` versus workflow `node-version: 18` | Update `.github/workflows/ci.yml` to Node 20 | Compatibility check passes after the fixture-only patch. |
 
-## Hackathon disclosure
+## Run locally
 
-SentinelForge was built as a new project for the Agent Harness Hackathon. Prior personal projects informed broad concepts such as evidence-first safety and approval boundaries, but no prior application source code, schemas, models, prompts, graphs, workflow engines, UI, migrations, fixtures, artifacts, histories, credentials, or private data were used as a foundation.
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test
+pnpm build
+pnpm dev
+```
+
+Use the mission dashboard to inspect persisted missions and, if desired, launch a deterministic fixture scenario. The live repair workflow is intentionally not an autonomous GitHub executor.
+
+## Qodo Code Review Evidence
+
+| Field | Evidence |
+| --- | --- |
+| PR | [#2 — CI workflow compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2) |
+| Scope | Adds the second deterministic CI workflow Node.js compatibility scenario and fixes the PR quality workflow package-manager configuration. |
+| Qodo review date | 26 August 2026 UTC |
+| Material findings | One **High / MUST_FIX** correctness issue: simulated-action target used a hardcoded fixture repository. One **Medium / SHOULD_FIX** correctness issue: workflow audit wording retained release-manifest language. Both were valid. |
+| Fixes made | The simulated target now comes from the persisted mission repository; verification and approval text are scenario metadata. Both fixes are in `51779da` with regression coverage. |
+| Follow-up status | **REAL** — 26 August 2026 UTC. Qodo updated its review to `51779da`; prior findings remain visible as review history and no additional active finding was issued. |
+| Deferred findings | None. |
+| Merge status | **Open and unmerged.** No merge has been requested or performed. |
+
+## AI-use disclosure
+
+AI coding tools were used during SentinelForge implementation. **Manus was used as an implementation and coding agent** for repository inspection, code changes, tests, documentation, and bounded workflow automation. The participant provided the product direction, architecture decisions, safety constraints, review requirements, and final acceptance criteria. The submitted implementation was reviewed and verified through deterministic tests, build checks, and the recorded Qodo pull-request review. The participant remains responsible for understanding the submitted code and all claims made in this repository.
+
+## Safety and evidence
+
+SentinelForge never treats a deterministic fixture pass as a real provider sandbox pass. It does not fall back to host execution, invent approval/provider events, or claim a GitHub repair that did not occur. See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md), [docs/HACKATHON_DEMO.md](./docs/HACKATHON_DEMO.md), [docs/SANDBOX_BLOCKER.md](./docs/SANDBOX_BLOCKER.md), and [docs/TRUEFOUNDRY_SANDBOX_ESCALATION.md](./docs/TRUEFOUNDRY_SANDBOX_ESCALATION.md).

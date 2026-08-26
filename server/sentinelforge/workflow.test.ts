@@ -45,7 +45,7 @@ describe("append-only audit events", () => {
 
 describe("persisted approval rejection", () => {
   it("persists REJECTED, appends the decision event, and creates no external action", async () => {
-    const mission = { id: "SF_test", status: "WAITING_APPROVAL" as const };
+    const mission = { id: "SF_test", status: "WAITING_APPROVAL" as const, repository: "sentinelforge-demo/workflow-compatibility-fixture" };
     const approval = { id: "apr_test", status: "PENDING" as const, expiresAt: Date.now() + 60_000 };
     const events: string[] = [];
     const actions: string[] = [];
@@ -55,7 +55,7 @@ describe("persisted approval rejection", () => {
       setMissionStatus: async (_missionId, status) => { mission.status = status; },
       appendMissionEvent: async event => { events.push(event.eventType); },
       countExternalActions: async () => actions.length,
-      createSimulatedExternalAction: async () => { actions.push("simulated"); return { id: "act_test", result: "should not execute" }; },
+      createSimulatedExternalAction: async input => { actions.push(input.target); return { id: "act_test", result: "should not execute" }; },
       getMissionBundle: async () => ({ mission, events, actions }),
     };
     const result = await resolvePersistedApproval(port, approval.id, false);
@@ -63,5 +63,22 @@ describe("persisted approval rejection", () => {
     expect(result.mission.status).toBe("REJECTED");
     expect(result.events).toEqual(["APPROVAL_REJECTED"]);
     expect(result.actions).toEqual([]);
+  });
+
+  it("uses the approved mission repository as the simulated-action target", async () => {
+    const mission = { id: "SF_workflow", status: "WAITING_APPROVAL" as const, repository: "sentinelforge-demo/workflow-compatibility-fixture" };
+    const approval = { id: "apr_workflow", status: "PENDING" as const, expiresAt: Date.now() + 60_000 };
+    let actionTarget = "";
+    const port: ApprovalWorkflowPort<{ mission: typeof mission }> = {
+      getApprovalWithMission: async () => ({ approval, mission }),
+      decideApproval: async (_requestId, status) => { approval.status = status; },
+      setMissionStatus: async (_missionId, status) => { mission.status = status; },
+      appendMissionEvent: async () => undefined,
+      countExternalActions: async () => 0,
+      createSimulatedExternalAction: async input => { actionTarget = input.target; return { id: "act_workflow", result: "simulated" }; },
+      getMissionBundle: async () => ({ mission }),
+    };
+    await resolvePersistedApproval(port, approval.id, true);
+    expect(actionTarget).toBe("sentinelforge-demo/workflow-compatibility-fixture");
   });
 });

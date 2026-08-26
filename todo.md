@@ -177,3 +177,19 @@
 - [x] Rehearse mission `SF_xF37FKFqr1NvtA` against the final judging checklist and identify only concrete clarity defects in its real-data demo presentation.
 - [x] Apply only necessary UI polish to make key evidence, approval-versus-write separation, blocked verification, and major audit transitions immediately understandable.
 - [x] Reconcile final demo documentation with the rendered presentation and add a completed hackathon-readiness checklist without making unsupported provider or Qodo claims.
+- [x] Audit current README, architecture, Qodo log, sandbox-blocker material, scenario coverage, and repository baseline for submission-upgrade gaps without rewriting history or touching main.
+- [x] Add one deterministic CI/workflow-configuration mismatch scenario using existing SentinelForge contracts, including evidence, root cause, minimal proposal, fingerprint, verifier expectation, and tests.
+- [x] Create an unmerged implementation PR for the first scenario, obtain a real Qodo review, address verified findings, and record follow-up review evidence without merging. PR #2 remains open; Qodo found two correctness issues, both were fixed and the review was updated to commit `51779da`.
+- [x] Configure and verify the repository-local Git identity `Aayush Sahu <84900516+Aayushashsahu@users.noreply.github.com>` before committing the verified first scenario on its existing feature branch.
+- [x] Commit, push, and open the user-authorized unmerged CI workflow-mismatch implementation PR; verify the commit author and committer, then obtain real Qodo review and follow-up review without merging.
+- [x] Recreate the CI workflow-mismatch review branch from the rewritten `user_github/main` and cherry-pick the verified scenario commit, because the original branch was based on pre-rewrite local main and cannot form a pull request without history rewriting.
+- [x] Fix the verified pull-request quality workflow failure caused by duplicate pnpm version declarations, then rerun CI without changing the substantive scenario scope.
+- [x] Address Qodo finding 1: ensure a deterministic scenario approval records any simulated action against the persisted mission repository rather than a hardcoded release-manifest fixture target.
+- [x] Address Qodo finding 2: use scenario-specific verification and approval wording so workflow-mismatch audit records never describe a release-manifest patch or release-check.
+- [x] Add truthful README AI-use disclosure, a participant architecture brief, and accurate current-capability README documentation; add Qodo PR evidence only after a real review exists.
+- [ ] Add exactly one deterministic dependency/version-compatibility scenario using existing SentinelForge contracts and tests, without redesigning the state machine.
+- [ ] Create an accurate TrueFoundry sandbox escalation record from the persisted blocker evidence and assess legitimate video-capture availability; create only an honest recording fallback if capture is unavailable.
+- [ ] Run the requested final repository audit, verification suite, and evidence-based competitive readiness assessment without inflating scores or fabricating outcomes.
+- [x] Verify PR #2 state, base/head consistency, implementation diff scope, and full local verification without checking out or modifying PR #3.
+- [x] Retrieve and classify every real Qodo finding on PR #2, applying only valid PR #2-scope fixes and requesting a real follow-up review if needed. The two valid findings were already fixed in `51779da`; Qodo updated its real review on 26 August 2026 UTC and issued no additional active finding.
+- [x] Update only the PR #2 Qodo evidence in README.md and docs/QODO_REVIEW_LOG.md, preserving PR #2 as open and unmerged and omitting PR #3 from this task's documentation update.
