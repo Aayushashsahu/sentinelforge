@@ -45,4 +45,4 @@ The sandbox is isolation-preserving but provider-blocked at bootstrap. It reache
 
 ## Review Trail
 
-Qodo is available through the installed GitHub App. Two substantive, real review PRs now exist: PR #2 for CI workflow compatibility and stacked PR #3 for dependency compatibility. Each received a real Qodo review, remediation, and follow-up update; both remain open and unmerged. Findings and decisions are recorded in [QODO_REVIEW_LOG.md](./QODO_REVIEW_LOG.md).
+Qodo is available through the installed GitHub App. Two substantive, real review PRs were completed: PR #2 for CI workflow compatibility and PR #3 for dependency compatibility. Each received a real Qodo review, remediation, and follow-up update, then merged into `main` after separate authorization. Findings and decisions are recorded in [QODO_REVIEW_LOG.md](./QODO_REVIEW_LOG.md).

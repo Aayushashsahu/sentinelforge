@@ -58,9 +58,9 @@ Use the mission dashboard to inspect persisted missions and, if desired, launch 
 | Field | Evidence |
 | --- | --- |
 | PR #2 | [CI workflow compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX target-correlation bug and one Medium/SHOULD_FIX audit-wording bug. Both were fixed in `51779da`; Qodo issued a real follow-up update. **Merged into `main`** as `dbcd9cb`. |
-| PR #3 | [Dependency compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX verifier-correctness bug. It was fixed in `e79d730`; Qodo issued a real follow-up update and a retargeted-diff follow-up with no new blocking issue. **Open and unmerged**; no deferred finding. |
+| PR #3 | [Dependency compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX verifier-correctness bug. It was fixed in `e79d730`; Qodo issued a real follow-up update and a retargeted-diff follow-up with no new blocking issue. **Merged into `main`** as `a1bfe3804a75275d6986a1947b00a1e5777c86f8`; no deferred finding. |
 
-Both review cycles and their original findings remain visible as Qodo review history. PR #2 is merged; PR #3 remains open, unmerged, and is not configured for auto-merge.
+Both review cycles and their original findings remain visible as Qodo review history. PR #2 and PR #3 are merged into `main`; neither pull request used auto-merge.
 
 ## AI-use disclosure
 
