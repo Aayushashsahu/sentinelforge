@@ -101,6 +101,19 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** No merge, auto-merge, provider action, approval, continuation, sandbox action, fixture branch, fixture commit, or fixture PR occurred. |
 
+## PR #7 — Stateful MCP Safety Tools
+
+| Field | Record |
+| --- | --- |
+| PR | [#7](https://github.com/Aayushashsahu/sentinelforge/pull/7) — `feat/stateful-mcp-safety-tools` → `main` |
+| Scope | Replaces constant `approval_probe` and `repair_proposal_gate` MCP stubs with bounded, structured inspectors over persisted SentinelForge state. The inspectors read only existing mission/action data and policy evidence; they cannot approve, continue, persist, call a provider, invoke a sandbox, or execute a GitHub action. |
+| Initial Qodo review | **REAL** — automated Qodo assessment posted 26 August 2026 UTC at [issue comment 5430774860](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430774860). It summarized the bounded policy checks and deterministic coverage, but did not issue a severity-labelled code finding or formal pull-request review record. |
+| Findings | **None issued.** No High, Medium, Low, or other actionable defect was published in the initial assessment; no remediation was therefore made. |
+| Follow-up | **REQUESTED / PENDING** — the owner invoked [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430787725) once. Qodo responded that it was busy at [issue comment 5430789314](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430789314). No follow-up assessment or formal review appeared during the bounded wait; this is not recorded as a completed follow-up review. |
+| CI | GitHub `quality` workflow succeeded for head `6e125442eadc3caacfc98a3004dfc6f505b0c909`. Local validation passed: frozen install, type check, 152 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
+| Deferred findings | None; no actionable Qodo finding has been issued. |
+| Merge status | **Open, unmerged.** No merge, provider action, approval, continuation, sandbox action, or fixture-repository mutation occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
@@ -112,3 +125,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 [4] [PR #6 Qodo initial review comment](https://github.com/Aayushashsahu/sentinelforge/pull/6#issuecomment-5430417799) — real Qodo High and Medium correctness findings for the original harness implementation.
 
 [5] [PR #6 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/6#issuecomment-5430491188) — real Qodo update through the remediation commit.
+
+[6] [PR #7 Qodo initial automated assessment](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430774860) — Qodo’s real initial review summary for the stateful MCP safety-tool implementation.
+
+[7] [PR #7 Qodo follow-up pending response](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430789314) — Qodo’s real response after the one requested `/agentic_review` follow-up, which did not yet provide a completed review.
