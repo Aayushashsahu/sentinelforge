@@ -17,6 +17,6 @@ describe("TrueForge approval probe", () => {
       dynamic_sub_agents: { enabled: false },
       ask_user_questions: { enabled: false },
     });
-    expect(buildApprovalProbeMessage()).toContain("approval_probe exactly once");
+    expect(buildApprovalProbeMessage({ missionId: "SF_probe123" })).toContain('mission_id "SF_probe123"');
   });
 });

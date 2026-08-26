@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { GitHubReadApi } from "./githubRead";
 import { getSentinelForgeToolsStatus, SentinelForgeTools } from "./mcpServer";
+import type { SafetyInspectionPort } from "./safetyInspection";
 
 const fixtureOwner = "Aayushashsahu";
 const fixtureRepo = "sentinelforge-incident-fixture";
@@ -38,25 +39,27 @@ describe("sentinelforge-tools", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("returns a constant harmless approval-probe value without reading GitHub or performing any write", async () => {
-    const fetchImpl = vi.fn();
-    const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch));
+	it("returns structured blocked approval safety evidence without reading GitHub or performing any write", async () => {
+		const fetchImpl = vi.fn();
+		const state: SafetyInspectionPort = { getMissionBundle: vi.fn(async () => null), getFixtureProofAction: vi.fn(async () => null) };
+		const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), state);
 
-    const result = await tools.call("approval_probe", {});
+		const result = await tools.call("approval_probe", { mission_id: "SF_missing", action_id: "act_missing" });
 
-    expect(result).toEqual({ content: [{ type: "text", text: "sentinelforge-approval-probe: harmless" }] });
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
+		expect(JSON.parse(result.content[0].text)).toMatchObject({ status: "BLOCKED", reasons: ["MISSION_NOT_FOUND"] });
+		expect(fetchImpl).not.toHaveBeenCalled();
+	});
 
-  it("returns a constant non-mutating repair approval-gate value without reading GitHub or performing any write", async () => {
-    const fetchImpl = vi.fn();
-    const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch));
+	it("returns structured blocked repair-gate evidence without reading GitHub or performing any write", async () => {
+		const fetchImpl = vi.fn();
+		const state: SafetyInspectionPort = { getMissionBundle: vi.fn(async () => null), getFixtureProofAction: vi.fn(async () => null) };
+		const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), state);
 
-    const result = await tools.call("repair_proposal_gate", {});
+		const result = await tools.call("repair_proposal_gate", { mission_id: "SF_missing", action_id: "act_missing", proposal_fingerprint: "a".repeat(64), stage: "APPROVAL_CAPTURE" });
 
-    expect(result.content[0].text).toContain("approval required");
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
+		expect(JSON.parse(result.content[0].text)).toMatchObject({ status: "BLOCKED", reasons: ["MISSION_NOT_FOUND"] });
+		expect(fetchImpl).not.toHaveBeenCalled();
+	});
 
   it("returns the fixture-proof approval gate acknowledgement without receiving a write credential or performing a GitHub request", async () => {
     const fetchImpl = vi.fn();

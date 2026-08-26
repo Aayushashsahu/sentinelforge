@@ -8,7 +8,7 @@
 | --- | --- |
 | Allowed repository | Exactly `Aayushashsahu/sentinelforge-incident-fixture` |
 | GitHub access | Backend-only `GITHUB_READ_TOKEN`; never returned, logged, or persisted |
-| Permitted operations | Read repository metadata, decoded file text, issues, workflow-run metadata, and the constant-returning non-mutating `approval_probe` |
+| Permitted operations | Read repository metadata, decoded file text, issues, workflow-run metadata, and bounded persisted-state inspection through `approval_probe` and `repair_proposal_gate` |
 | Prohibited operations | Any GitHub mutation, arbitrary repository access, token disclosure, sandbox execution, approval continuation, branch, commit, or pull request |
 | MCP result format | Exactly ordinary `{ content: [{ type: "text", text: ... }] }`; no `EmbeddedResource` or `ResourceLink` |
 
@@ -24,9 +24,10 @@ SentinelForge also exposes the token-safe read-only tRPC observation `tools.stat
 | `get_file` | `owner`, `repo`, `path`, `ref` | Repository/path/ref header followed by decoded UTF-8 file body |
 | `get_issue` | `owner`, `repo`, `issue_number` | Allowlisted issue JSON |
 | `get_workflow_run` | `owner`, `repo`, `run_id` | Allowlisted Actions run JSON |
-| `approval_probe` | None | The constant `sentinelforge-approval-probe: harmless`; no mutation or network write |
+| `approval_probe` | `mission_id` plus optional action/approval correlation | Structured persisted approval-state, correlation, fingerprint, and usability evidence; it never approves or resumes |
+| `repair_proposal_gate` | `mission_id`, `proposal_fingerprint`, `stage`, plus optional `action_id` | Structured immutable proposal/action policy evidence for approval capture or external-execution readiness; it never writes or executes |
 
-The Investigator and Repair Engineer policies remain limited to the original four read tools. `approval_probe` is enabled only by the dedicated approval-mechanism agent, which uses TrueForge's source-verified literal-tool approval selector and disables sandboxing and all other tools. Its one authorized provider pause is recorded in [Approval Probe Feasibility](./APPROVAL_PROBE_FEASIBILITY.md).
+The Investigator policy remains limited to the original four GitHub read tools. The dedicated approval-mechanism agent selects only `approval_probe`, while the Repair Proposal approval agent selects the two evidence reads and `repair_proposal_gate`; both use TrueForge's literal-tool approval selector and disable sandboxing and all other tools. The two safety tools read existing repository state only. They do not approve an action, send a continuation, execute a repair, or establish sandbox verification.
 
 ## Verified Fixture Evidence
 

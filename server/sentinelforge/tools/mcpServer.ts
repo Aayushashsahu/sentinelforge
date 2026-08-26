@@ -3,6 +3,8 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import { ENV } from "../../_core/env";
 import { SENTINELFORGE_ALLOWED_REPOSITORIES } from "./githubRead";
 import { GitHubReadApi } from "./githubRead";
+import { getFixtureProofExternalAction, getMissionBundle } from "../repository";
+import { inspectApprovalProbe, inspectRepairProposalGate, parseSafetyInput, type SafetyInspectionPort } from "./safetyInspection";
 
 export type McpTextResponse = { content: [{ type: "text"; text: string }]; isError?: true };
 
@@ -42,13 +44,15 @@ function positiveIntegerArgument(input: Record<string, unknown>, key: string): n
   return value as number;
 }
 
+const defaultSafetyPort: SafetyInspectionPort = { getMissionBundle, getFixtureProofAction: getFixtureProofExternalAction };
+
 export class SentinelForgeTools {
-  constructor(private readonly github = new GitHubReadApi()) {}
+	constructor(private readonly github = new GitHubReadApi(), private readonly safetyPort = defaultSafetyPort) {}
 
   async call(name: string, args: Record<string, unknown>): Promise<McpTextResponse> {
     try {
-      if (name === "approval_probe") return textResponse("sentinelforge-approval-probe: harmless");
-      if (name === "repair_proposal_gate") return textResponse("sentinelforge-repair-proposal-gate: approval required before any future external repair action; no mutation or network write was performed");
+			if (name === "approval_probe") return textResponse(JSON.stringify(await inspectApprovalProbe(parseSafetyInput(args), this.safetyPort)));
+			if (name === "repair_proposal_gate") return textResponse(JSON.stringify(await inspectRepairProposalGate(parseSafetyInput(args), this.safetyPort)));
       if (name === "fixture_github_pr_gate") return textResponse("sentinelforge-fixture-github-pr-gate: approval required before one separately authorized fixture-only GitHub branch, release-manifest update, and open pull request proof; no mutation, credential use, or network write was performed");
       const owner = stringArgument(args, "owner");
       const repo = stringArgument(args, "repo");
@@ -74,8 +78,8 @@ export function createSentinelForgeToolsMcpServer(tools = new SentinelForgeTools
       { name: "get_file", description: "Read decoded text from an allowlisted repository file.", inputSchema: { type: "object", required: ["owner", "repo", "path", "ref"], properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" } } } },
       { name: "get_issue", description: "Read an issue from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "issue_number"], properties: { owner: { type: "string" }, repo: { type: "string" }, issue_number: { type: "integer", minimum: 1 } } } },
       { name: "get_workflow_run", description: "Read an Actions workflow run from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "run_id"], properties: { owner: { type: "string" }, repo: { type: "string" }, run_id: { type: "integer", minimum: 1 } } } },
-      { name: "approval_probe", description: "Return a constant harmless value for approval-mechanism verification only; it performs no mutation or network write.", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
-      { name: "repair_proposal_gate", description: "Return a constant non-mutating repair-gate acknowledgement. It exists only to capture a TrueForge approval checkpoint before any separately authorized external repair action.", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
+			{ name: "approval_probe", description: "Read and fail-closed inspect a persisted approval checkpoint and its supplied correlation. It never approves, resumes, mutates, or writes.", inputSchema: { type: "object", required: ["mission_id"], properties: { mission_id: { type: "string" }, action_id: { type: "string" }, required_action_id: { type: "string" }, thread_id: { type: "string" }, tool_call_id: { type: "string" }, proposal_fingerprint: { type: "string" } } }, annotations: { readOnlyHint: true } },
+			{ name: "repair_proposal_gate", description: "Read and fail-closed validate a persisted fixture repair proposal/action for either approval capture or external-execution readiness. It never approves, resumes, mutates, or writes.", inputSchema: { type: "object", required: ["mission_id", "proposal_fingerprint", "stage"], properties: { mission_id: { type: "string" }, action_id: { type: "string" }, proposal_fingerprint: { type: "string" }, stage: { type: "string", enum: ["APPROVAL_CAPTURE", "EXTERNAL_EXECUTION"] } } }, annotations: { readOnlyHint: true } },
       { name: "fixture_github_pr_gate", description: "Return a constant non-mutating acknowledgement for one exact future fixture-only pull-request proof. It performs no credential use, mutation, or network write and exists solely for a genuine approval checkpoint.", inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     ],
   }));

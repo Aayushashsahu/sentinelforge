@@ -21,6 +21,6 @@ export function buildApprovalProbeSpec(input: { model: string; toolsMcpName: str
   };
 }
 
-export function buildApprovalProbeMessage(): string {
-  return "Call approval_probe exactly once now. This is an approval-gate verification only: do not use any other tool, do not use a sandbox, and do not provide a final answer before the approval gate.";
+export function buildApprovalProbeMessage(input: { missionId: string }): string {
+	return `Call approval_probe exactly once now with mission_id "${input.missionId}". This is an approval-gate verification only: do not use any other tool, do not use a sandbox, and do not provide a final answer before the approval gate.`;
 }

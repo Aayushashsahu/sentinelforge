@@ -14,6 +14,7 @@ import { mapTrueForgeProviderApprovalPause } from "./liveApprovalWorkflow";
 import { persistTrueForgeRepairProposalApprovalRequired } from "./trueforgeApproval";
 import { notifyOwner } from "../_core/notification";
 import { createHash } from "node:crypto";
+import { fixtureProofFingerprint } from "./fixtureGithubProof";
 
 const LIVE_TURN_TIMEOUT_MS = 75_000;
 const LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS = 30_000;
@@ -360,7 +361,7 @@ export async function runLiveApprovalProbe() {
     const session = await client.createInlineSession(buildApprovalProbeSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
     await linkTrueForgeSession({ missionId: mission.id, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "APPROVAL_PROBE" });
     await appendMissionEvent({ missionId: mission.id, eventType: "TRUEFORGE_APPROVAL_PROBE_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${APPROVAL_PROBE_TOOL_NAME}`, result: "A dedicated one-tool approval-probe session was created. The probe is non-mutating; sandboxing and all other tools are disabled.", payload: { mcpServer: config.toolsMcpName, tool: APPROVAL_PROBE_TOOL_NAME, sandbox: "disabled", continuation: "forbidden" } });
-    const events = await readBoundedTurn({ client, sessionId: session.id, message: buildApprovalProbeMessage() });
+		const events = await readBoundedTurn({ client, sessionId: session.id, message: buildApprovalProbeMessage({ missionId: mission.id }) });
     const pause = findTrueForgeApprovalProbePause(events);
     const turnId = findFirstString(events.map(event => event.data), ["turn_id", "turnId"]);
     if (!pause || !turnId || !containsNamedMcpToolEvent(events, config.toolsMcpName, APPROVAL_PROBE_TOOL_NAME)) {
@@ -386,7 +387,7 @@ function parseOwnerRepository(repository: string) {
 }
 
 function repairProposalGateFingerprint(input: { summary: string | null; patch: string }): string {
-  return createHash("sha256").update(JSON.stringify({ summary: input.summary, patch: input.patch })).digest("hex");
+	return fixtureProofFingerprint(input);
 }
 
 export async function runLiveRepairProposalApprovalCapture(missionId: string) {
@@ -405,7 +406,7 @@ export async function runLiveRepairProposalApprovalCapture(missionId: string) {
     const session = await client.createInlineSession(buildRepairProposalApprovalSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
     await linkTrueForgeSession({ missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "REPAIR_PROPOSAL_APPROVAL_CAPTURE" });
     await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_APPROVAL_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${REPAIR_PROPOSAL_GATE_TOOL_NAME}`, result: "A dedicated repair-proposal approval capture session was created with only get_file and the non-mutating repair proposal gate. Sandbox and GitHub write tools are disabled.", payload: { model: resolvedModel, mcpServer: config.toolsMcpName, enabledTools: ["get_file", REPAIR_PROPOSAL_GATE_TOOL_NAME], sandbox: "disabled", continuation: "forbidden" } });
-    const events = await readBoundedTurn({ client, sessionId: session.id, message: buildRepairProposalApprovalMessage({ owner, repo, expectedManifestVersion: expectedVersion }) });
+		const events = await readBoundedTurn({ client, sessionId: session.id, message: buildRepairProposalApprovalMessage({ owner, repo, expectedManifestVersion: expectedVersion, missionId, proposalFingerprint: fingerprint }) });
     return reconcileRepairApprovalHistory({
       getBundle: async id => { const latest = await getMissionBundle(id); if (!latest) throw new Error("Mission was not found."); return latest; },
       recordTurn: async input => { await recordTrueForgeTurn({ missionId: input.missionId, trueforgeSessionId: input.sessionId, turnId: input.turnId, status: "WAITING_APPROVAL", threadId: input.threadId, requiredActionId: input.requiredActionId, toolCallId: input.toolCallId }); },
