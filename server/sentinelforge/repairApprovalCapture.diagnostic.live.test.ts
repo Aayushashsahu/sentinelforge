@@ -12,7 +12,17 @@ function sanitizeEvent(event: ReturnType<typeof mapTrueForgeSessionHistory>[numb
     const record = call as Record<string, unknown>;
     const fn = record.function && typeof record.function === "object" ? record.function as Record<string, unknown> : {};
     const toolInfo = record.tool_info && typeof record.tool_info === "object" ? record.tool_info as Record<string, unknown> : {};
-    return [{ name: typeof fn.name === "string" ? fn.name : null, provider: typeof toolInfo.type === "string" ? toolInfo.type : null, server: typeof toolInfo.server_name === "string" ? toolInfo.server_name : null }];
+    const rawArguments = fn.arguments;
+    const parsedArguments = typeof rawArguments === "string" ? (() => { try { return JSON.parse(rawArguments) as unknown; } catch { return null; } })() : rawArguments;
+    const args = parsedArguments && typeof parsedArguments === "object" && !Array.isArray(parsedArguments) ? parsedArguments as Record<string, unknown> : {};
+    return [{
+      name: typeof fn.name === "string" ? fn.name : null,
+      provider: typeof toolInfo.type === "string" ? toolInfo.type : null,
+      server: typeof toolInfo.server_name === "string" ? toolInfo.server_name : null,
+      argumentEncoding: typeof rawArguments,
+      argumentKeys: Object.keys(args).sort(),
+      path: typeof args.path === "string" ? args.path : null,
+    }];
   }) : [];
   return { sourceEvent: event.event, type: typeof data.type === "string" ? data.type : null, eventId: typeof data.id === "string" ? data.id : null, turnId: typeof data.turn_id === "string" ? data.turn_id : null, threadId: typeof data.thread_id === "string" ? data.thread_id : null, status: typeof data.status === "string" ? data.status : null, toolCalls };
 }

@@ -4,6 +4,7 @@ import { parseTrueForgeProviderApprovalPauseEvent } from "../liveContracts";
 type RepairToolCall = { name: string; server: string | null; path: string | null };
 
 function parseArguments(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
   if (!value || typeof value !== "string") return {};
   try {
     const parsed = JSON.parse(value);

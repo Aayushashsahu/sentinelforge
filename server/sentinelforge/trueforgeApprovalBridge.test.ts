@@ -46,6 +46,15 @@ describe("TrueForge approval bridge", () => {
     expect(port.createContinuation).toHaveBeenCalledTimes(1);
   });
 
+  it("finishes local mission staging for an already approved continuation without sending it", async () => {
+    const existing: StoredApprovalContinuation = { id: "cont_1", approvalRequestId: "apr_1", missionId: "SF_1", decision: "APPROVED", status: "PENDING_SEND", idempotencyKey: "key_1", trueforgeSessionId: "session_1", turnId: "turn_1", threadId: "thread_1", toolCallId: "call_1", payload: { type: "user.tool_approval", thread_id: "thread_1", tool_call_id: "call_1", approval: { status: "allow" } } };
+    const { port } = makePort({ getApprovalBridgeRecord: vi.fn(async () => ({ ...record, approvalStatus: "APPROVED", missionStatus: "WAITING_APPROVAL" })), getContinuationByApprovalRequest: vi.fn(async () => existing) });
+    const continuation = await decideTrueForgeApprovalBridge(port, { requestId: "apr_1", approve: true });
+    expect(continuation).toBe(existing);
+    expect(port.setMissionStatus).toHaveBeenCalledWith("SF_1", "EXECUTING");
+    expect(port.sendContinuation).not.toHaveBeenCalled();
+  });
+
   it("fails closed when a concurrent durable record has a different decision", async () => {
     const { port } = makePort({
       createContinuation: vi.fn(async input => ({ id: "cont_1", ...input, decision: "REJECTED" as const, status: "NOT_SENT" as const })),

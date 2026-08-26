@@ -9,6 +9,14 @@ import { createImmutableAuditEvent, nextAuditSequence } from "./audit";
 const now = () => Date.now();
 const id = (prefix: string) => `${prefix}_${nanoid(14)}`;
 
+function changedExactlyOneRow(result: unknown): boolean {
+  const candidate = Array.isArray(result) ? result[0] : result;
+  if (!candidate || typeof candidate !== "object") return false;
+  const count = (candidate as { affectedRows?: unknown; rowsAffected?: unknown }).affectedRows
+    ?? (candidate as { rowsAffected?: unknown }).rowsAffected;
+  return count === 1;
+}
+
 export async function appendMissionEvent(input: { missionId: string; eventType: string; actor: string; tool?: string; correlationId?: string; result: string; payload?: unknown; evidenceRefs?: string[] }) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   const [latest] = await db.select({ sequence: missionEvents.sequence }).from(missionEvents).where(eq(missionEvents.missionId, input.missionId)).orderBy(desc(missionEvents.sequence)).limit(1);
@@ -154,13 +162,13 @@ export async function createApprovalContinuation(input: { approvalRequestId: str
 export async function decideApprovalIfPending(requestId: string, status: "APPROVED" | "REJECTED") {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   const result = await db.update(approvalRequests).set({ status, decidedAt: now(), decidedBy: "operator" }).where(and(eq(approvalRequests.id, requestId), eq(approvalRequests.status, "PENDING")));
-  return (result as { affectedRows?: number }).affectedRows === 1;
+  return changedExactlyOneRow(result);
 }
 
 export async function claimApprovalContinuationForSend(continuationId: string) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   const result = await db.update(approvalContinuations).set({ status: "SENDING", updatedAt: now() }).where(and(eq(approvalContinuations.id, continuationId), eq(approvalContinuations.status, "PENDING_SEND")));
-  return (result as { affectedRows?: number }).affectedRows === 1;
+  return changedExactlyOneRow(result);
 }
 
 export async function markApprovalContinuationSent(continuationId: string) {

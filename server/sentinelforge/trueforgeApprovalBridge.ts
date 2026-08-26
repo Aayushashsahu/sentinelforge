@@ -60,6 +60,10 @@ export async function decideTrueForgeApprovalBridge(port: TrueForgeApprovalBridg
   const existing = await port.getContinuationByApprovalRequest(record.approvalRequestId);
   if (existing) {
     if (existing.decision !== decision) throw new Error("TrueForge approval bridge refused: a different durable decision already exists.");
+    if (decision === "APPROVED" && record.approvalStatus === "APPROVED" && record.missionStatus === "WAITING_APPROVAL") {
+      await port.setMissionStatus(record.missionId, "EXECUTING");
+      await port.appendMissionEvent({ missionId: record.missionId, eventType: "TRUEFORGE_APPROVAL_ACCEPTED", actor: "operator", correlationId: record.toolCallId, result: "Previously staged approval was recovered as ready for its explicitly authorized continuation. No remote continuation has been sent.", payload: { continuationId: existing.id, idempotencyKey: existing.idempotencyKey } });
+    }
     return existing;
   }
   if (record.missionStatus !== "WAITING_APPROVAL" || record.approvalStatus !== "PENDING" || record.expiresAt <= (input.now ?? Date.now())) {
