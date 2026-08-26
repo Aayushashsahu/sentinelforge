@@ -5,6 +5,7 @@ import { buildSandboxProbeSpec } from "./agents/sandboxProbe";
 import { APPROVAL_PROBE_TOOL_NAME, buildApprovalProbeMessage, buildApprovalProbeSpec } from "./agents/approvalProbe";
 import { buildRepairProposalApprovalMessage, buildRepairProposalApprovalSpec, REPAIR_PROPOSAL_GATE_TOOL_NAME } from "./agents/repairApproval";
 import { validateRepairApprovalCaptureSequence } from "./agents/repairApprovalSequence";
+import { reconcileRepairApprovalHistory } from "./agents/repairApprovalReconciliation";
 import { parseTrueForgeProviderApprovalPauseEvent } from "./liveContracts";
 import { addApprovalRequest, addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, recoverPlanningMissionAfterRepairParsingFailure, setMissionPlanningArtifacts, setMissionStatus, updateTrueForgeTurn } from "./repository";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
@@ -15,6 +16,7 @@ import { notifyOwner } from "../_core/notification";
 import { createHash } from "node:crypto";
 
 const LIVE_TURN_TIMEOUT_MS = 75_000;
+const LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS = 30_000;
 
 class LiveTurnPendingError extends Error {
   constructor() { super("TrueForge turn is still running after the bounded stream timeout; mission remains pending reconciliation."); }
@@ -150,8 +152,18 @@ async function readBoundedTurn(input: { client: TrueForgeClient; sessionId: stri
     return await readTrueForgeSse(response, controller.signal);
   } catch (error) {
     if (!(error instanceof TrueForgeSseAbortedError) && !controller.signal.aborted) throw error;
-    const history = mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId));
-    if (hasTerminalTurn(history)) return history;
+    const historyController = new AbortController();
+    const historyTimeout = setTimeout(() => historyController.abort(), LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS);
+    let history: TrueForgeStreamEvent[];
+    try {
+      history = mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal));
+    } catch (historyError) {
+      if (historyController.signal.aborted) throw new LiveTurnPendingError();
+      throw historyError;
+    } finally {
+      clearTimeout(historyTimeout);
+    }
+    if (hasTerminalTurn(history) || findTrueForgeApprovalProbePause(history)) return history;
     throw new LiveTurnPendingError();
   } finally {
     clearTimeout(timeout);
@@ -384,22 +396,22 @@ export async function runLiveRepairProposalApprovalCapture(missionId: string) {
     await linkTrueForgeSession({ missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "REPAIR_PROPOSAL_APPROVAL_CAPTURE" });
     await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_APPROVAL_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${REPAIR_PROPOSAL_GATE_TOOL_NAME}`, result: "A dedicated repair-proposal approval capture session was created with only get_file and the non-mutating repair proposal gate. Sandbox and GitHub write tools are disabled.", payload: { model: resolvedModel, mcpServer: config.toolsMcpName, enabledTools: ["get_file", REPAIR_PROPOSAL_GATE_TOOL_NAME], sandbox: "disabled", continuation: "forbidden" } });
     const events = await readBoundedTurn({ client, sessionId: session.id, message: buildRepairProposalApprovalMessage({ owner, repo, expectedManifestVersion: expectedVersion }) });
-    const { pause, turnId } = validateRepairApprovalCaptureSequence(events, config.toolsMcpName);
-    const toolCall = pause.tool_calls[0]!;
-    await recordTrueForgeTurn({ missionId, trueforgeSessionId: session.id, turnId, status: "WAITING_APPROVAL", threadId: pause.thread_id, requiredActionId: pause.id, toolCallId: toolCall.id });
-    await appendMissionEvents(buildStreamAuditInputs({ missionId, turnId, events }));
-    const providerEvent = await addEvidence({ missionId, kind: "OBSERVED", title: "TrueForge repair proposal approval-required provider event", content: "The live runtime emitted tool.approval_required for repair_proposal_gate after a first-party release-manifest.json read and before any continuation or external action.", source: "trueforge/repair-proposal-approval" });
-    const event = mapTrueForgeProviderApprovalPause({ providerEvent: pause, toolName: REPAIR_PROPOSAL_GATE_TOOL_NAME });
-    return persistTrueForgeRepairProposalApprovalRequired({
-      getMission: async id => { const latest = await getMissionBundle(id); return latest ? { id: latest.mission.id, status: latest.mission.status } : null; },
-      getLatestTrueForgeTurn: async id => { const turn = await getTrueForgeTurnByMission(id); return turn ? { turnId: turn.turnId } : null; },
-      addApprovalRequest,
-      updateTrueForgeTurn,
-      setMissionStatus,
-      appendMissionEvent,
-      notifyOwner,
-      getMissionBundle,
-    }, { missionId, event, risk: bundle.mission.risk, repairFingerprint: fingerprint, proposalEvidenceRefs: [providerEvent.id, ...bundle.evidence.filter(item => item.kind === "PATCH_PROPOSAL").map(item => item.id)] });
+    return reconcileRepairApprovalHistory({
+      getBundle: async id => { const latest = await getMissionBundle(id); if (!latest) throw new Error("Mission was not found."); return latest; },
+      recordTurn: async input => { await recordTrueForgeTurn({ missionId: input.missionId, trueforgeSessionId: input.sessionId, turnId: input.turnId, status: "WAITING_APPROVAL", threadId: input.threadId, requiredActionId: input.requiredActionId, toolCallId: input.toolCallId }); },
+      appendStreamAudit: async input => { await appendMissionEvents(buildStreamAuditInputs(input)); },
+      addProviderEvidence: async input => addEvidence({ missionId: input.missionId, kind: "OBSERVED", title: "TrueForge repair proposal approval-required provider event", content: "The live runtime emitted tool.approval_required for repair_proposal_gate after the required first-party file reads and before any continuation or external action.", source: "trueforge/repair-proposal-approval" }),
+      persistApproval: async input => {
+        const event = mapTrueForgeProviderApprovalPause({ providerEvent: input.event, toolName: REPAIR_PROPOSAL_GATE_TOOL_NAME });
+        const persisted = await persistTrueForgeRepairProposalApprovalRequired({
+          getMission: async id => { const latest = await getMissionBundle(id); return latest ? { id: latest.mission.id, status: latest.mission.status } : null; },
+          getLatestTrueForgeTurn: async id => { const turn = await getTrueForgeTurnByMission(id); return turn ? { turnId: turn.turnId } : null; },
+          addApprovalRequest, updateTrueForgeTurn, setMissionStatus, appendMissionEvent, notifyOwner, getMissionBundle,
+        }, { missionId, event, risk: bundle.mission.risk, repairFingerprint: fingerprint, proposalEvidenceRefs: input.evidenceRefs });
+        if (!persisted) throw new Error("TrueForge repair approval reconciliation persisted no mission bundle.");
+        return persisted;
+      },
+    }, { missionId, sessionId: session.id, events, toolsMcpName: config.toolsMcpName });
   } catch (error) {
     await setMissionStatus(missionId, "FAILED");
     await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_APPROVAL_CAPTURE_FAILED", actor: "TrueForge", result: sanitizeLiveProviderError(error) });

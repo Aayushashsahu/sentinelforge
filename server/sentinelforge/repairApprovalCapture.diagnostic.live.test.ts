@@ -3,7 +3,7 @@ import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { mapTrueForgeSessionHistory, selectSemanticStreamEventsForAudit } from "./liveWorkflow";
 
 const enabled = process.env.RUN_LIVE_REPAIR_APPROVAL_DIAGNOSTIC === "1";
-const sessionId = "01m0y3xe6jpty90rx60yxpyekh";
+const sessionId = process.env.TRUEFORGE_DIAGNOSTIC_SESSION_ID ?? "01m0y3xe6jpty90rx60yxpyekh";
 
 function sanitizeEvent(event: ReturnType<typeof mapTrueForgeSessionHistory>[number]) {
   const data = event.data && typeof event.data === "object" && !Array.isArray(event.data) ? event.data as Record<string, unknown> : {};
