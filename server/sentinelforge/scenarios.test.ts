@@ -22,6 +22,8 @@ describe("deterministic incident scenarios", () => {
     expect(run.result.status).toBe("PASS");
     expect(run.result.testsRun).toEqual(["workflow-node-compatibility :: ci.nodeMajor >= package.engines.node floor"]);
     expect(run.stdout).toContain("ci Node major (20) >= package engine floor (20)");
+    expect(scenario.verification.passedResult).toContain("Workflow Node compatibility passed");
+    expect(scenario.verification.approvalJustification).toContain("CI workflow configuration patch");
   });
 
   it("fails the workflow scenario closed when the proposal is withheld", async () => {

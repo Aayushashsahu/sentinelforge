@@ -12,6 +12,8 @@ type ScenarioVerification = {
   failureEvidence: readonly string[];
   stdout: string;
   stderr: string;
+  passedResult: string;
+  approvalJustification: string;
 };
 
 export type DeterministicIncidentScenario = {
@@ -48,6 +50,8 @@ const releaseManifestScenario: DeterministicIncidentScenario = {
     failureEvidence: ["release-manifest.json remained at 1.0.0", "release-check failed"],
     stdout: "[fixture-isolation] patched release-manifest.json\n[release-check] package.version (1.0.1) === manifest.version (1.0.1)\nPASS",
     stderr: "AssertionError: expected package.version to equal manifest.version",
+    passedResult: "Release-check passed. The release-manifest repair is eligible for review, not for autonomous action.",
+    approvalJustification: "Create a simulated pull-request record for the verified one-file release-manifest patch.",
   },
 };
 
@@ -87,6 +91,8 @@ const workflowNodeScenario: DeterministicIncidentScenario = {
     failureEvidence: [".github/workflows/ci.yml remained on node-version 18", "workflow-node-compatibility failed"],
     stdout: "[fixture-isolation] patched .github/workflows/ci.yml\n[workflow-node-compatibility] ci Node major (20) >= package engine floor (20)\nPASS",
     stderr: "CompatibilityError: configured CI Node major 18 is below required engine floor 20",
+    passedResult: "Workflow Node compatibility passed. The CI configuration repair is eligible for review, not for autonomous action.",
+    approvalJustification: "Create a simulated pull-request record for the verified one-file CI workflow configuration patch.",
   },
 };
 
