@@ -53,6 +53,20 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** No merge has been requested or performed. |
 
+## PR #3 — Dependency Compatibility Incident Scenario
+
+| Field | Record |
+| --- | --- |
+| PR | [#3](https://github.com/Aayushashsahu/sentinelforge/pull/3) — `review/dependency-compatibility` → `review/ci-workflow-mismatch` |
+| Scope | Adds a deterministic plugin-major compatibility scenario and a dashboard selector entry. The stacked base preserves PR #2 as unmerged. |
+| Initial Qodo review | **REAL** — 26 August 2026 UTC; Qodo reported one correctness bug. |
+| Finding | The no-shell dependency verifier returned a prewritten pass and did not derive its outcome from fixture inputs or the proposed repair. |
+| Fix | The verifier now parses deterministic `package.json` and compatibility-manifest fixture inputs, simulates only the proposed compatibility-manifest update, compares plugin majors, and reports a deterministic failure when the repair is withheld. |
+| Follow-up | **REAL** — Qodo updated its review to remediation commit `e79d730`; the original finding is retained as prior-review context. |
+| CI | GitHub quality workflow passed for the remediation commit. |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** No merge has been requested or performed. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.

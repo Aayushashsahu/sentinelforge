@@ -188,6 +188,7 @@
 - [x] Address Qodo finding 2: use scenario-specific verification and approval wording so workflow-mismatch audit records never describe a release-manifest patch or release-check.
 - [x] Add truthful README AI-use disclosure, a participant architecture brief, and accurate current-capability README documentation; add Qodo PR evidence only after a real review exists.
 - [x] Add exactly one deterministic dependency/version-compatibility scenario using existing SentinelForge contracts and tests, without redesigning the state machine.
-- [ ] Address Qodo PR #3 finding: make the dependency-compatibility verifier derive its pass/fail outcome from deterministic fixture inputs and the proposed repair rather than returning a hardcoded pass.
+- [x] Address Qodo PR #3 finding: make the dependency-compatibility verifier derive its pass/fail outcome from deterministic fixture inputs and the proposed repair rather than returning a hardcoded pass. Qodo updated the real review to commit `e79d730`; the original finding is retained as prior-review context.
+- [ ] Update the README and Qodo review log with the third deterministic scenario and its real PR #3 review/remediation evidence without claiming a merge or a provider verification pass.
 - [ ] Create an accurate TrueFoundry sandbox escalation record from the persisted blocker evidence and assess legitimate video-capture availability; create only an honest recording fallback if capture is unavailable.
 - [ ] Run the requested final repository audit, verification suite, and evidence-based competitive readiness assessment without inflating scores or fabricating outcomes.

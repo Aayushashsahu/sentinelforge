@@ -39,6 +39,7 @@ The dashboard also contains no-shell, deterministic contract fixtures. They do n
 | --- | --- | --- | --- |
 | Release-manifest version drift | `package.json` `1.0.1` versus `release-manifest.json` `1.0.0` | Align the manifest version | Release check passes after the fixture-only patch. |
 | CI workflow Node.js mismatch | `engines.node >=20` versus workflow `node-version: 18` | Update `.github/workflows/ci.yml` to Node 20 | Compatibility check passes after the fixture-only patch. |
+| Dependency plugin major mismatch | `sentinel-plugin ^3.2.0` versus compatibility-manifest major `2` | Align `.sentinelforge/compatibility.json` to major `3` | Compatibility is evaluated from deterministic fixture inputs only after the fixture-only repair is simulated. |
 
 ## Run locally
 
@@ -64,6 +65,8 @@ Use the mission dashboard to inspect persisted missions and, if desired, launch 
 | Follow-up status | Qodo updated its review to commit `51779da`; the original two findings remain visible as prior-review context. |
 | Deferred findings | None. |
 | Merge status | **Open and unmerged.** No merge has been requested or performed. |
+
+The stacked [PR #3 — dependency compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3) is also open and unmerged. Qodo identified that the initial no-shell verifier returned a prewritten pass; it was changed to parse deterministic fixture inputs, simulate the proposed manifest repair, and compare plugin majors before reporting a pass or failure. Qodo then updated the review to remediation commit `e79d730`; the original finding remains visible as prior-review context.
 
 ## AI-use disclosure
 
