@@ -1,6 +1,6 @@
 # Submission Audit
 
-**Audit date:** 26 August 2026 UTC  
+**Audit date:** 26 August 2026 UTC
 **Assessment type:** Evidence-based self-assessment. It is not a claim of judging outcome.
 
 ## Verified submission state
