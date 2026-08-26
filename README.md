@@ -39,6 +39,7 @@ The dashboard also contains no-shell, deterministic contract fixtures. They do n
 | --- | --- | --- | --- |
 | Release-manifest version drift | `package.json` `1.0.1` versus `release-manifest.json` `1.0.0` | Align the manifest version | Release check passes after the fixture-only patch. |
 | CI workflow Node.js mismatch | `engines.node >=20` versus workflow `node-version: 18` | Update `.github/workflows/ci.yml` to Node 20 | Compatibility check passes after the fixture-only patch. |
+| Dependency plugin major mismatch | `sentinel-plugin ^3.2.0` versus compatibility-manifest major `2` | Align `.sentinelforge/compatibility.json` to major `3` | Compatibility is evaluated from deterministic fixture inputs only after the fixture-only repair is simulated. |
 
 ## Run locally
 
@@ -56,14 +57,10 @@ Use the mission dashboard to inspect persisted missions and, if desired, launch 
 
 | Field | Evidence |
 | --- | --- |
-| PR | [#2 — CI workflow compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2) |
-| Scope | Adds the second deterministic CI workflow Node.js compatibility scenario and fixes the PR quality workflow package-manager configuration. |
-| Qodo review date | 26 August 2026 UTC |
-| Material findings | One **High / MUST_FIX** correctness issue: simulated-action target used a hardcoded fixture repository. One **Medium / SHOULD_FIX** correctness issue: workflow audit wording retained release-manifest language. Both were valid. |
-| Fixes made | The simulated target now comes from the persisted mission repository; verification and approval text are scenario metadata. Both fixes are in `51779da` with regression coverage. |
-| Follow-up status | **REAL** — 26 August 2026 UTC. Qodo updated its review to `51779da`; prior findings remain visible as review history and no additional active finding was issued. |
-| Deferred findings | None. |
-| Merge status | **Open and unmerged.** No merge has been requested or performed. |
+| PR #2 | [CI workflow compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX target-correlation bug and one Medium/SHOULD_FIX audit-wording bug. Both were fixed in `51779da`; Qodo issued a real follow-up update. **Merged into `main`** as `dbcd9cb`. |
+| PR #3 | [Dependency compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX verifier-correctness bug. It was fixed in `e79d730`; Qodo issued a real follow-up update and a retargeted-diff follow-up with no new blocking issue. **Open and unmerged**; no deferred finding. |
+
+Both review cycles and their original findings remain visible as Qodo review history. PR #2 is merged; PR #3 remains open, unmerged, and is not configured for auto-merge.
 
 ## AI-use disclosure
 

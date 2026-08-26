@@ -51,6 +51,20 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Follow-up | **REAL** — 26 August 2026 UTC. Qodo updated its review to remediation commit `51779da`; the original findings are retained under previous-review context and no additional active finding was issued. |
 | CI | GitHub quality workflow initially failed on duplicate pnpm version declarations, then passed after the exact package-manager declaration became the single source of truth. |
 | Deferred findings | None. |
+| Merge status | **Merged into `main`** as `dbcd9cb3604f096794c43ab36bf2d0246e6da56a` after separate explicit authorization. |
+
+## PR #3 — Dependency Compatibility Incident Scenario
+
+| Field | Record |
+| --- | --- |
+| PR | [#3](https://github.com/Aayushashsahu/sentinelforge/pull/3) — `review/dependency-compatibility` → `main` |
+| Scope | Adds a deterministic plugin-major compatibility scenario and a dashboard selector entry. PR #2 is merged; PR #3 remains a separate, open review boundary. |
+| Initial Qodo review | **REAL** — 26 August 2026 UTC; Qodo reported one correctness bug. |
+| Finding | **High / MUST_FIX / valid.** The no-shell dependency verifier returned a prewritten pass and did not derive its outcome from fixture inputs or the proposed repair. |
+| Fix | The verifier now parses deterministic `package.json` and compatibility-manifest fixture inputs, simulates only the proposed compatibility-manifest update, compares plugin majors, and reports a deterministic failure when the repair is withheld. Remediation: `e79d730`. |
+| Follow-up | **REAL** — 26 August 2026 UTC. Qodo updated its review to remediation commit `e79d730`; a later real retargeted-diff static follow-up found no new blocking issue. The original finding is retained as prior-review context. |
+| CI | GitHub quality workflow passed for the remediation commit. |
+| Deferred findings | None. |
 | Merge status | **Open, unmerged.** No merge has been requested or performed. |
 
 ## References

@@ -1,8 +1,8 @@
 import { createRepairFingerprint } from "./liveContracts";
-import { fixtureIncident, investigatorResult, repairProposal, runFixtureVerification, type FixtureSandboxRun } from "./fixture";
+import { fixtureIncident, investigatorResult, repairProposal, runDependencyCompatibilityFixtureVerification, runFixtureVerification, type FixtureSandboxRun } from "./fixture";
 import type { InvestigationResult, RepairProposal, VerificationResult } from "../../shared/sentinelforge";
 
-export const deterministicScenarioIds = ["release_manifest_version_drift", "workflow_node_version_mismatch"] as const;
+export const deterministicScenarioIds = ["release_manifest_version_drift", "workflow_node_version_mismatch", "dependency_plugin_major_mismatch"] as const;
 export type DeterministicScenarioId = (typeof deterministicScenarioIds)[number];
 
 type ScenarioVerification = {
@@ -96,9 +96,51 @@ const workflowNodeScenario: DeterministicIncidentScenario = {
   },
 };
 
+const dependencyPluginProposal: RepairProposal = {
+  summary: "Align the compatibility manifest with the installed plugin major version.",
+  filesChanged: [".sentinelforge/compatibility.json"],
+  patch: "--- a/.sentinelforge/compatibility.json\n+++ b/.sentinelforge/compatibility.json\n@@\n-  \"supportedPluginMajor\": 2\n+  \"supportedPluginMajor\": 3",
+  expectedEffect: "The compatibility manifest will declare support for the installed plugin major version before the deterministic dependency-compatibility check runs.",
+  risk: "LOW",
+};
+
+const dependencyPluginScenario: DeterministicIncidentScenario = {
+  id: "dependency_plugin_major_mismatch",
+  label: "Dependency plugin major compatibility mismatch",
+  incident: {
+    repository: "sentinelforge-demo/dependency-compatibility-fixture",
+    title: "Dependency plugin major exceeds the compatibility manifest",
+    incident: "package.json installs the Sentinel plugin major version 3 while the compatibility manifest still accepts major version 2, so the deterministic compatibility check refuses the release.",
+  },
+  evidence: [
+    { file: "package.json", observation: "dependencies.sentinel-plugin=^3.2.0" },
+    { file: ".sentinelforge/compatibility.json", observation: "supportedPluginMajor=2" },
+    { file: "test.js", observation: "installed plugin major must equal compatibility manifest major" },
+  ],
+  investigatorResult: {
+    finding: "The package dependency resolves the Sentinel plugin major version 3 while the compatibility manifest declares support for major version 2.",
+    rootCause: ".sentinelforge/compatibility.json was not updated after sentinel-plugin advanced from major version 2 to major version 3.",
+    confidence: 0.99,
+    evidence: ["package.json: dependencies.sentinel-plugin=^3.2.0", ".sentinelforge/compatibility.json: supportedPluginMajor=2", "test.js: installed plugin major must equal compatibility manifest major"],
+  },
+  repairProposal: dependencyPluginProposal,
+  repairFingerprint: fingerprint(dependencyPluginProposal),
+  verification: {
+    command: "dependency-compatibility :: installed.pluginMajor === compatibility.supportedPluginMajor",
+    testsRun: ["dependency-compatibility :: installed.pluginMajor === compatibility.supportedPluginMajor"],
+    passEvidence: [".sentinelforge/compatibility.json patched to supportedPluginMajor 3", "dependency-compatibility passed"],
+    failureEvidence: [".sentinelforge/compatibility.json remained on supportedPluginMajor 2", "dependency-compatibility failed"],
+    stdout: "[fixture-isolation] patched .sentinelforge/compatibility.json\n[dependency-compatibility] installed plugin major (3) === supported major (3)\nPASS",
+    stderr: "CompatibilityError: installed plugin major 3 does not match supported major 2",
+    passedResult: "Dependency compatibility passed. The compatibility-manifest repair is eligible for review, not for autonomous action.",
+    approvalJustification: "Create a simulated pull-request record for the verified one-file dependency compatibility manifest patch.",
+  },
+};
+
 export const deterministicScenarios: Record<DeterministicScenarioId, DeterministicIncidentScenario> = {
   release_manifest_version_drift: releaseManifestScenario,
   workflow_node_version_mismatch: workflowNodeScenario,
+  dependency_plugin_major_mismatch: dependencyPluginScenario,
 };
 
 export function getDeterministicScenario(id: DeterministicScenarioId = "release_manifest_version_drift"): DeterministicIncidentScenario {
@@ -115,6 +157,7 @@ function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
 /** The scenario verifier remains deterministic: it never invokes a shell, network, filesystem, sandbox, or host process. */
 export async function runDeterministicScenarioVerification(scenarioId: DeterministicScenarioId, { forceFailure = false, forceTimeout = false }: { forceFailure?: boolean; forceTimeout?: boolean } = {}): Promise<FixtureSandboxRun> {
   if (scenarioId === "release_manifest_version_drift") return runFixtureVerification({ forceFailure, forceTimeout });
+  if (scenarioId === "dependency_plugin_major_mismatch") return runDependencyCompatibilityFixtureVerification({ forceFailure, forceTimeout });
   const scenario = getDeterministicScenario(scenarioId);
   const startedAt = Date.now();
   try {

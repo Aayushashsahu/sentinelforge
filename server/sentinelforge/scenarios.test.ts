@@ -4,7 +4,7 @@ import { createRepairFingerprint, isValidRepairFingerprint } from "./liveContrac
 
 describe("deterministic incident scenarios", () => {
   it("keeps the release-manifest and CI workflow scenarios as distinct evidence-backed fixture paths", () => {
-    expect(deterministicScenarioIds).toEqual(["release_manifest_version_drift", "workflow_node_version_mismatch"]);
+    expect(deterministicScenarioIds).toEqual(["release_manifest_version_drift", "workflow_node_version_mismatch", "dependency_plugin_major_mismatch"]);
     const scenario = getDeterministicScenario("workflow_node_version_mismatch");
     expect(scenario.evidence).toEqual(expect.arrayContaining([
       expect.objectContaining({ file: "package.json", observation: "engines.node=>=20" }),
@@ -31,5 +31,23 @@ describe("deterministic incident scenarios", () => {
     expect(run.result.status).toBe("FAIL");
     expect(run.exitCode).toBe(1);
     expect(run.stderr).toContain("configured CI Node major 18");
+  });
+
+  it("models dependency plugin compatibility as a distinct evidence-backed scenario with a canonical repair fingerprint", async () => {
+    const scenario = getDeterministicScenario("dependency_plugin_major_mismatch");
+    expect(scenario.evidence).toEqual(expect.arrayContaining([
+      expect.objectContaining({ file: "package.json", observation: "dependencies.sentinel-plugin=^3.2.0" }),
+      expect.objectContaining({ file: ".sentinelforge/compatibility.json", observation: "supportedPluginMajor=2" }),
+    ]));
+    expect(scenario.repairProposal.filesChanged).toEqual([".sentinelforge/compatibility.json"]);
+    expect(scenario.repairProposal.patch).toContain("supportedPluginMajor\": 3");
+    expect(isValidRepairFingerprint(scenario.repairFingerprint)).toBe(true);
+    const run = await runDeterministicScenarioVerification(scenario.id);
+    expect(run.result.status).toBe("PASS");
+    expect(run.stdout).toContain("installed plugin major (3) === supported major (3)");
+    const withheldRepair = await runDeterministicScenarioVerification(scenario.id, { forceFailure: true });
+    expect(withheldRepair.result.status).toBe("FAIL");
+    expect(withheldRepair.exitCode).toBe(1);
+    expect(withheldRepair.stderr).toContain("installed plugin major 3 does not match supported major 2");
   });
 });
