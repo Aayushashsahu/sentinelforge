@@ -1,5 +1,7 @@
 import type { MissionStatus, Risk } from "../../shared/sentinelforge";
 import { isValidRepairFingerprint, type TrueForgeApprovalRequired } from "./liveContracts";
+import { FIXTURE_GITHUB_PR_GATE_TOOL_NAME } from "./agents/fixtureProofApproval";
+import { FIXTURE_PROOF_REPOSITORY, type FixtureProofAction } from "./fixtureGithubProof";
 
 type ApprovalRecord = { id: string };
 type MissionRecord = { id: string; status: MissionStatus };
@@ -14,6 +16,7 @@ export type TrueForgeApprovalPersistencePort<TBundle = unknown> = {
   appendMissionEvent(input: { missionId: string; eventType: string; actor: string; tool?: string; correlationId?: string; result: string; payload?: unknown; evidenceRefs?: string[] }): Promise<unknown>;
   notifyOwner(input: { title: string; content: string }): Promise<boolean>;
   getMissionBundle(missionId: string): Promise<TBundle>;
+  getFixtureProofAction?(actionId: string): Promise<FixtureProofAction | null>;
 };
 
 export async function persistTrueForgeApprovalRequired<TBundle>(port: TrueForgeApprovalPersistencePort<TBundle>, input: { missionId: string; event: TrueForgeApprovalRequired; risk: Risk; repairFingerprint: string; verificationEvidenceRefs: string[] }): Promise<TBundle> {
@@ -81,7 +84,10 @@ export async function persistTrueForgeFixtureProofApprovalRequired<TBundle>(port
   const mission = await port.getMission(input.missionId);
   if (!mission) throw new Error("Mission was not found.");
   if (mission.status !== "PLANNING_FIX") throw new Error("Fixture proof approval-required event refused: mission must be in PLANNING_FIX with a persisted exact fixture proof action.");
-  if (!isValidRepairFingerprint(input.repairFingerprint) || !/^act_[A-Za-z0-9_-]{1,28}$/.test(input.proofActionId)) throw new Error("Fixture proof approval-required event refused: fingerprint or staged action identifier is invalid.");
+  if (input.event.tool_name !== FIXTURE_GITHUB_PR_GATE_TOOL_NAME) throw new Error("Fixture proof approval-required event refused: provider tool is not the fixture GitHub PR gate.");
+  if (!isValidRepairFingerprint(input.repairFingerprint) || !/^act_[A-Za-z0-9_-]{1,28}$/.test(input.proofActionId) || !port.getFixtureProofAction) throw new Error("Fixture proof approval-required event refused: fingerprint, staged action identifier, or action lookup is invalid.");
+  const action = await port.getFixtureProofAction(input.proofActionId);
+  if (!action || action.missionId !== mission.id || action.status !== "AWAITING_APPROVAL" || action.intent.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.proposalFingerprint !== input.repairFingerprint) throw new Error("Fixture proof approval-required event refused: persisted staged action does not match mission, status, target, or fingerprint.");
   const turn = await port.getLatestTrueForgeTurn(input.missionId);
   if (!turn) throw new Error("Fixture proof approval-required event refused: no correlated turn exists.");
   const approval = await port.addApprovalRequest({

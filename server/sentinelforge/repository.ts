@@ -107,6 +107,12 @@ export async function getFixtureProofExternalAction(actionId: string) {
   return record ? parseFixtureProofAction(record) : null;
 }
 
+export async function claimFixtureProofExternalActionForExecution(actionId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const result = await db.update(externalActions).set({ status: "EXECUTING" }).where(and(eq(externalActions.id, actionId), eq(externalActions.actionType, "FIXTURE_GITHUB_PULL_REQUEST_PROOF"), eq(externalActions.status, "STAGED")));
+  return changedExactlyOneRow(result);
+}
+
 export async function updateFixtureProofExternalAction(actionId: string, update: Pick<FixtureProofAction, "status" | "remote">) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   const action = await getFixtureProofExternalAction(actionId);

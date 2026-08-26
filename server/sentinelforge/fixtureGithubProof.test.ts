@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, buildFixtureProofIntent, executeApprovedFixtureProof, readFixtureProofPreflight, transformFixtureReleaseManifest, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort } from "./fixtureGithubProof";
+import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, assertCanonicalFixtureProofPatch, buildFixtureProofIntent, executeApprovedFixtureProof, readFixtureProofPreflight, transformFixtureReleaseManifest, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort } from "./fixtureGithubProof";
 
 const fingerprint = "a".repeat(64);
 const sha = (character: string) => character.repeat(40);
@@ -43,6 +43,7 @@ function makePersistence(action: FixtureProofAction): FixtureProofPersistencePor
     updates,
     audits,
     getAction: vi.fn(async () => action),
+    claimActionForExecution: vi.fn(async () => true),
     updateAction: vi.fn(async (_id, update) => { updates.push({ ...update, remote: { ...update.remote } }); }),
     appendAudit: vi.fn(async input => { audits.push({ eventType: input.eventType }); }),
   };
@@ -78,7 +79,7 @@ describe("fixture GitHub proof contract", () => {
     const action = makeAction();
     const persistence = makePersistence(action);
     await expect(executeApprovedFixtureProof({ github: makeGithub({ getMainRef: vi.fn(async () => ({ sha: sha("f") })) }), persistence, actionId: action.id })).rejects.toThrow(/changed after preflight/);
-    expect(persistence.updates).toHaveLength(0);
+    expect(persistence.updates.at(-1)?.status).toBe("FAILED");
   });
 
   it("refuses stale, rejected, duplicate, or correlation-mismatched approval state before any write", async () => {
@@ -103,9 +104,10 @@ describe("fixture GitHub proof contract", () => {
     const result = await executeApprovedFixtureProof({ github, persistence, actionId: action.id });
     expect(result.status).toBe("PR_CREATED");
     expect(github.createBranch).toHaveBeenCalledTimes(1);
+    expect(persistence.claimActionForExecution).toHaveBeenCalledOnce();
     expect(github.updateReleaseManifest).toHaveBeenCalledWith({ branchName: action.intent.branchName, contentSha: sha("b"), content: after });
     expect(github.createPullRequest).toHaveBeenCalledTimes(1);
-    expect(persistence.audits.map(item => item.eventType)).toEqual(["FIXTURE_GITHUB_BRANCH_CREATED", "FIXTURE_GITHUB_COMMIT_CREATED", "FIXTURE_GITHUB_PR_CREATED"]);
+    expect(persistence.audits.map(item => item.eventType)).toEqual(["FIXTURE_GITHUB_BRANCH_CREATED", "FIXTURE_GITHUB_COMMIT_CREATED", "FIXTURE_GITHUB_PR_PARTIAL", "FIXTURE_GITHUB_PR_CREATED"]);
     await expect(executeApprovedFixtureProof({ github, persistence: makePersistence(result), actionId: result.id })).rejects.toThrow(/one-time staged/);
   });
 
@@ -130,5 +132,32 @@ describe("fixture GitHub proof contract", () => {
     expect(Object.keys(prFailure)).not.toContain("mergePullRequest");
     expect(Object.keys(prFailure)).not.toContain("deleteBranch");
     expect(Object.keys(prFailure)).not.toContain("updateReference");
+  });
+
+  it("refuses a lost concurrent claim before final preflight or any GitHub mutation", async () => {
+    const action = makeAction();
+    const persistence = makePersistence(action);
+    persistence.claimActionForExecution.mockResolvedValueOnce(false);
+    const github = makeGithub();
+    await expect(executeApprovedFixtureProof({ github, persistence, actionId: action.id })).rejects.toThrow(/already claimed/);
+    expect(github.getRepository).not.toHaveBeenCalled();
+    expect(github.createBranch).not.toHaveBeenCalled();
+  });
+
+  it("preserves returned PR identity under a terminal partial-PR state when verification fails", async () => {
+    const action = makeAction();
+    const github = makeGithub({
+      createPullRequest: vi.fn(async () => ({ number: 11, htmlUrl: "https://github.com/Aayushashsahu/sentinelforge-incident-fixture/pull/11", state: "open", base: "main", head: action.intent.branchName, autoMerge: null })),
+      getPullRequest: vi.fn(async () => { throw new Error("verification unavailable"); }),
+    });
+    const persistence = makePersistence(action);
+    await expect(executeApprovedFixtureProof({ github, persistence, actionId: action.id })).rejects.toThrow("verification unavailable");
+    expect(persistence.updates.at(-1)).toMatchObject({ status: "PARTIAL_PR_CREATED", remote: { pullRequestNumber: 11, pullRequestUrl: expect.stringContaining("/11") } });
+  });
+
+  it("accepts only a canonical one-file, one-line fixture repair patch", () => {
+    const canonical = ["diff --git a/release-manifest.json b/release-manifest.json", "--- a/release-manifest.json", "+++ b/release-manifest.json", "@@ -1,3 +1,3 @@", '-  "version": "1.3.0",', '+  "version": "1.4.0",'].join("\n");
+    expect(() => assertCanonicalFixtureProofPatch(canonical)).not.toThrow();
+    expect(() => assertCanonicalFixtureProofPatch(`${canonical}\n+  "unrelated": true`)).toThrow(/only the exact/);
   });
 });

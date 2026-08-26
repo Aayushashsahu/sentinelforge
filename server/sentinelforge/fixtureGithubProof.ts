@@ -28,7 +28,7 @@ export type FixtureProofPreflight = {
   branchName: string;
 };
 
-export type FixtureProofActionStatus = "AWAITING_APPROVAL" | "WAITING_APPROVAL" | "STAGED" | "BRANCH_CREATED" | "COMMIT_CREATED" | "PR_CREATED" | "PARTIAL_BRANCH_CREATED" | "PARTIAL_COMMIT_CREATED" | "FAILED";
+export type FixtureProofActionStatus = "AWAITING_APPROVAL" | "WAITING_APPROVAL" | "STAGED" | "EXECUTING" | "BRANCH_CREATED" | "COMMIT_CREATED" | "PR_CREATED" | "PARTIAL_BRANCH_CREATED" | "PARTIAL_COMMIT_CREATED" | "PARTIAL_PR_CREATED" | "FAILED";
 
 export type FixtureProofAction = {
   id: string;
@@ -73,6 +73,7 @@ export type FixtureProofGitHubPort = {
 
 export type FixtureProofPersistencePort = {
   getAction(actionId: string): Promise<FixtureProofAction | null>;
+  claimActionForExecution(actionId: string): Promise<boolean>;
   updateAction(actionId: string, update: Pick<FixtureProofAction, "status" | "remote">): Promise<void>;
   appendAudit(input: { missionId: string; eventType: string; correlationId: string; result: string; payload: Record<string, unknown> }): Promise<void>;
 };
@@ -128,6 +129,14 @@ export function transformFixtureReleaseManifest(beforeContent: string): string {
   return afterContent;
 }
 
+export function assertCanonicalFixtureProofPatch(patch: string): void {
+  const lines = patch.replace(/\r\n/g, "\n").trimEnd().split("\n");
+  const headers = ["diff --git a/release-manifest.json b/release-manifest.json", "--- a/release-manifest.json", "+++ b/release-manifest.json"];
+  if (lines.length < 6 || !headers.every((line, index) => lines[index] === line) || !lines[3]!.startsWith("@@")) throw new Error("Fixture proof refused: proposal patch is not a canonical release-manifest unified diff.");
+  const changed = lines.slice(4).filter(line => line.startsWith("+") || line.startsWith("-"));
+  if (changed.length !== 2 || changed[0] !== '-  "version": "1.3.0",' || changed[1] !== '+  "version": "1.4.0",') throw new Error("Fixture proof refused: proposal patch must contain only the exact one-line version transformation.");
+}
+
 export async function readFixtureProofPreflight(github: FixtureProofGitHubPort, intent: FixtureProofIntent): Promise<FixtureProofPreflight> {
   assertExactIntent(intent);
   const repository = await github.getRepository();
@@ -174,10 +183,16 @@ export async function executeApprovedFixtureProof(input: { github: FixtureProofG
   const action = await input.persistence.getAction(input.actionId);
   if (!action) throw new Error("Fixture proof refused: staged action was not found.");
   assertApprovedAction(action);
-
-  const current = await readFixtureProofPreflight(input.github, action.intent);
-  if (current.baseSha !== action.preflight.baseSha || current.contentSha !== action.preflight.contentSha || current.beforeContent !== action.preflight.beforeContent || current.afterContent !== action.preflight.afterContent) {
-    throw new Error("Fixture proof refused: repository base or file changed after preflight and approval.");
+  if (!await input.persistence.claimActionForExecution(action.id)) throw new Error("Fixture proof refused: action was already claimed or is no longer staged.");
+  action.status = "EXECUTING";
+  try {
+    const current = await readFixtureProofPreflight(input.github, action.intent);
+    if (current.baseSha !== action.preflight.baseSha || current.contentSha !== action.preflight.contentSha || current.beforeContent !== action.preflight.beforeContent || current.afterContent !== action.preflight.afterContent) throw new Error("Fixture proof refused: repository base or file changed after preflight and approval.");
+  } catch (error) {
+    action.status = "FAILED";
+    await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote });
+    await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PREFLIGHT_FAILED", correlationId: action.id, result: "The claimed proof failed its final read-only preflight. No GitHub write was attempted.", payload: safeRemoteSummary(action) });
+    throw error;
   }
 
   try {
@@ -208,6 +223,11 @@ export async function executeApprovedFixtureProof(input: { github: FixtureProofG
 
   try {
     const pullRequest = await input.github.createPullRequest({ branchName: action.intent.branchName });
+    action.status = "PARTIAL_PR_CREATED";
+    action.remote.pullRequestNumber = pullRequest.number;
+    action.remote.pullRequestUrl = pullRequest.htmlUrl;
+    await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote });
+    await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PR_PARTIAL", correlationId: action.id, result: "Pull-request creation returned an identity; verification is pending. The proof remains terminal and will not retry or create another PR.", payload: safeRemoteSummary(action) });
     if (pullRequest.state !== "open" || pullRequest.base !== FIXTURE_PROOF_BASE_BRANCH || pullRequest.head !== action.intent.branchName || pullRequest.autoMerge !== null) throw new Error("Fixture proof refused: created pull request does not match its immutable open, unmerged intent.");
     const verified = await input.github.getPullRequest(pullRequest.number);
     if (verified.number !== pullRequest.number || verified.state !== "open" || verified.base !== FIXTURE_PROOF_BASE_BRANCH || verified.head !== action.intent.branchName || verified.autoMerge !== null) throw new Error("Fixture proof refused: created pull request verification failed.");
@@ -218,7 +238,7 @@ export async function executeApprovedFixtureProof(input: { github: FixtureProofG
     await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PR_CREATED", correlationId: action.id, result: "The one allowlisted pull request was verified open and unmerged. The proof is terminal and no additional GitHub mutation is permitted.", payload: safeRemoteSummary(action) });
     return action;
   } catch (error) {
-    action.status = "PARTIAL_COMMIT_CREATED";
+    action.status = "PARTIAL_PR_CREATED";
     await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote });
     await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PR_PARTIAL", correlationId: action.id, result: "Pull-request creation did not return a confirmed open PR. The proof stopped without retry, second pull request, or rollback.", payload: safeRemoteSummary(action) });
     throw error;

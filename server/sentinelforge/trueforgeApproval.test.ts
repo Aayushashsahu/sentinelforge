@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { persistTrueForgeApprovalRequired, persistTrueForgeFixtureProofApprovalRequired, persistTrueForgeRepairProposalApprovalRequired } from "./trueforgeApproval";
+import { buildFixtureProofIntent } from "./fixtureGithubProof";
 
 function makePort(status: "VERIFYING" | "PLANNING_FIX" = "VERIFYING") {
   return {
@@ -11,6 +12,7 @@ function makePort(status: "VERIFYING" | "PLANNING_FIX" = "VERIFYING") {
     appendMissionEvent: vi.fn().mockResolvedValue(undefined),
     notifyOwner: vi.fn().mockResolvedValue(true),
     getMissionBundle: vi.fn().mockResolvedValue({ mission: { id: "SF_1", status: "WAITING_APPROVAL" } }),
+    getFixtureProofAction: vi.fn().mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }) }),
   };
 }
 

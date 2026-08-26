@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { executeApprovedFixtureProof, fixtureProofFingerprint, readFixtureProofPreflight, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort, buildFixtureProofIntent } from "./fixtureGithubProof";
+import { assertCanonicalFixtureProofPatch, executeApprovedFixtureProof, fixtureProofFingerprint, readFixtureProofPreflight, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort, buildFixtureProofIntent } from "./fixtureGithubProof";
 
 type FixtureProofStagePort = FixtureProofPersistencePort & {
   getMissionBundle(missionId: string): Promise<{ mission: { id: string; status: string; repository: string; repairSummary: string | null; patch: string | null }; actions: Array<{ actionType: string }> } | null>;
@@ -12,7 +12,8 @@ export async function stageLiveFixtureProofAction(input: { missionId: string; gi
   if (!bundle) throw new Error("Fixture proof refused: mission was not found.");
   if (bundle.mission.repository !== "Aayushashsahu/sentinelforge-incident-fixture") throw new Error("Fixture proof refused: mission repository is not the participant-designated fixture repository.");
   if (bundle.mission.status !== "PLANNING_FIX") throw new Error("Fixture proof refused: only a persisted planning-stage proposal may be staged for approval.");
-  if (!bundle.mission.patch?.includes("release-manifest.json") || !bundle.mission.patch.includes('"1.3.0"') || !bundle.mission.patch.includes('"1.4.0"')) throw new Error("Fixture proof refused: mission does not contain the exact evidenced release-manifest repair proposal.");
+  if (!bundle.mission.patch) throw new Error("Fixture proof refused: mission does not contain the exact evidenced release-manifest repair proposal.");
+  assertCanonicalFixtureProofPatch(bundle.mission.patch);
   if (bundle.actions.some(action => action.actionType === "FIXTURE_GITHUB_PULL_REQUEST_PROOF")) throw new Error("Fixture proof refused: the mission already has a fixture proof action record.");
   const proposalFingerprint = fixtureProofFingerprint({ summary: bundle.mission.repairSummary, patch: bundle.mission.patch });
   const intent = buildFixtureProofIntent({ missionId: bundle.mission.id, proposalFingerprint });

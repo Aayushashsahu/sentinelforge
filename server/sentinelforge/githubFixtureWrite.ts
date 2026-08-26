@@ -1,5 +1,5 @@
 import { ENV } from "../_core/env";
-import { FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, type FixtureProofGitHubPort } from "./fixtureGithubProof";
+import { FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, transformFixtureReleaseManifest, type FixtureProofGitHubPort } from "./fixtureGithubProof";
 
 type GitHubResponse = { status: number; json(): Promise<unknown> };
 export type GitHubFixtureFetch = (input: string, init?: RequestInit) => Promise<GitHubResponse>;
@@ -101,6 +101,8 @@ export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
 
   async updateReleaseManifest(input: { branchName: string; contentSha: string; content: string }) {
     if (!/^sentinelforge\/sf_[a-z0-9_-]{1,120}$/.test(input.branchName) || !/^[a-f0-9]{40}$/i.test(input.contentSha)) throw new Error("Fixture GitHub proof refused: update request is outside the deterministic allowlist.");
+    const current = await this.getReleaseManifest(FIXTURE_PROOF_BASE_BRANCH);
+    if (current.sha !== input.contentSha || transformFixtureReleaseManifest(current.text) !== input.content) throw new Error("Fixture GitHub proof refused: update content is not the exact current main manifest transformation.");
     const body = asRecord(await this.request("release manifest update", `/contents/${FIXTURE_PROOF_FILE}`, { method: "PUT", body: JSON.stringify({ message: BRANCH_COMMIT_MESSAGE, content: Buffer.from(input.content, "utf8").toString("base64"), sha: input.contentSha, branch: input.branchName }) }), "Fixture GitHub commit response was malformed.");
     const commit = asRecord(body.commit, "Fixture GitHub commit metadata was malformed.");
     return { commitSha: nonBlankString(commit.sha, "Fixture GitHub commit SHA was missing.") };

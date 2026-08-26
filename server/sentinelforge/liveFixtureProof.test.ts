@@ -6,6 +6,7 @@ const fingerprint = "b".repeat(64);
 const sha = (character: string) => character.repeat(40);
 const before = '{"version":"1.3.0"}\n';
 const after = '{"version":"1.4.0"}\n';
+const canonicalPatch = ["diff --git a/release-manifest.json b/release-manifest.json", "--- a/release-manifest.json", "+++ b/release-manifest.json", "@@ -1,3 +1,3 @@", '-  "version": "1.3.0",', '+  "version": "1.4.0",'].join("\n");
 
 function github(): FixtureProofGitHubPort {
   return {
@@ -25,7 +26,7 @@ function port(overrides: Partial<Awaited<ReturnType<typeof makePort>>> = {}) {
 function makePort() {
   const actions: FixtureProofAction[] = [];
   return {
-    getMissionBundle: vi.fn(async () => ({ mission: { id: "SF_fixture", status: "PLANNING_FIX", repository: "Aayushashsahu/sentinelforge-incident-fixture", repairSummary: "Align release manifest", patch: 'diff --git a/release-manifest.json b/release-manifest.json\n- "version": "1.3.0"\n+ "version": "1.4.0"\n' }, actions: [] })),
+    getMissionBundle: vi.fn(async () => ({ mission: { id: "SF_fixture", status: "PLANNING_FIX", repository: "Aayushashsahu/sentinelforge-incident-fixture", repairSummary: "Align release manifest", patch: canonicalPatch }, actions: [] })),
     getAction: vi.fn(async (id: string) => actions.find(action => action.id === id) ?? null),
     stageAction: vi.fn(async (action: FixtureProofAction) => { actions.push(action); return action; }),
     replaceAction: vi.fn(async (action: FixtureProofAction) => { const index = actions.findIndex(item => item.id === action.id); if (index >= 0) actions[index] = action; }),
@@ -62,8 +63,8 @@ describe("live fixture proof coordinator", () => {
     ];
     for (const override of invalidBundles) {
       const p = makePort();
-      p.getMissionBundle.mockResolvedValue({ mission: { id: "SF_fixture", status: "PLANNING_FIX", repository: "Aayushashsahu/sentinelforge-incident-fixture", repairSummary: "Align", patch: 'diff --git a/release-manifest.json b/release-manifest.json\n- "version": "1.3.0"\n+ "version": "1.4.0"\n', ...override }, actions: override.actions ?? [] });
-      await expect(stageLiveFixtureProofAction({ missionId: "SF_fixture", github: github(), port: p })).rejects.toThrow(/repository|planning-stage|exact evidenced|already has/i);
+      p.getMissionBundle.mockResolvedValue({ mission: { id: "SF_fixture", status: "PLANNING_FIX", repository: "Aayushashsahu/sentinelforge-incident-fixture", repairSummary: "Align", patch: canonicalPatch, ...override }, actions: override.actions ?? [] });
+      await expect(stageLiveFixtureProofAction({ missionId: "SF_fixture", github: github(), port: p })).rejects.toThrow(/repository|planning-stage|exact evidenced|already has|canonical release-manifest/i);
     }
   });
 

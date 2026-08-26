@@ -25,6 +25,7 @@ describe("server-only fixture GitHub write adapter", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(response(201, { object: { sha } }))
+      .mockResolvedValueOnce(response(200, { encoding: "base64", content: Buffer.from('{"version":"1.3.0"}').toString("base64"), sha }))
       .mockResolvedValueOnce(response(200, { commit: { sha } }))
       .mockResolvedValueOnce(response(201, { number: 3, html_url: "https://github.com/Aayushashsahu/sentinelforge-incident-fixture/pull/3", state: "open", base: { ref: "main" }, head: { ref: "sentinelforge/sf_proof" }, auto_merge: null }));
     const api = new GitHubFixtureWriteApi(token, fetchImpl);
@@ -32,8 +33,8 @@ describe("server-only fixture GitHub write adapter", () => {
     await api.updateReleaseManifest({ branchName: "sentinelforge/sf_proof", contentSha: sha, content: '{"version":"1.4.0"}' });
     await api.createPullRequest({ branchName: "sentinelforge/sf_proof" });
     const [, branchInit] = fetchImpl.mock.calls[0]!;
-    const [, updateInit] = fetchImpl.mock.calls[1]!;
-    const [, prInit] = fetchImpl.mock.calls[2]!;
+    const [, updateInit] = fetchImpl.mock.calls[2]!;
+    const [, prInit] = fetchImpl.mock.calls[3]!;
     expect(branchInit).toMatchObject({ method: "POST" });
     expect(JSON.parse(branchInit.body)).toEqual({ ref: "refs/heads/sentinelforge/sf_proof", sha });
     expect(updateInit).toMatchObject({ method: "PUT" });
