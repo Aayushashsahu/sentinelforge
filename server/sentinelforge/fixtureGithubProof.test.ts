@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, assertCanonicalFixtureProofPatch, buildFixtureProofIntent, executeApprovedFixtureProof, readFixtureProofPreflight, transformFixtureReleaseManifest, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort } from "./fixtureGithubProof";
 import { GitHubFixtureWriteError } from "./githubWriteDiagnostics";
+import { GitHubWriteCapabilityError } from "./githubWriteCapability";
 
 const fingerprint = "a".repeat(64);
 const sha = (character: string) => character.repeat(40);
@@ -152,6 +153,18 @@ describe("fixture GitHub proof contract", () => {
     const failure = new Error("write response unavailable");
     await expect(executeApprovedFixtureProof({ github: makeGithub({ createBranch: vi.fn(async () => { throw failure; }) }), persistence, actionId: action.id })).rejects.toThrow();
     expect(persistence.updates.at(-1)).toMatchObject({ failure: { endpoint: "/git/refs", classification: "UNKNOWN" } });
+  });
+
+  it("persists a terminal failed state and records no partial remote effect when write capability is absent before a branch request", async () => {
+    const action = makeAction();
+    const persistence = makePersistence(action);
+    const capabilityFailure = new GitHubWriteCapabilityError({ capability: "contents:write", method: "POST", endpoint: "/git/refs" }, "MISSING_EVIDENCE");
+    const github = makeGithub({ createBranch: vi.fn(async () => { throw capabilityFailure; }) });
+    await expect(executeApprovedFixtureProof({ github, persistence, actionId: action.id })).rejects.toThrow(/MISSING_EVIDENCE/);
+    expect(persistence.updates.at(-1)).toMatchObject({ status: "FAILED", remote: {}, failure: { httpStatus: null, endpoint: "/git/refs", classification: "UNKNOWN" } });
+    expect(persistence.audits.at(-1)?.eventType).toBe("FIXTURE_GITHUB_WRITE_CAPABILITY_REFUSED");
+    expect(github.updateReleaseManifest).not.toHaveBeenCalled();
+    expect(github.createPullRequest).not.toHaveBeenCalled();
   });
 
   it("refuses a lost concurrent claim before final preflight or any GitHub mutation", async () => {
