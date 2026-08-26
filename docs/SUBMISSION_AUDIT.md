@@ -1,6 +1,6 @@
 # Submission Audit
 
-**Audit date:** 26 August 2026 UTC  
+**Audit date:** 26 August 2026 UTC
 **Assessment type:** Evidence-based self-assessment. It is not a claim of judging outcome.
 
 ## Verified submission state
@@ -9,8 +9,8 @@
 | --- | --- | --- |
 | Main history | `main` was not modified, force-pushed, or merged during this upgrade. | Preserved. |
 | Identity | New feature commits use `Aayush Sahu <84900516+Aayushashsahu@users.noreply.github.com>` as both author and committer. | Verified. |
-| CI workflow scenario | PR #2 adds the CI Node.js mismatch scenario, a canonical fingerprint, deterministic verifier expectation, dashboard selector, and tests. | Open and reviewed. |
-| Dependency scenario | PR #3 adds the plugin-major compatibility scenario and a deterministic fixture verifier that derives pass/fail from fixture inputs plus the simulated repair. | Open and reviewed. |
+| CI workflow scenario | PR #2 adds the CI Node.js mismatch scenario, a canonical fingerprint, deterministic verifier expectation, dashboard selector, and tests. | Merged and reviewed. |
+| Dependency scenario | PR #3 adds the plugin-major compatibility scenario and a deterministic fixture verifier that derives pass/fail from fixture inputs plus the simulated repair. | Merged and reviewed. |
 | Qodo | Qodo issued real findings on both PRs. All recorded findings were fixed and each review was updated to its remediation commit. | Real evidence present. |
 | Quality workflows | The latest quality checks for PR #2 and PR #3 succeeded. | Verified. |
 | Real provider and approval | SentinelForge retains provider-real MCP evidence, approval-required correlation, and an exact approved continuation. | Verified. |

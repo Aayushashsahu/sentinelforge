@@ -57,16 +57,10 @@ Use the mission dashboard to inspect persisted missions and, if desired, launch 
 
 | Field | Evidence |
 | --- | --- |
-| PR | [#2 — CI workflow compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2) |
-| Scope | Adds the second deterministic CI workflow Node.js compatibility scenario and fixes the PR quality workflow package-manager configuration. |
-| Qodo review date | 26 August 2026 UTC |
-| Material findings | Qodo reported two correctness issues: simulated-action target used a hardcoded fixture repository; workflow audit wording retained release-manifest language. |
-| Fixes made | The simulated target now comes from the persisted mission repository; verification and approval text are scenario metadata. Both fixes have regression coverage. |
-| Follow-up status | Qodo updated its review to commit `51779da`; the original two findings remain visible as prior-review context. |
-| Deferred findings | None. |
-| Merge status | **Open and unmerged.** No merge has been requested or performed. |
+| PR #2 | [CI workflow compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/2), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX target-correlation bug and one Medium/SHOULD_FIX audit-wording bug. Both were fixed in `51779da`; Qodo issued a real follow-up update. **Merged into `main`** as `dbcd9cb`. |
+| PR #3 | [Dependency compatibility scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3), reviewed 26 August 2026 UTC. Qodo reported one High/MUST_FIX verifier-correctness bug. It was fixed in `e79d730`; Qodo issued a real follow-up update and a retargeted-diff follow-up with no new blocking issue. **Merged into `main`** as `a1bfe3804a75275d6986a1947b00a1e5777c86f8`; no deferred finding. |
 
-The stacked [PR #3 — dependency compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3) is also open and unmerged. Qodo identified that the initial no-shell verifier returned a prewritten pass; it was changed to parse deterministic fixture inputs, simulate the proposed manifest repair, and compare plugin majors before reporting a pass or failure. Qodo then updated the review to remediation commit `e79d730`; the original finding remains visible as prior-review context.
+Both review cycles and their original findings remain visible as Qodo review history. PR #2 and PR #3 are merged into `main`; neither pull request used auto-merge.
 
 ## AI-use disclosure
 
