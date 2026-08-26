@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { persistTrueForgeApprovalRequired } from "./trueforgeApproval";
+import { persistTrueForgeApprovalRequired, persistTrueForgeRepairProposalApprovalRequired } from "./trueforgeApproval";
 
 function makePort(status: "VERIFYING" | "PLANNING_FIX" = "VERIFYING") {
   return {
@@ -63,5 +63,14 @@ describe("TrueForge approval-required persistence", () => {
       eventType: "OWNER_NOTIFIED",
       result: "Owner notification unavailable; the TrueForge action remains safely paused.",
     }));
+  });
+
+  it("persists a real repair-proposal gate from planning, correlates it, and leaves it paused without continuation", async () => {
+    const port = makePort("PLANNING_FIX");
+    await expect(persistTrueForgeRepairProposalApprovalRequired(port, { missionId: "SF_1", event: { type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "repair_proposal_gate" }, risk: "LOW", repairFingerprint: "b".repeat(64), proposalEvidenceRefs: ["proposal_1"] })).resolves.toMatchObject({ mission: { status: "WAITING_APPROVAL" } });
+    expect(port.addApprovalRequest).toHaveBeenCalledWith(expect.objectContaining({ actionType: "TRUEFORGE_REPAIR_PROPOSAL_GATE:repair_proposal_gate" }));
+    expect(port.updateTrueForgeTurn).toHaveBeenCalledWith({ turnId: "turn_1", status: "WAITING_APPROVAL", threadId: "thread_1", requiredActionId: "action_1", toolCallId: "call_1" });
+    expect(port.setMissionStatus).toHaveBeenCalledWith("SF_1", "WAITING_APPROVAL");
+    expect(port.appendMissionEvent).toHaveBeenCalledWith(expect.objectContaining({ eventType: "TRUEFORGE_REPAIR_PROPOSAL_APPROVAL_REQUIRED" }));
   });
 });

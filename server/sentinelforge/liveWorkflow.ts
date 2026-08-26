@@ -3,10 +3,16 @@ import { buildReadOnlyInvestigatorSpec, parseInvestigatorResult } from "./agents
 import { buildReadOnlyRepairEngineerSpec, parseRepairEngineerOutcome } from "./agents/repairEngineer";
 import { buildSandboxProbeSpec } from "./agents/sandboxProbe";
 import { APPROVAL_PROBE_TOOL_NAME, buildApprovalProbeMessage, buildApprovalProbeSpec } from "./agents/approvalProbe";
+import { buildRepairProposalApprovalMessage, buildRepairProposalApprovalSpec, REPAIR_PROPOSAL_GATE_TOOL_NAME } from "./agents/repairApproval";
+import { validateRepairApprovalCaptureSequence } from "./agents/repairApprovalSequence";
 import { parseTrueForgeProviderApprovalPauseEvent } from "./liveContracts";
-import { addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, recoverPlanningMissionAfterRepairParsingFailure, setMissionPlanningArtifacts, setMissionStatus } from "./repository";
+import { addApprovalRequest, addEvidence, addSandboxRun, appendMissionEvent, appendMissionEvents, createMission, getMissionBundle, getTrueForgeSessionByMission, getTrueForgeTurnByMission, linkTrueForgeSession, recordTrueForgeTurn, recoverPlanningMissionAfterRepairParsingFailure, setMissionPlanningArtifacts, setMissionStatus, updateTrueForgeTurn } from "./repository";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { readTrueForgeSse, TrueForgeSseAbortedError, type TrueForgeStreamEvent } from "./trueforge/stream";
+import { mapTrueForgeProviderApprovalPause } from "./liveApprovalWorkflow";
+import { persistTrueForgeRepairProposalApprovalRequired } from "./trueforgeApproval";
+import { notifyOwner } from "../_core/notification";
+import { createHash } from "node:crypto";
 
 const LIVE_TURN_TIMEOUT_MS = 75_000;
 
@@ -347,6 +353,56 @@ export async function runLiveApprovalProbe() {
   } catch (error) {
     await setMissionStatus(mission.id, "FAILED");
     await appendMissionEvent({ missionId: mission.id, eventType: "APPROVAL_PROBE_FAILED", actor: "TrueForge", result: sanitizeLiveProviderError(error) });
+    throw error;
+  }
+}
+
+function parseOwnerRepository(repository: string) {
+  const match = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/.exec(repository.trim());
+  if (!match) throw new Error("Live repair approval capture requires a canonical owner/repository target.");
+  return { owner: match[1]!, repo: match[2]! };
+}
+
+function repairProposalGateFingerprint(input: { summary: string | null; patch: string }): string {
+  return createHash("sha256").update(JSON.stringify({ summary: input.summary, patch: input.patch })).digest("hex");
+}
+
+export async function runLiveRepairProposalApprovalCapture(missionId: string) {
+  const bundle = await getMissionBundle(missionId);
+  if (!bundle) throw new Error("Mission was not found.");
+  if (bundle.mission.status !== "PLANNING_FIX") throw new Error("Repair proposal approval capture can start only from a planning-stage mission.");
+  if (!bundle.mission.patch || !bundle.mission.patch.includes("release-manifest.json")) throw new Error("Repair proposal approval capture requires the persisted release-manifest.json proposal.");
+  const expectedVersion = /-\s*"version"\s*:\s*"([^"]+)"/.exec(bundle.mission.patch)?.[1];
+  if (!expectedVersion) throw new Error("Repair proposal approval capture could not recover the current release-manifest version from the persisted patch.");
+  const { owner, repo } = parseOwnerRepository(bundle.mission.repository);
+  const config = getTrueForgeRuntimeConfig();
+  const client = new TrueForgeClient(config);
+  const fingerprint = repairProposalGateFingerprint({ summary: bundle.mission.repairSummary, patch: bundle.mission.patch });
+  try {
+    const resolvedModel = await client.resolveModelName(config.model);
+    const session = await client.createInlineSession(buildRepairProposalApprovalSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
+    await linkTrueForgeSession({ missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "REPAIR_PROPOSAL_APPROVAL_CAPTURE" });
+    await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_APPROVAL_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${REPAIR_PROPOSAL_GATE_TOOL_NAME}`, result: "A dedicated repair-proposal approval capture session was created with only get_file and the non-mutating repair proposal gate. Sandbox and GitHub write tools are disabled.", payload: { model: resolvedModel, mcpServer: config.toolsMcpName, enabledTools: ["get_file", REPAIR_PROPOSAL_GATE_TOOL_NAME], sandbox: "disabled", continuation: "forbidden" } });
+    const events = await readBoundedTurn({ client, sessionId: session.id, message: buildRepairProposalApprovalMessage({ owner, repo, expectedManifestVersion: expectedVersion }) });
+    const { pause, turnId } = validateRepairApprovalCaptureSequence(events, config.toolsMcpName);
+    const toolCall = pause.tool_calls[0]!;
+    await recordTrueForgeTurn({ missionId, trueforgeSessionId: session.id, turnId, status: "WAITING_APPROVAL", threadId: pause.thread_id, requiredActionId: pause.id, toolCallId: toolCall.id });
+    await appendMissionEvents(buildStreamAuditInputs({ missionId, turnId, events }));
+    const providerEvent = await addEvidence({ missionId, kind: "OBSERVED", title: "TrueForge repair proposal approval-required provider event", content: "The live runtime emitted tool.approval_required for repair_proposal_gate after a first-party release-manifest.json read and before any continuation or external action.", source: "trueforge/repair-proposal-approval" });
+    const event = mapTrueForgeProviderApprovalPause({ providerEvent: pause, toolName: REPAIR_PROPOSAL_GATE_TOOL_NAME });
+    return persistTrueForgeRepairProposalApprovalRequired({
+      getMission: async id => { const latest = await getMissionBundle(id); return latest ? { id: latest.mission.id, status: latest.mission.status } : null; },
+      getLatestTrueForgeTurn: async id => { const turn = await getTrueForgeTurnByMission(id); return turn ? { turnId: turn.turnId } : null; },
+      addApprovalRequest,
+      updateTrueForgeTurn,
+      setMissionStatus,
+      appendMissionEvent,
+      notifyOwner,
+      getMissionBundle,
+    }, { missionId, event, risk: bundle.mission.risk, repairFingerprint: fingerprint, proposalEvidenceRefs: [providerEvent.id, ...bundle.evidence.filter(item => item.kind === "PATCH_PROPOSAL").map(item => item.id)] });
+  } catch (error) {
+    await setMissionStatus(missionId, "FAILED");
+    await appendMissionEvent({ missionId, eventType: "TRUEFORGE_REPAIR_APPROVAL_CAPTURE_FAILED", actor: "TrueForge", result: sanitizeLiveProviderError(error) });
     throw error;
   }
 }
