@@ -17,6 +17,20 @@ The live TrueForge session reached the internal `truefoundry-system` `exec` tool
 
 The retry emitted two real `exec` attempts. It did **not** emit a successful exec result or terminal `turn.done` before the bounded client request timed out. SentinelForge persisted the result as `UNKNOWN`; it did not treat sandboxing as functional.
 
+## Authorized Repair-Verifier Attempt — 26 August 2026
+
+One newly authorized isolated verification attempted the already persisted fixture-only proposal: `release-manifest.json` version `1.3.0` to `1.4.0`. The dedicated TrueForge session was `01m0ye1yq8g8w7hsmj8taxm7ne` and the provider turn was `01m0ye208xvwqbp6mzkmksck9m.local`.
+
+The model emitted a real `truefoundry-system/exec` request that would have created only temporary sandbox files and run the deterministic manifest verifier. The runtime returned a real tool response before that command ran:
+
+> `Sandbox initialization failed: Failed to pip install pydantic>=2.0.0,<3.0.0 into sandbox .venv`.
+>
+> The sandbox pip client retried `/simple/pydantic/` through its configured proxy. Each connection failed with `ProxyError: Cannot connect to proxy` and `RemoteDisconnected: Remote end closed connection without response`; the installer then reported no matching distribution for `pydantic<3.0.0,>=2.0.0`.
+
+The client observed no terminal `turn.done` within its 90-second bound. The agent made a provider-side follow-on `exec` request after receiving the bootstrap failure, but SentinelForge did not create another session, turn, user-level retry, or host command. To prevent recurrence, the repair-verifier agent specification now has a one-iteration limit; it cannot issue a second sandbox command after a tool response.
+
+The persisted sandbox run is `run_j54bJdCCAxF7fO`, with status **FAIL**, empty stdout, exit code `2`, and the sanitized bootstrap error in stderr. The repair was **not applied anywhere**, because the provider did not complete sandbox initialization. No GitHub, branch, commit, pull request, Qodo, approval-probe, or other external action occurred.
+
 ## Provider, Image, and Bootstrap Findings
 
 | Question | Verified finding | Confidence |
