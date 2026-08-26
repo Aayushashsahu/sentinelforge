@@ -69,10 +69,10 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | --- | --- |
 | PR | [#4](https://github.com/Aayushashsahu/sentinelforge/pull/4) — `feature/approval-gated-fixture-proof` → `main` |
 | Scope | Adds a server-only, exact-fixture GitHub proof adapter, immutable target and content guards, durable staged action state, proof-specific non-mutating approval gate, continuation correlation binding, partial-outcome stop states, and deterministic tests. No live proof action is invoked by the implementation. |
-| Initial Qodo review | **REAL** — 26 August 2026 UTC. Qodo Code Review posted a review summary at [issue comment 5428723392](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428723392). |
-| Findings | No explicit severity-tagged finding or requested remediation was emitted in the initial Qodo comment. This is recorded as **no active finding**, not as a substitute for live proof evidence. |
-| Remediation | None required from the initial comment. The implementation remains blocked from live execution pending separate authorization; the actual repair sandbox boundary remains unchanged. |
-| Follow-up | Pending after this review-log update; no merge or live GitHub action is authorized. |
+| Initial Qodo review | **REAL** — 26 August 2026 UTC. Qodo Code Review created review `PRR_kwDOUDCFQ88AAAABLAHQqQ` and reported seven valid bugs at [issue comment 5428739743](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428739743). |
+| Findings | **Seven valid findings.** They covered staged-action approval binding, proof-gate tool identity, concurrent execution claiming, partial-PR identity persistence, adapter-level content enforcement, canonical patch validation, and idempotent staging audit correlation. |
+| Remediation | Finding 7 was fixed in `499b1f1`. Findings 1–6 were fixed in `9084bbe`: exact staged-action lookup and fingerprint binding; exact gate-tool validation; atomic `STAGED` → `EXECUTING` claim; `PARTIAL_PR_CREATED` with retained PR identity; adapter re-read plus exact transformation check; and canonical one-file patch validation. Deterministic coverage and full local validation passed. |
+| Follow-up | **REAL** — Qodo confirmed finding 7’s code remediation at [issue comment 5428778621](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428778621), then confirmed findings 1–6 were remediated at [issue comment 5428873893](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428873893). The latter response still lists finding 7 as active despite the earlier confirmation and test; a status-only recheck was requested at [issue comment 5428881358](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428881358). No response had arrived at this log update. |
 | Merge status | **Open, unmerged.** No merge, auto-merge, or fixture repository mutation has been requested or performed. |
 
 ## References
