@@ -182,6 +182,8 @@
 - [ ] Create an unmerged implementation PR for the first scenario, obtain a real Qodo review, address verified findings, and record follow-up review evidence without merging.
 - [ ] Configure and verify the repository-local Git identity `Aayush Sahu <84900516+Aayushashsahu@users.noreply.github.com>` before committing the verified first scenario on its existing feature branch.
 - [ ] Commit, push, and open the user-authorized unmerged CI workflow-mismatch implementation PR; verify the commit author and committer, then obtain real Qodo review and follow-up review without merging.
+- [ ] Recreate the CI workflow-mismatch review branch from the rewritten `user_github/main` and cherry-pick the verified scenario commit, because the original branch was based on pre-rewrite local main and cannot form a pull request without history rewriting.
+- [ ] Fix the verified pull-request quality workflow failure caused by duplicate pnpm version declarations, then rerun CI without changing the substantive scenario scope.
 - [ ] Add truthful README AI-use disclosure, a participant architecture brief, and accurate current-capability README documentation; add Qodo PR evidence only after a real review exists.
 - [ ] Add exactly one deterministic dependency/version-compatibility scenario using existing SentinelForge contracts and tests, without redesigning the state machine.
 - [ ] Create an accurate TrueFoundry sandbox escalation record from the persisted blocker evidence and assess legitimate video-capture availability; create only an honest recording fallback if capture is unavailable.
