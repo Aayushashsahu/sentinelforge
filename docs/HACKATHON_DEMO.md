@@ -36,7 +36,7 @@ The prepared GitHub execution plan stays `BLOCKED_SANDBOX_VERIFICATION`. It requ
 | TrueForge | Real session, approval pause, and exactly-once continuation are persisted. |
 | First-party MCP | Investigator and Repair Engineer use the allowlisted read-only server for ordinary file text. |
 | Approval flow | Correlated session, turn, thread, tool-call, and required-action records survive restarts. |
-| Qodo | The Qodo GitHub App is installed and owner-confirmed; a meaningful review awaits a separately authorized PR. See [QODO_REVIEW_LOG.md](./QODO_REVIEW_LOG.md). |
+| Qodo | PR #2 and stacked PR #3 both received real Qodo review cycles, remediation, and follow-up review updates while remaining open and unmerged. See [QODO_REVIEW_LOG.md](./QODO_REVIEW_LOG.md). |
 
 ## Operator Notes
 
@@ -54,4 +54,4 @@ The persisted mission and readiness views were rehearsed against the judging flo
 | Sandbox blocker and GitHub refusal are explained | **Ready** — both use explicit blocked/guarded state language |
 | Safe completion is visible | **Ready** — `COMPLETED_SAFE` is explicitly not a repaired repository |
 | No secrets in frontend, fake provider events, unsafe fallback, or GitHub write | **Confirmed by boundary design and deterministic checks** |
-| Qodo review | **Configured, not yet run** — no artificial pull request was created |
+| Qodo review | **Ready** — PR #2 and PR #3 have real review, remediation, and follow-up evidence; both remain unmerged |
