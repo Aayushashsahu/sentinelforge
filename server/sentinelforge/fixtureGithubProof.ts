@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { failureEvidenceFromUnknown, type GitHubWriteFailureEvidence } from "./githubWriteDiagnostics";
+import { GitHubWriteCapabilityError } from "./githubWriteCapability";
 
 export const FIXTURE_PROOF_REPOSITORY = "Aayushashsahu/sentinelforge-incident-fixture" as const;
 export const FIXTURE_PROOF_BASE_BRANCH = "main" as const;
@@ -205,10 +206,10 @@ export async function executeApprovedFixtureProof(input: { github: FixtureProofG
     await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote });
     await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_BRANCH_CREATED", correlationId: action.id, result: "The one allowlisted fixture-proof branch was created after a sent approval continuation.", payload: safeRemoteSummary(action) });
   } catch (error) {
-    action.status = "PARTIAL_BRANCH_CREATED";
+    action.status = error instanceof GitHubWriteCapabilityError ? "FAILED" : "PARTIAL_BRANCH_CREATED";
     action.failure = failureEvidenceFromUnknown(error, { method: "POST", endpoint: "/git/refs" });
     await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote, failure: action.failure });
-    await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_BRANCH_PARTIAL", correlationId: action.id, result: "Branch creation did not return a confirmed result. The proof stopped without retry or rollback.", payload: safeRemoteSummary(action) });
+    await input.persistence.appendAudit({ missionId: action.missionId, eventType: error instanceof GitHubWriteCapabilityError ? "FIXTURE_GITHUB_WRITE_CAPABILITY_REFUSED" : "FIXTURE_GITHUB_BRANCH_PARTIAL", correlationId: action.id, result: error instanceof GitHubWriteCapabilityError ? "Required write-capability evidence was unavailable or invalid. No branch-create request was attempted." : "Branch creation did not return a confirmed result. The proof stopped without retry or rollback.", payload: safeRemoteSummary(action) });
     throw error;
   }
 
@@ -219,10 +220,10 @@ export async function executeApprovedFixtureProof(input: { github: FixtureProofG
     await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote });
     await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_COMMIT_CREATED", correlationId: action.id, result: "The one allowlisted release-manifest repair commit was created on the dedicated branch.", payload: safeRemoteSummary(action) });
   } catch (error) {
-    action.status = "PARTIAL_COMMIT_CREATED";
+    action.status = error instanceof GitHubWriteCapabilityError ? "FAILED" : "PARTIAL_COMMIT_CREATED";
     action.failure = failureEvidenceFromUnknown(error, { method: "PUT", endpoint: `/contents/${FIXTURE_PROOF_FILE}` });
     await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote, failure: action.failure });
-    await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_COMMIT_PARTIAL", correlationId: action.id, result: "Commit creation did not return a confirmed result. The proof stopped without retry, second commit, or rollback.", payload: safeRemoteSummary(action) });
+    await input.persistence.appendAudit({ missionId: action.missionId, eventType: error instanceof GitHubWriteCapabilityError ? "FIXTURE_GITHUB_WRITE_CAPABILITY_REFUSED" : "FIXTURE_GITHUB_COMMIT_PARTIAL", correlationId: action.id, result: error instanceof GitHubWriteCapabilityError ? "Required write-capability evidence was unavailable or invalid. No file-update request was attempted." : "Commit creation did not return a confirmed result. The proof stopped without retry, second commit, or rollback.", payload: safeRemoteSummary(action) });
     throw error;
   }
 
@@ -243,10 +244,10 @@ export async function executeApprovedFixtureProof(input: { github: FixtureProofG
     await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PR_CREATED", correlationId: action.id, result: "The one allowlisted pull request was verified open and unmerged. The proof is terminal and no additional GitHub mutation is permitted.", payload: safeRemoteSummary(action) });
     return action;
   } catch (error) {
-    action.status = "PARTIAL_PR_CREATED";
+    action.status = error instanceof GitHubWriteCapabilityError ? "FAILED" : "PARTIAL_PR_CREATED";
     action.failure = failureEvidenceFromUnknown(error, { method: "POST", endpoint: "/pulls" });
     await input.persistence.updateAction(action.id, { status: action.status, remote: action.remote, failure: action.failure });
-    await input.persistence.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_GITHUB_PR_PARTIAL", correlationId: action.id, result: "Pull-request creation did not return a confirmed open PR. The proof stopped without retry, second pull request, or rollback.", payload: safeRemoteSummary(action) });
+    await input.persistence.appendAudit({ missionId: action.missionId, eventType: error instanceof GitHubWriteCapabilityError ? "FIXTURE_GITHUB_WRITE_CAPABILITY_REFUSED" : "FIXTURE_GITHUB_PR_PARTIAL", correlationId: action.id, result: error instanceof GitHubWriteCapabilityError ? "Required write-capability evidence was unavailable or invalid. No pull-request create request was attempted." : "Pull-request creation did not return a confirmed open PR. The proof stopped without retry, second pull request, or rollback.", payload: safeRemoteSummary(action) });
     throw error;
   }
 }

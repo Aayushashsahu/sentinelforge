@@ -75,6 +75,22 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Follow-up | **REAL** — Qodo confirmed finding 7’s code remediation at [issue comment 5428778621](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428778621), then confirmed findings 1–6 were remediated at [issue comment 5428873893](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428873893). Its later status-only recheck formally states that **finding 7 remains dismissed** and that no code change or further action is required at [issue comment 5428975584](https://github.com/Aayushashsahu/sentinelforge/pull/4#issuecomment-5428975584). |
 | Merge status | **Open, unmerged.** No merge, auto-merge, or fixture repository mutation has been requested or performed. |
 
+## PR #5 — GitHub Write-Capability Evidence Hardening
+
+| Field | Record |
+| --- | --- |
+| PR | [#5](https://github.com/Aayushashsahu/sentinelforge/pull/5) — `security/write-capability-evidence` → `main` |
+| Scope | Adds a default-deny, repository-bound capability-evidence policy for the existing fixture-only branch, exact manifest-update, and PR-create boundaries. The policy does not infer write authority from metadata, contents, pull-request reads, ownership, or rulesets visibility. |
+| Initial Qodo review | **REAL** — review `PRR_kwDOUDCFQ88AAAABLBIycQ`, submitted 26 August 2026 UTC for commit `3360c1f`. The Qodo review comment described the operation-specific fail-closed boundary as appropriate and did not issue a severity-labelled finding. [2] |
+| Findings | **None issued.** Qodo provided an assessment and change summary, not a High, Medium, or Low defect report. No remediation was required. |
+| Follow-up | **REAL** — the owner invoked `/agentic_review`; Qodo created follow-up review `PRR_kwDOUDCFQ88AAAABLBKItA` and confirmed its review was updated through the same commit. [3] |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** No merge, auto-merge, provider action, sandbox action, or fixture-repository mutation occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
+
+[2] [PR #5 Qodo initial review comment](https://github.com/Aayushashsahu/sentinelforge/pull/5#issuecomment-5430144582) — Qodo’s real initial assessment for the write-capability hardening commit.
+
+[3] [PR #5 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/5#issuecomment-5430174693) — Qodo’s real update after the documented `/agentic_review` request.

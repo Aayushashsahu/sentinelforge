@@ -94,6 +94,19 @@ export async function createGitHubWriteFailure(input: { status: number; method: 
 }
 
 export function failureEvidenceFromUnknown(error: unknown, fallback: { method: "POST" | "PUT"; endpoint: string }): GitHubWriteFailureEvidence {
+  if (error && typeof error === "object" && "operation" in error && (error as { name?: unknown }).name === "GitHubWriteCapabilityError") {
+    const operation = (error as { operation: { method: "POST" | "PUT"; endpoint: string } }).operation;
+    return {
+      httpStatus: null,
+      method: operation.method,
+      endpoint: sanitizeEndpoint(operation.endpoint),
+      acceptedGithubPermissions: null,
+      oauthScopes: null,
+      githubErrorCode: null,
+      message: "Required GitHub write capability evidence is unavailable or invalid; no GitHub write was attempted.",
+      classification: "UNKNOWN",
+    };
+  }
   if (error instanceof GitHubFixtureWriteError) return error.diagnostic;
   const raw = error instanceof Error ? error.message : "GitHub write request failed without a structured response.";
   const message = scrub(raw);
