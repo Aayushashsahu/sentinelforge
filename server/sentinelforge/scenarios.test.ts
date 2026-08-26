@@ -45,5 +45,9 @@ describe("deterministic incident scenarios", () => {
     const run = await runDeterministicScenarioVerification(scenario.id);
     expect(run.result.status).toBe("PASS");
     expect(run.stdout).toContain("installed plugin major (3) === supported major (3)");
+    const withheldRepair = await runDeterministicScenarioVerification(scenario.id, { forceFailure: true });
+    expect(withheldRepair.result.status).toBe("FAIL");
+    expect(withheldRepair.exitCode).toBe(1);
+    expect(withheldRepair.stderr).toContain("installed plugin major 3 does not match supported major 2");
   });
 });

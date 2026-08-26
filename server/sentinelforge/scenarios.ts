@@ -1,5 +1,5 @@
 import { createRepairFingerprint } from "./liveContracts";
-import { fixtureIncident, investigatorResult, repairProposal, runFixtureVerification, type FixtureSandboxRun } from "./fixture";
+import { fixtureIncident, investigatorResult, repairProposal, runDependencyCompatibilityFixtureVerification, runFixtureVerification, type FixtureSandboxRun } from "./fixture";
 import type { InvestigationResult, RepairProposal, VerificationResult } from "../../shared/sentinelforge";
 
 export const deterministicScenarioIds = ["release_manifest_version_drift", "workflow_node_version_mismatch", "dependency_plugin_major_mismatch"] as const;
@@ -157,6 +157,7 @@ function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
 /** The scenario verifier remains deterministic: it never invokes a shell, network, filesystem, sandbox, or host process. */
 export async function runDeterministicScenarioVerification(scenarioId: DeterministicScenarioId, { forceFailure = false, forceTimeout = false }: { forceFailure?: boolean; forceTimeout?: boolean } = {}): Promise<FixtureSandboxRun> {
   if (scenarioId === "release_manifest_version_drift") return runFixtureVerification({ forceFailure, forceTimeout });
+  if (scenarioId === "dependency_plugin_major_mismatch") return runDependencyCompatibilityFixtureVerification({ forceFailure, forceTimeout });
   const scenario = getDeterministicScenario(scenarioId);
   const startedAt = Date.now();
   try {

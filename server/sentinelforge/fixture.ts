@@ -7,6 +7,14 @@ const fixtureFiles = {
   "test.js": "assert package.version === manifest.version",
 };
 
+const dependencyCompatibilityFixtureFiles = {
+  "package.json": JSON.stringify({ name: "dependency-compatibility-fixture", dependencies: { "sentinel-plugin": "^3.2.0" } }, null, 2),
+  ".sentinelforge/compatibility.json": JSON.stringify({ supportedPluginMajor: 2 }, null, 2),
+  "test.js": "assert installedPluginMajor === compatibility.supportedPluginMajor",
+};
+
+const dependencyCompatibilityRepair = { supportedPluginMajor: 3 } as const;
+
 export const investigatorResult: InvestigationResult = { finding: "The release-check assertion compares package.json.version with release-manifest.json.version and observes a mismatch.", rootCause: "release-manifest.json was not updated when package.json advanced to 1.0.1.", confidence: 0.98, evidence: ["package.json: version=1.0.1", "release-manifest.json: version=1.0.0", "test.js: package.version must equal manifest.version"] };
 export const repairProposal: RepairProposal = { summary: "Align the release manifest version with the package version.", filesChanged: ["release-manifest.json"], patch: "--- a/release-manifest.json\n+++ b/release-manifest.json\n@@\n-  \\\"version\\\": \\\"1.0.0\\\",\n+  \\\"version\\\": \\\"1.0.1\\\",", expectedEffect: "The release-check assertion will compare identical versions and the CI check will pass.", risk: "LOW" };
 
@@ -35,5 +43,39 @@ export async function runFixtureVerification({ forceFailure = false, forceTimeou
     }), 90);
   } catch (error) {
     return { result: { status: "TIMEOUT", testsRun: ["release-check :: package.version === manifest.version"], testsPassed: 0, testsFailed: 0, evidence: ["Fixture verifier timed out before completion."] }, stdout: "", stderr: error instanceof Error ? error.message : "Unknown timeout", exitCode: 124, durationMs: Date.now() - startedAt, timedOut: true };
+  }
+}
+
+/** A deterministic no-shell dependency compatibility verifier that simulates only the persisted compatibility-manifest repair. */
+export async function runDependencyCompatibilityFixtureVerification({ forceFailure = false, forceTimeout = false }: { forceFailure?: boolean; forceTimeout?: boolean } = {}): Promise<FixtureSandboxRun> {
+  const startedAt = Date.now();
+  const command = "dependency-compatibility :: installed.pluginMajor === compatibility.supportedPluginMajor";
+  try {
+    return await withTimeout(new Promise<FixtureSandboxRun>(resolve => {
+      const delay = forceTimeout ? 160 : 30;
+      setTimeout(() => {
+        const packageFile = JSON.parse(dependencyCompatibilityFixtureFiles["package.json"]);
+        const compatibility = JSON.parse(dependencyCompatibilityFixtureFiles[".sentinelforge/compatibility.json"]);
+        const installedPluginMajor = Number.parseInt(packageFile.dependencies["sentinel-plugin"].replace(/^[^0-9]*/, "").split(".")[0], 10);
+        const repairedCompatibility = { ...compatibility, supportedPluginMajor: forceFailure ? compatibility.supportedPluginMajor : dependencyCompatibilityRepair.supportedPluginMajor };
+        const passes = installedPluginMajor === repairedCompatibility.supportedPluginMajor;
+        resolve({
+          result: {
+            status: passes ? "PASS" : "FAIL",
+            testsRun: [command],
+            testsPassed: passes ? 1 : 0,
+            testsFailed: passes ? 0 : 1,
+            evidence: passes ? [".sentinelforge/compatibility.json patched to supportedPluginMajor 3", "dependency-compatibility passed"] : [".sentinelforge/compatibility.json remained on supportedPluginMajor 2", "dependency-compatibility failed"],
+          },
+          stdout: passes ? "[fixture-isolation] patched .sentinelforge/compatibility.json\n[dependency-compatibility] installed plugin major (3) === supported major (3)\nPASS" : "[fixture-isolation] repair not applied\nFAIL",
+          stderr: passes ? "" : "CompatibilityError: installed plugin major 3 does not match supported major 2",
+          exitCode: passes ? 0 : 1,
+          durationMs: Date.now() - startedAt,
+          timedOut: false,
+        });
+      }, delay);
+    }), 90);
+  } catch (error) {
+    return { result: { status: "TIMEOUT", testsRun: [command], testsPassed: 0, testsFailed: 0, evidence: ["Fixture verifier timed out before completion."] }, stdout: "", stderr: error instanceof Error ? error.message : "Unknown timeout", exitCode: 124, durationMs: Date.now() - startedAt, timedOut: true };
   }
 }
