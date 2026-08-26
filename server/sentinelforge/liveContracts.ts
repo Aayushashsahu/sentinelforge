@@ -49,6 +49,11 @@ export type LiveRepairProposal = z.infer<typeof liveRepairProposalSchema>;
 export type LiveVerificationResult = z.infer<typeof liveVerificationResultSchema>;
 export type TrueForgeApprovalRequired = z.infer<typeof approvalRequiredEventSchema>;
 export type TrueForgeProviderApprovalPause = z.infer<typeof trueForgeProviderApprovalPauseSchema>;
+export type SandboxVerificationCapabilityState = "SANDBOX_VERIFICATION_BLOCKED" | "SANDBOX_VERIFICATION_PASSED";
+
+export function getSandboxVerificationCapabilityState(verificationStatus: LiveExecutionGateInput["verificationStatus"]): SandboxVerificationCapabilityState {
+  return verificationStatus === "PASS" ? "SANDBOX_VERIFICATION_PASSED" : "SANDBOX_VERIFICATION_BLOCKED";
+}
 
 export function isValidRepairFingerprint(input: string): boolean {
   return /^[a-f0-9]{64}$/.test(input);
@@ -142,6 +147,34 @@ export function buildIdempotentGitHubPullRequestIntent(input: { missionId: strin
   };
 }
 
+export type GuardedGitHubRepairExecutionPlan = {
+  status: "BLOCKED_SANDBOX_VERIFICATION" | "REQUIRES_SEPARATE_WRITE_AUTHORIZATION";
+  intent: ReturnType<typeof buildIdempotentGitHubPullRequestIntent>;
+  requiredConditions: readonly ["real_sandbox_verification_pass", "approved_repair_fingerprint", "correlated_provider_approval", "separate_write_authorization", "write_scoped_credential"];
+  operations: readonly [
+    { kind: "create_branch"; branchName: string; baseRef: "main" },
+    { kind: "commit_patch"; branchName: string; filesChanged: readonly string[] },
+    { kind: "create_pull_request"; branchName: string; title: string },
+  ];
+};
+
+export function buildGuardedGitHubRepairExecutionPlan(input: { missionId: string; repository: string; proposal: LiveRepairProposal; fingerprint: string; verificationStatus: LiveExecutionGateInput["verificationStatus"] }): GuardedGitHubRepairExecutionPlan {
+  const intent = buildIdempotentGitHubPullRequestIntent(input);
+  const status = getSandboxVerificationCapabilityState(input.verificationStatus) === "SANDBOX_VERIFICATION_PASSED"
+    ? "REQUIRES_SEPARATE_WRITE_AUTHORIZATION"
+    : "BLOCKED_SANDBOX_VERIFICATION";
+  return {
+    status,
+    intent,
+    requiredConditions: ["real_sandbox_verification_pass", "approved_repair_fingerprint", "correlated_provider_approval", "separate_write_authorization", "write_scoped_credential"],
+    operations: [
+      { kind: "create_branch", branchName: intent.branchName, baseRef: "main" },
+      { kind: "commit_patch", branchName: intent.branchName, filesChanged: intent.filesChanged },
+      { kind: "create_pull_request", branchName: intent.branchName, title: intent.title },
+    ],
+  };
+}
+
 export function getLiveExecutionContractStatus() {
   return {
     repairProposal: "PERSISTED_UNAPPLIED_READ_ONLY_PROPOSAL",
@@ -149,6 +182,6 @@ export function getLiveExecutionContractStatus() {
     approvalPersistence: "CONTRACT_READY_REQUIRES_REAL_TOOL_APPROVAL_EVENT",
     approvalResume: "CONTRACT_READY_REQUIRES_REAL_THREAD_AND_TOOL_CALL",
     githubWrite: "GUARDED_NO_REMOTE_WRITE_IMPLEMENTED",
-    sandbox: "BLOCKED_BY_PROVIDER_BOOTSTRAP",
+    sandbox: "SANDBOX_VERIFICATION_BLOCKED",
   } as const;
 }

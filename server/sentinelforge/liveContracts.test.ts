@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertLiveGitHubPrExecutionAllowed, buildIdempotentGitHubPullRequestIntent, buildTrueForgeApprovalContinuation, createRepairFingerprint, getLiveExecutionContractStatus, parseTrueForgeApprovalRequiredEvent, parseTrueForgeProviderApprovalPauseEvent, type LiveRepairProposal } from "./liveContracts";
+import { assertLiveGitHubPrExecutionAllowed, buildGuardedGitHubRepairExecutionPlan, buildIdempotentGitHubPullRequestIntent, buildTrueForgeApprovalContinuation, createRepairFingerprint, getLiveExecutionContractStatus, getSandboxVerificationCapabilityState, parseTrueForgeApprovalRequiredEvent, parseTrueForgeProviderApprovalPauseEvent, type LiveRepairProposal } from "./liveContracts";
 
 const proposal: LiveRepairProposal = { summary: "Fix failing build", patch: "diff --git a/a b/a", files_changed: ["src/a.ts"], expected_effect: "Build passes", risk: "LOW" };
 
@@ -55,6 +55,17 @@ describe("live provider-neutral execution contracts", () => {
     expect(buildIdempotentGitHubPullRequestIntent({ missionId: "SF_1", repository: "owner/repo", proposal, fingerprint })).toMatchObject({ actionType: "GITHUB_PULL_REQUEST", idempotencyKey: `trueforge-pr:SF_1:${fingerprint}`, branchName: "sentinelforge/sf_1" });
   });
 
+  it("produces an exact non-executable branch, commit, and PR plan that blocks on sandbox failure", () => {
+    const fingerprint = createRepairFingerprint(proposal);
+    const plan = buildGuardedGitHubRepairExecutionPlan({ missionId: "SF_1", repository: "owner/repo", proposal, fingerprint, verificationStatus: "FAIL" });
+    expect(plan).toMatchObject({ status: "BLOCKED_SANDBOX_VERIFICATION", intent: { idempotencyKey: `trueforge-pr:SF_1:${fingerprint}` }, operations: [
+      { kind: "create_branch", branchName: "sentinelforge/sf_1", baseRef: "main" },
+      { kind: "commit_patch", filesChanged: ["src/a.ts"] },
+      { kind: "create_pull_request", title: "Fix failing build" },
+    ] });
+    expect(buildGuardedGitHubRepairExecutionPlan({ missionId: "SF_1", repository: "owner/repo", proposal, fingerprint, verificationStatus: "PASS" }).status).toBe("REQUIRES_SEPARATE_WRITE_AUTHORIZATION");
+  });
+
   it("fails closed for unsafe dormant PR-intent targets", () => {
     const fingerprint = createRepairFingerprint(proposal);
     expect(() => buildIdempotentGitHubPullRequestIntent({ missionId: "mission_1", repository: "owner/repo", proposal, fingerprint })).toThrow(/SentinelForge mission/);
@@ -65,8 +76,15 @@ describe("live provider-neutral execution contracts", () => {
   it("reports contracts as guarded or blocked rather than claiming a live approval or write", () => {
     expect(getLiveExecutionContractStatus()).toMatchObject({
       repairProposal: "PERSISTED_UNAPPLIED_READ_ONLY_PROPOSAL",
-      sandbox: "BLOCKED_BY_PROVIDER_BOOTSTRAP",
+      sandbox: "SANDBOX_VERIFICATION_BLOCKED",
       githubWrite: "GUARDED_NO_REMOTE_WRITE_IMPLEMENTED",
     });
+  });
+
+  it("classifies every non-pass verifier result as sandbox verification blocked", () => {
+    expect(getSandboxVerificationCapabilityState("PASS")).toBe("SANDBOX_VERIFICATION_PASSED");
+    expect(getSandboxVerificationCapabilityState("FAIL")).toBe("SANDBOX_VERIFICATION_BLOCKED");
+    expect(getSandboxVerificationCapabilityState("UNKNOWN")).toBe("SANDBOX_VERIFICATION_BLOCKED");
+    expect(getSandboxVerificationCapabilityState("TIMEOUT")).toBe("SANDBOX_VERIFICATION_BLOCKED");
   });
 });
