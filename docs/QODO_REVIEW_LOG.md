@@ -60,9 +60,9 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | PR | [#3](https://github.com/Aayushashsahu/sentinelforge/pull/3) — `review/dependency-compatibility` → `review/ci-workflow-mismatch` |
 | Scope | Adds a deterministic plugin-major compatibility scenario and a dashboard selector entry. The stacked base preserves PR #2 as unmerged. |
 | Initial Qodo review | **REAL** — 26 August 2026 UTC; Qodo reported one correctness bug. |
-| Finding | The no-shell dependency verifier returned a prewritten pass and did not derive its outcome from fixture inputs or the proposed repair. |
-| Fix | The verifier now parses deterministic `package.json` and compatibility-manifest fixture inputs, simulates only the proposed compatibility-manifest update, compares plugin majors, and reports a deterministic failure when the repair is withheld. |
-| Follow-up | **REAL** — Qodo updated its review to remediation commit `e79d730`; the original finding is retained as prior-review context. |
+| Finding | **High / MUST_FIX / valid.** The no-shell dependency verifier returned a prewritten pass and did not derive its outcome from fixture inputs or the proposed repair. |
+| Fix | The verifier now parses deterministic `package.json` and compatibility-manifest fixture inputs, simulates only the proposed compatibility-manifest update, compares plugin majors, and reports a deterministic failure when the repair is withheld. Remediation: `e79d730`. |
+| Follow-up | **REAL** — 26 August 2026 UTC. Qodo updated its review to remediation commit `e79d730`; the original finding is retained as prior-review context and no additional active finding was issued. |
 | CI | GitHub quality workflow passed for the remediation commit. |
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** No merge has been requested or performed. |

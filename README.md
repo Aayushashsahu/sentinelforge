@@ -66,7 +66,7 @@ Use the mission dashboard to inspect persisted missions and, if desired, launch 
 | Deferred findings | None. |
 | Merge status | **Open and unmerged.** No merge has been requested or performed. |
 
-The stacked [PR #3 — dependency compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3) is also open and unmerged. Qodo identified that the initial no-shell verifier returned a prewritten pass; it was changed to parse deterministic fixture inputs, simulate the proposed manifest repair, and compare plugin majors before reporting a pass or failure. Qodo then updated the review to remediation commit `e79d730`; the original finding remains visible as prior-review context.
+The stacked [PR #3 — dependency compatibility incident scenario](https://github.com/Aayushashsahu/sentinelforge/pull/3) is also open and unmerged. Qodo identified one **High / MUST_FIX** correctness issue: the initial no-shell verifier returned a prewritten pass. In `e79d730`, it was changed to parse deterministic fixture inputs, simulate the proposed manifest repair, and compare plugin majors before reporting a pass or failure. Qodo then updated its real review on 26 August 2026 UTC; the original finding remains visible as prior-review context and no additional active finding was issued.
 
 ## AI-use disclosure
 
