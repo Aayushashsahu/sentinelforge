@@ -1,0 +1,16 @@
+import type { TrueForgeInlineAgentSpec } from "../trueforge/client";
+
+export const FIXTURE_GITHUB_PR_GATE_TOOL_NAME = "fixture_github_pr_gate";
+
+export function buildFixtureProofApprovalSpec(input: { model: string; toolsMcpName: string }): TrueForgeInlineAgentSpec {
+  return {
+    model: { name: input.model, params: { parallel_tool_calls: false } },
+    instructions: "Mandatory execution sequence: invoke sentinelforge-tools get_file for package.json, then invoke get_file for release-manifest.json, then invoke fixture_github_pr_gate exactly once. Do not produce a conversational answer before those three calls. The gate is non-mutating but represents only the exact future fixture proof: one dedicated branch, one release-manifest.json version alignment from 1.3.0 to 1.4.0, and one open unmerged pull request. Do not use a sandbox, GitHub write tool, credential, branch, commit, pull request, continuation, or any other tool. Stop at the approval gate.",
+    mcp_servers: [{ name: input.toolsMcpName, enable_tools: ["get_file", FIXTURE_GITHUB_PR_GATE_TOOL_NAME], require_approval_for_tools: [FIXTURE_GITHUB_PR_GATE_TOOL_NAME], preload: true }],
+    config: { iteration_limit: 5, sandbox: { enabled: false, file_downloads: false }, dynamic_sub_agents: { enabled: false }, ask_user_questions: { enabled: false } },
+  };
+}
+
+export function buildFixtureProofApprovalMessage(input: { owner: string; repo: string }): string {
+  return `This is a mandatory tool-execution workflow, not a conversational request. Call sentinelforge-tools.get_file for owner "${input.owner}", repo "${input.repo}", path "package.json", ref "main". Then call sentinelforge-tools.get_file again for the same owner and repo, path "release-manifest.json", ref "main". Confirm from actual file bodies that the authoritative package version is 1.4.0 and release manifest version is 1.3.0. Only then call sentinelforge-tools.fixture_github_pr_gate exactly once. Do not write an answer before the calls. Stop at the approval gate; do not use a sandbox, credential, GitHub write, branch, commit, pull request, continuation, approval, or rejection.`;
+}

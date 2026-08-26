@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { assertAllowedMissionTransition } from "./transitions";
 import { createImmutableAuditEvent, nextAuditSequence } from "./audit";
 import { buildFinalDemoTimeline } from "./finalDemo";
+import type { FixtureProofAction, FixtureProofActionStatus } from "./fixtureGithubProof";
 
 const now = () => Date.now();
 const id = (prefix: string) => `${prefix}_${nanoid(14)}`;
@@ -78,6 +79,46 @@ export async function addSandboxRun(input: { missionId: string; status: "PASS" |
 export async function addApprovalRequest(input: { missionId: string; actionType: string; risk: Risk; justification: string }) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const createdAt = now(); const request = { id: id("apr"), ...input, status: "PENDING" as const, decidedAt: null, decidedBy: null, createdAt, expiresAt: createdAt + 3600000 }; await db.insert(approvalRequests).values(request); return request; }
 export async function countExternalActions(missionId: string) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); return (await db.select({ id: externalActions.id }).from(externalActions).where(eq(externalActions.missionId, missionId))).length; }
 export async function createSimulatedExternalAction(input: { missionId: string; target: string }) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); const action = { id: id("act"), missionId: input.missionId, actionType: "SIMULATED_GITHUB_PULL_REQUEST", status: "SIMULATED", target: input.target, idempotencyKey: `approval:${input.missionId}`, result: "Simulation only: pull request was recorded but no GitHub API call, branch, commit, or PR was created.", createdAt: now(), executedAt: now() }; await db.insert(externalActions).values(action); return action; }
+
+function parseFixtureProofAction(record: typeof externalActions.$inferSelect): FixtureProofAction | null {
+  if (record.actionType !== "FIXTURE_GITHUB_PULL_REQUEST_PROOF") return null;
+  try {
+    const payload = JSON.parse(record.result) as FixtureProofAction;
+    if (!payload || payload.id !== record.id || payload.missionId !== record.missionId || payload.intent?.idempotencyKey !== record.idempotencyKey) return null;
+    return payload;
+  } catch { return null; }
+}
+
+export async function stageFixtureProofExternalAction(action: FixtureProofAction) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const record = { id: action.id, missionId: action.missionId, actionType: "FIXTURE_GITHUB_PULL_REQUEST_PROOF", status: action.status, target: action.intent.repository, idempotencyKey: action.intent.idempotencyKey, result: JSON.stringify(action), createdAt: now(), executedAt: null };
+  try { await db.insert(externalActions).values(record); return action; }
+  catch (error) {
+    const [existing] = await db.select().from(externalActions).where(eq(externalActions.idempotencyKey, action.intent.idempotencyKey)).limit(1);
+    const parsed = existing ? parseFixtureProofAction(existing) : null;
+    if (parsed) return parsed;
+    throw error;
+  }
+}
+
+export async function getFixtureProofExternalAction(actionId: string) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const [record] = await db.select().from(externalActions).where(eq(externalActions.id, actionId)).limit(1);
+  return record ? parseFixtureProofAction(record) : null;
+}
+
+export async function updateFixtureProofExternalAction(actionId: string, update: Pick<FixtureProofAction, "status" | "remote">) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const action = await getFixtureProofExternalAction(actionId);
+  if (!action) throw new Error("Fixture proof action was not found.");
+  const next = { ...action, status: update.status as FixtureProofActionStatus, remote: update.remote };
+  await replaceFixtureProofExternalAction(next);
+}
+
+export async function replaceFixtureProofExternalAction(action: FixtureProofAction) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(externalActions).set({ status: action.status, result: JSON.stringify(action), executedAt: action.status === "PR_CREATED" ? now() : null }).where(eq(externalActions.id, action.id));
+}
 
 export async function linkTrueForgeSession(input: { missionId: string; sessionId: string; baseUrl: string; model: string; status: string }) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
