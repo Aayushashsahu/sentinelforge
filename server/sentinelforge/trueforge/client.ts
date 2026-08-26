@@ -153,9 +153,9 @@ export class TrueForgeClient {
     return ("data" in parsed.data ? parsed.data.data : parsed.data) as TrueForgeRemoteSession;
   }
 
-  async listSessionEvents(sessionId: string): Promise<unknown> {
+  async listSessionEvents(sessionId: string, signal?: AbortSignal): Promise<unknown> {
     const path = `/api/v1/sessions/${encodeURIComponent(sessionId)}/events`;
-    const response = await this.fetchImpl(`${this.config.baseUrl}${path}`, { headers: this.buildHeaders() });
+    const response = await this.fetchImpl(`${this.config.baseUrl}${path}`, { headers: this.buildHeaders(), signal });
     const responseBody = await response.text();
     if (!response.ok) throw new TrueForgeHttpError(response.status, responseBody, "/api/v1/sessions/:sessionId/events");
     try { return JSON.parse(responseBody) as unknown; } catch { throw new Error("TrueForge session event history response was not valid JSON."); }
