@@ -25,6 +25,12 @@ After Qodo is installed and a separately authorized GitHub write path is availab
 | PR 4 | Approval persistence and external-action boundary | Not created | Awaiting live approval prerequisites and separate PR authorization. |
 | PR 5 | Final hardening and demo readiness | Not created | Qodo installation is ready; await separate PR authorization. |
 
+## Backend Milestone — Sandbox-Blocked Execution Boundary
+
+The next meaningful reviewable backend scope is **PR 5: final hardening and demo readiness**. It now includes the real provider-observed sandbox bootstrap failure, the explicit `SANDBOX_VERIFICATION_BLOCKED` capability state, and a deterministic branch/commit/pull-request execution plan that remains non-executable without a genuine sandbox pass, the approved fingerprint, correlated provider approval, separate write authorization, and a write-scoped credential.
+
+No pull request was opened for this record. Consequently, Qodo has not run a review and there are no review findings to accept, reject, or remediate. Opening a pull request, invoking Qodo, or merging remains outside the current authorization.
+
 ## Review Entry Format
 
 For each future pull request, append the PR number and URL, Qodo’s review state, material findings, the implemented fixes, and any justified disagreement. Do not silently dismiss a Qodo finding. No GitHub token or Qodo credential may be copied into this log.
