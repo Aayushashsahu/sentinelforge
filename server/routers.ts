@@ -7,6 +7,7 @@ import { createLiveMission, investigateLiveMission, reconcileLiveInvestigation, 
 import { getLiveExecutionContractStatus } from "./sentinelforge/liveContracts";
 import { verifyIncidentFixtureDeterministically } from "./sentinelforge/verifier";
 import { getSentinelForgeToolsStatus } from "./sentinelforge/tools/mcpServer";
+import { deterministicScenarioIds } from "./sentinelforge/scenarios";
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ ok: true, service: "sentinelforge" })),
@@ -23,7 +24,7 @@ export const appRouter = router({
   missions: router({
     list: publicProcedure.query(async () => (await listMissionBundles()).filter(Boolean)),
     get: publicProcedure.input(z.object({ id: z.string().min(4).max(32) })).query(async ({ input }) => getMissionBundle(input.id)),
-    launchFixture: publicProcedure.mutation(async () => launchDeterministicFixtureMission()),
+    launchFixture: publicProcedure.input(z.object({ scenarioId: z.enum(deterministicScenarioIds) }).optional()).mutation(async ({ input }) => launchDeterministicFixtureMission(input?.scenarioId)),
     createLive: publicProcedure.input(z.object({ title: z.string().min(4).max(255), repository: z.string().min(3).max(255), incident: z.string().min(8).max(8_000), risk: z.enum(["LOW", "MEDIUM", "HIGH"]) })).mutation(async ({ input }) => createLiveMission(input)),
     investigate: publicProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).mutation(async ({ input }) => investigateLiveMission(input.missionId)),
     reconcileLiveInvestigation: publicProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).mutation(async ({ input }) => reconcileLiveInvestigation(input.missionId)),
