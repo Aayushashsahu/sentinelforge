@@ -36,6 +36,11 @@ describe("read-only safety inspections", () => {
     expect(result).toMatchObject({ status: "ALLOWED_FOR_NEXT_STAGE", missionState: "WAITING_APPROVAL", actionState: "WAITING_APPROVAL", approvalState: "PENDING", correlationMatch: true, fingerprintMatch: true, belongsToRequestedAction: true, usable: true });
   });
 
+  it("supports one unambiguous mission-only approval-probe checkpoint without treating it as a fixture action", async () => {
+    const state = port({ approvals: [{ id: "apr_probe", status: "PENDING", expiresAt: Date.now() + 60_000, actionType: "TRUEFORGE_PENDING:approval_probe" }] });
+    await expect(inspectApprovalProbe({ mission_id: missionId }, state)).resolves.toMatchObject({ status: "ALLOWED_FOR_NEXT_STAGE", actionState: null, approvalState: "PENDING", correlationMatch: true, belongsToRequestedAction: true, usable: true });
+  });
+
   it("fails closed for stale, decided, wrong-thread, wrong-tool, wrong-action, and wrong-fingerprint approval evidence", async () => {
     const stale = port({ approvals: [{ id: "apr_probe", status: "PENDING", expiresAt: Date.now() - 1, actionType: "gate" }] });
     expect((await inspectApprovalProbe({ mission_id: missionId, action_id: action.id }, stale)).reasons).toContain("APPROVAL_STALE");
@@ -45,6 +50,12 @@ describe("read-only safety inspections", () => {
     expect((await inspectApprovalProbe({ mission_id: missionId, action_id: action.id, tool_call_id: "wrong" }, port())).reasons).toContain("CORRELATION_MISMATCH");
     expect((await inspectApprovalProbe({ mission_id: missionId, action_id: "act_other" }, port())).reasons).toContain("ACTION_NOT_FOUND");
     expect((await inspectApprovalProbe({ mission_id: missionId, action_id: action.id, proposal_fingerprint: "b".repeat(64) }, port())).reasons).toContain("FINGERPRINT_MISMATCH");
+    const unrelatedTurn = port({ trueforgeTurns: [{ turnId: "turn_unrelated", status: "WAITING_APPROVAL", threadId: "main", toolCallId: "call_unrelated", requiredActionId: "req_unrelated" }, { turnId: "turn_probe", status: "WAITING_APPROVAL", threadId: "main", toolCallId: "call_probe", requiredActionId: "req_probe" }] });
+    await expect(inspectApprovalProbe({ mission_id: missionId, action_id: action.id }, unrelatedTurn)).resolves.toMatchObject({ status: "ALLOWED_FOR_NEXT_STAGE", correlationMatch: true });
+    const mismatchedActionTurn = port({ trueforgeTurns: [{ turnId: "turn_unrelated", status: "WAITING_APPROVAL", threadId: "main", toolCallId: "call_unrelated", requiredActionId: "req_unrelated" }] });
+    expect((await inspectApprovalProbe({ mission_id: missionId, action_id: action.id }, mismatchedActionTurn)).reasons).toContain("ACTION_CORRELATION_MISMATCH");
+    const ambiguousProbe = port({ approvals: [{ id: "apr_one", status: "PENDING", expiresAt: Date.now() + 60_000, actionType: "TRUEFORGE_PENDING:approval_probe" }, { id: "apr_two", status: "PENDING", expiresAt: Date.now() + 60_000, actionType: "TRUEFORGE_PENDING:approval_probe" }] });
+    expect((await inspectApprovalProbe({ mission_id: missionId }, ambiguousProbe)).reasons).toEqual(expect.arrayContaining(["APPROVAL_AMBIGUOUS", "APPROVAL_NOT_PRESENT"]));
   });
 
   it("allows a canonical fixture proposal only for approval capture and exposes no secret material", async () => {
@@ -58,6 +69,8 @@ describe("read-only safety inspections", () => {
     expect((await inspectRepairProposalGate({ mission_id: missionId, action_id: "act_other", proposal_fingerprint: fingerprint, stage: "APPROVAL_CAPTURE" }, port())).reasons).toContain("ACTION_NOT_FOUND");
     expect((await inspectRepairProposalGate({ mission_id: missionId, action_id: action.id, proposal_fingerprint: "b".repeat(64), stage: "APPROVAL_CAPTURE" }, port())).reasons).toContain("FINGERPRINT_MISMATCH");
     expect((await inspectRepairProposalGate({ mission_id: missionId, action_id: action.id, proposal_fingerprint: fingerprint, stage: "EXTERNAL_EXECUTION" }, port())).reasons).toEqual(expect.arrayContaining(["SANDBOX_VERIFICATION_BLOCKED", "APPROVAL_NOT_PRESENT", "WRITE_CAPABILITY_UNVERIFIED"]));
+    await expect(inspectRepairProposalGate({ mission_id: missionId, action_id: action.id, proposal_fingerprint: fingerprint, stage: "EXTERNAL_EXECUTION" }, port({ runs: [{ status: "PASS" }, { status: "FAIL" }] }))).resolves.toMatchObject({ sandboxState: "PASSED" });
+    await expect(inspectRepairProposalGate({ mission_id: missionId, action_id: action.id, proposal_fingerprint: fingerprint, stage: "EXTERNAL_EXECUTION" }, port({ runs: [{ status: "FAIL" }, { status: "PASS" }] }))).resolves.toMatchObject({ sandboxState: "BLOCKED" });
     const changedPatch = port({ mission: { id: missionId, status: "WAITING_APPROVAL", repository: "other/repo", repairSummary: "align", patch: "not a canonical patch" } });
     const changed = await inspectRepairProposalGate({ mission_id: missionId, proposal_fingerprint: fingerprint, stage: "APPROVAL_CAPTURE" }, changedPatch);
     expect(changed.reasons).toEqual(expect.arrayContaining(["TARGET_NOT_ALLOWLISTED", "PROPOSAL_SEMANTICS_INVALID"]));

@@ -52,8 +52,12 @@ function blockedApproval(reasons: string[]): ApprovalProbeResult {
   return { status: "BLOCKED", reasons, missionState: null, actionState: null, approvalState: null, correlationMatch: false, fingerprintMatch: false, belongsToRequestedAction: false, usable: false };
 }
 
-function latestTurn(bundle: NonNullable<Awaited<ReturnType<SafetyInspectionPort["getMissionBundle"]>>>) {
+function latestWaitingTurn(bundle: NonNullable<Awaited<ReturnType<SafetyInspectionPort["getMissionBundle"]>>>) {
   return bundle.trueforgeTurns.find(turn => turn.status === "WAITING_APPROVAL") ?? bundle.trueforgeTurns[0] ?? null;
+}
+
+function turnForAction(bundle: NonNullable<Awaited<ReturnType<SafetyInspectionPort["getMissionBundle"]>>>, action: FixtureProofAction) {
+  return bundle.trueforgeTurns.find(turn => turn.status === "WAITING_APPROVAL" && turn.turnId === action.approval.turnId && turn.threadId === action.approval.threadId && turn.toolCallId === action.approval.toolCallId && turn.requiredActionId === action.approval.requiredActionId) ?? null;
 }
 
 export async function inspectApprovalProbe(input: ObjectInput, port: SafetyInspectionPort): Promise<ApprovalProbeResult> {
@@ -65,21 +69,24 @@ export async function inspectApprovalProbe(input: ObjectInput, port: SafetyInspe
   if (!bundle) return blockedApproval(["MISSION_NOT_FOUND"]);
 
   const action = actionId ? await port.getFixtureProofAction(actionId) : null;
-  const turn = latestTurn(bundle);
+  const turn = action ? turnForAction(bundle, action) : latestWaitingTurn(bundle);
   const reasons: string[] = [];
   if (actionId && (!action || action.missionId !== missionId)) reasons.push("ACTION_NOT_FOUND");
+  if (action && !turn) reasons.push("ACTION_CORRELATION_MISMATCH");
   if (requiredActionId && turn?.requiredActionId !== requiredActionId) reasons.push("REQUIRED_ACTION_MISMATCH");
   const requestedThread = nonBlank(input, "thread_id");
   const requestedToolCall = nonBlank(input, "tool_call_id");
-  const correlationMatch = Boolean(turn && (!requestedThread || requestedThread === turn.threadId) && (!requestedToolCall || requestedToolCall === turn.toolCallId) && (!requiredActionId || requiredActionId === turn.requiredActionId));
+  const correlationMatch = Boolean(turn && turn.threadId && turn.toolCallId && turn.requiredActionId && (!requestedThread || requestedThread === turn.threadId) && (!requestedToolCall || requestedToolCall === turn.toolCallId) && (!requiredActionId || requiredActionId === turn.requiredActionId));
   if (!correlationMatch) reasons.push("CORRELATION_MISMATCH");
   const requestedFingerprint = nonBlank(input, "proposal_fingerprint");
   const fingerprintMatch = Boolean(action && requestedFingerprint && fingerprintPattern.test(requestedFingerprint) && action.intent.proposalFingerprint === requestedFingerprint);
   if (requestedFingerprint && !fingerprintMatch) reasons.push("FINGERPRINT_MISMATCH");
   const approvalId = action?.approval.approvalRequestId ?? null;
-  const approval = approvalId ? bundle.approvals.find(item => item.id === approvalId) ?? null : bundle.approvals.find(item => item.status === "PENDING") ?? null;
+  const approvalCandidates = approvalId ? bundle.approvals.filter(item => item.id === approvalId) : bundle.approvals.filter(item => item.status === "PENDING" && item.actionType === "TRUEFORGE_PENDING:approval_probe");
+  const approval = approvalCandidates.length === 1 ? approvalCandidates[0]! : null;
+  if (approvalCandidates.length > 1) reasons.push("APPROVAL_AMBIGUOUS");
   if (!approval) reasons.push("APPROVAL_NOT_PRESENT");
-  const belongsToRequestedAction = Boolean(action && approval && action.missionId === missionId && action.approval.approvalRequestId === approval.id);
+  const belongsToRequestedAction = Boolean(approval && (action ? action.missionId === missionId && action.approval.approvalRequestId === approval.id : approval.actionType === "TRUEFORGE_PENDING:approval_probe"));
   if (approval && !belongsToRequestedAction) reasons.push("APPROVAL_ACTION_MISMATCH");
   if (approval && approval.expiresAt <= Date.now()) reasons.push("APPROVAL_STALE");
   const usable = Boolean(approval && approval.status === "PENDING" && approval.expiresAt > Date.now() && bundle.mission.status === "WAITING_APPROVAL" && correlationMatch && belongsToRequestedAction && (!requestedFingerprint || fingerprintMatch));
@@ -112,7 +119,7 @@ export async function inspectRepairProposalGate(input: ObjectInput, port: Safety
   const idempotencyMatch = action ? action.intent.idempotencyKey === `fixture-github-pr:${missionId}:${fingerprint}` : stage === "APPROVAL_CAPTURE";
   if (action && !idempotencyMatch) reasons.push("IDEMPOTENCY_MISMATCH");
   const approval = action?.approval.approvalRequestId ? bundle.approvals.find(item => item.id === action.approval.approvalRequestId) ?? null : null;
-  const sandboxState = bundle.runs.some(run => run.status === "PASS") ? "PASSED" : bundle.runs.length > 0 ? "BLOCKED" : "UNKNOWN";
+  const sandboxState = bundle.runs[0]?.status === "PASS" ? "PASSED" : bundle.runs.length > 0 ? "BLOCKED" : "UNKNOWN";
   const writeCapabilityState = stage === "APPROVAL_CAPTURE" ? "NOT_REQUIRED" : "UNVERIFIED";
   if (stage === "EXTERNAL_EXECUTION") {
     if (sandboxState !== "PASSED") reasons.push("SANDBOX_VERIFICATION_BLOCKED");
