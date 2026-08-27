@@ -169,6 +169,19 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** No provider turn, proof action, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
 
+## PR #12 — Fixture-Read Credential Boundary
+
+| Field | Record |
+| --- | --- |
+| PR | [#12](https://github.com/Aayushashsahu/sentinelforge/pull/12) — `security/s2-fixture-read-credential` → `main` |
+| Scope | Preserves the existing generic `GITHUB_READ_TOKEN` read path while making valid persisted action-bound fixture reads resolve only server-side `GITHUB_SCRATCH_PR_TOKEN`. The fixture branch remains model-token-free, schema-token-free, server-derived, and fail-closed without scratch-to-generic fallback. |
+| Initial Qodo review | **REAL** — 27 August 2026 UTC. After the documented `/agentic_review` request, Qodo published an automated code-review assessment for commit `712169d`, reporting **0 bugs, 0 rule violations, and 0 requirement gaps**. |
+| Findings | **None issued.** No High, Medium, Low, rule-violation, or requirement-gap remediation was identified by the initial review. |
+| Follow-up | **REQUESTED / PENDING** — the required status follow-up will be requested after this factual initial-review record is pushed to the PR. |
+| Local validation | Frozen install, type check, 197 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check passed for `712169d`. |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** This PR has not started a provider session, staged a fixture action, requested an approval, sent a continuation, called the fixture repository, invoked a sandbox, or performed any fixture-repository mutation. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
