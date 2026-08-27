@@ -3,6 +3,7 @@ import { validateFixtureProofApprovalCaptureSequence } from "./fixtureProofAppro
 import type { TrueForgeStreamEvent } from "../trueforge/stream";
 import { buildFixtureProofIntent, type FixtureProofAction } from "../fixtureGithubProof";
 import { buildFixtureProofApprovalMessage, buildFixtureProofApprovalSpec } from "./fixtureProofApproval";
+import { normalizeFixtureProviderHistory } from "../fixtureProviderHistoryNormalization";
 
 const toolsMcpName = "sentinelforge-tools";
 const sessionId = "session_fixture_1";
@@ -26,15 +27,15 @@ function modelTool(id: string, name: string, args: Record<string, unknown>, inpu
 function turnEvent(type: "turn.created" | "turn.done", id: string, input: { turn?: string; thread?: string } = {}): TrueForgeStreamEvent {
   return { event: type, data: { type, id, turn_id: input.turn ?? turnId, thread_id: input.thread ?? threadId } };
 }
-function initEvent(): TrueForgeStreamEvent { return { event: "mcp.initialize", data: { type: "mcp.initialize", id: "mcp_init_1", server_name: toolsMcpName } }; }
+function initEvent(): TrueForgeStreamEvent { return { event: "mcp.initialize", data: { type: "mcp.initialize", id: "mcp_init_1", mcp_servers: [{ id: "mcp_session_1", name: toolsMcpName }], thread_id: threadId } }; }
 function pauseEvent(input: { requiredActionId?: string; callId?: string; sourceEventId?: string; thread?: string } = {}): TrueForgeStreamEvent {
   return { event: "tool.approval_required", data: { type: "tool.approval_required", id: input.requiredActionId ?? "required_fixture_1", created_at: "2026-08-26T00:00:00.000Z", thread_id: input.thread ?? threadId, tool_calls: [{ id: input.callId ?? "call_gate", source_event_id: input.sourceEventId ?? "event_call_gate" }] } };
 }
 function validEvents(): TrueForgeStreamEvent[] {
   const proof = { proof_mission_id: action.missionId, proof_action_id: action.id };
-  return [turnEvent("turn.created", "created_1"), initEvent(), modelTool("call_gate", "fixture_github_pr_gate", proof), pauseEvent(), turnEvent("turn.done", "done_1")];
+  return [turnEvent("turn.created", "created_1"), initEvent(), modelTool("call_gate", "fixture_github_pr_gate", proof), pauseEvent(), turnEvent("turn.done", "done_1")].map(event => ({ ...event, historyEnvelope: { sessionId, turnId } }));
 }
-function validate(events: TrueForgeStreamEvent[]) { return validateFixtureProofApprovalCaptureSequence(events, toolsMcpName, structuredClone(action), sessionId); }
+function validate(events: TrueForgeStreamEvent[]) { return validateFixtureProofApprovalCaptureSequence(normalizeFixtureProviderHistory({ events, sessionId }), toolsMcpName, structuredClone(action), sessionId); }
 
 describe("fixture proof approval capture sequence", () => {
   it("binds the model prompt and tool catalog to persisted proof IDs while retaining server-orchestrated evidence and approval-gated execution", () => {
@@ -57,6 +58,21 @@ describe("fixture proof approval capture sequence", () => {
     expect(result.canonicalGateCallCount).toBe(1);
   });
 
+  it("uses only documented session-history envelope context for omitted lifecycle turn IDs", () => {
+    const events = validEvents();
+    delete record(events[1]!).turn_id;
+    delete record(events[3]!).turn_id;
+    delete record(events[4]!).turn_id;
+    expect(validate(events).turnId).toBe(turnId);
+  });
+
+  it("accepts lifecycle records without thread IDs while requiring raw gate and approval threads", () => {
+    const events = validEvents();
+    delete record(events[0]!).thread_id;
+    delete record(events[4]!).thread_id;
+    expect(validate(events).threadId).toBe(threadId);
+  });
+
   it("canonicalizes duplicate serialized gate and approval records with identical complete correlation", () => {
     const events = validEvents();
     events.splice(3, 0, structuredClone(events[2]!), structuredClone(events[3]!));
@@ -77,11 +93,13 @@ describe("fixture proof approval capture sequence", () => {
     ["gate payload", (events: TrueForgeStreamEvent[]) => { const duplicate = structuredClone(events[2]!); ((record(duplicate).tool_calls as Array<{ function: { name: string } }>)[0]!).function.name = "get_file"; events.splice(3, 0, duplicate); }],
     ["approval timestamp", (events: TrueForgeStreamEvent[]) => { const duplicate = structuredClone(events[3]!); record(duplicate).created_at = "2026-08-27T00:00:00.000Z"; events.splice(4, 0, duplicate); }],
     ["malformed extra tool", (events: TrueForgeStreamEvent[]) => { const extra = modelTool("call_incomplete", "get_file", {}, { eventId: "event_incomplete" }); delete record(extra).thread_id; events.splice(3, 0, extra); }],
-    ["missing lifecycle thread", (events: TrueForgeStreamEvent[]) => { delete record(events[0]!).thread_id; }],
+    ["malformed gate tool-call shape", (events: TrueForgeStreamEvent[]) => { const call = (record(events[2]!).tool_calls as Array<Record<string, unknown>>)[0]!; delete call.function; }],
+    ["conflicting duplicate terminal payload", (events: TrueForgeStreamEvent[]) => { const duplicate = structuredClone(events[4]!); record(duplicate).state = "failed"; events.push(duplicate); }],
+    ["missing gate thread", (events: TrueForgeStreamEvent[]) => { delete record(events[2]!).thread_id; }],
     ["created after gate", (events: TrueForgeStreamEvent[]) => { const created = events.shift()!; events.splice(3, 0, created); }],
     ["initialization after gate", (events: TrueForgeStreamEvent[]) => { const initialized = events.splice(1, 1)[0]!; events.splice(3, 0, initialized); }],
     ["terminal before pause", (events: TrueForgeStreamEvent[]) => { const done = events.pop()!; events.splice(3, 0, done); }],
-    ["initialization for another server", (events: TrueForgeStreamEvent[]) => { record(events[1]!).server_name = "other-tools"; }],
+    ["initialization for another server", (events: TrueForgeStreamEvent[]) => { ((record(events[1]!).mcp_servers as Array<{ name: string }>)[0]!).name = "other-tools"; }],
   ])("fails closed for conflicting %s representation", (_label, mutate) => {
     const events = validEvents();
     mutate(events);
@@ -95,8 +113,15 @@ describe("fixture proof approval capture sequence", () => {
     historicalAction.missionId = proof.proof_mission_id;
     historicalAction.intent = buildFixtureProofIntent({ missionId: proof.proof_mission_id, proposalFingerprint: "d".repeat(64) });
     const gate = modelTool("call-5fe8222b-dc69-46e6-aecb-a366369386e6", "fixture_github_pr_gate", proof, { eventId: "01m11rp92zw1q1jwfb4rqhpdsw" });
-    const events = [turnEvent("turn.created", "01m11rp7hthxwcca74knmvqpds"), initEvent(), gate, structuredClone(gate), pauseEvent({ requiredActionId: "01m11rpfjbwh5c8trh5v47d17h", callId: "call-5fe8222b-dc69-46e6-aecb-a366369386e6", sourceEventId: "01m11rp92zw1q1jwfb4rqhpdsw" }), turnEvent("turn.done", "01m11rpfjch4s47d35mcz8bfv8")];
-    const result = validateFixtureProofApprovalCaptureSequence(events, toolsMcpName, historicalAction, "01m11rp14s0ntkqg12g67vq48v");
+    const events = [turnEvent("turn.created", "01m11rp7hthxwcca74knmvqpds", { turn: "01m11rp7hthxwcca74knmvqpds.local" }), initEvent(), gate, structuredClone(gate), pauseEvent({ requiredActionId: "01m11rpfjbwh5c8trh5v47d17h", callId: "call-5fe8222b-dc69-46e6-aecb-a366369386e6", sourceEventId: "01m11rp92zw1q1jwfb4rqhpdsw" }), turnEvent("turn.done", "01m11rpfjch4s47d35mcz8bfv8")];
+    delete record(events[0]!).thread_id;
+    delete record(events[2]!).turn_id;
+    delete record(events[3]!).turn_id;
+    delete record(events[4]!).turn_id;
+    delete record(events[5]!).turn_id;
+    delete record(events[5]!).thread_id;
+    const historyEvents = events.map(event => ({ ...event, historyEnvelope: { sessionId: "01m11rp14s0ntkqg12g67vq48v", turnId: "01m11rp7hthxwcca74knmvqpds.local" } }));
+    const result = validateFixtureProofApprovalCaptureSequence(normalizeFixtureProviderHistory({ events: historyEvents, sessionId: "01m11rp14s0ntkqg12g67vq48v" }), toolsMcpName, historicalAction, "01m11rp14s0ntkqg12g67vq48v");
     expect(result.gateToolCallId).toBe("call-5fe8222b-dc69-46e6-aecb-a366369386e6");
     expect(result.canonicalGateCallCount).toBe(1);
   });
@@ -115,6 +140,6 @@ describe("fixture proof approval capture sequence", () => {
   ])("fails closed for %s", (_label, mutate) => {
     const events = validEvents();
     mutate(events);
-    expect(() => validate(events)).toThrow(/Fixture proof approval capture/);
+    expect(() => validate(events)).toThrow(/Fixture proof approval capture|PROVIDER_CORRELATION_UNAVAILABLE/);
   });
 });

@@ -130,14 +130,20 @@ function containsNamedMcpToolEvent(events: readonly TrueForgeStreamEvent[], mcpN
   });
 }
 
-export function mapTrueForgeSessionHistory(payload: unknown): TrueForgeStreamEvent[] {
+export function mapTrueForgeSessionHistory(payload: unknown, context?: { sessionId: string }): TrueForgeStreamEvent[] {
   if (!payload || typeof payload !== "object" || !Array.isArray((payload as { data?: unknown }).data)) throw new Error("TrueForge session event history was malformed.");
   return (payload as { data: unknown[] }).data.flatMap(item => {
     if (!item || typeof item !== "object") return [];
-    const record = item as { event?: unknown };
+    const record = item as { event?: unknown; turn_id?: unknown };
     if (!record.event || typeof record.event !== "object") return [];
     const event = record.event as Record<string, unknown>;
-    return [{ event: typeof event.type === "string" ? event.type : "message", data: event }];
+    const turnId = typeof record.turn_id === "string" && record.turn_id.trim() ? record.turn_id : undefined;
+    const sessionId = context?.sessionId?.trim() || undefined;
+    return [{
+      event: typeof event.type === "string" ? event.type : "message",
+      data: event,
+      ...(sessionId || turnId ? { historyEnvelope: { ...(sessionId ? { sessionId } : {}), ...(turnId ? { turnId } : {}) } } : {}),
+    }];
   });
 }
 
@@ -167,7 +173,7 @@ export async function readBoundedTurn(input: { client: TrueForgeClient; sessionI
     const historyTimeout = setTimeout(() => historyController.abort(), LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS);
     let history: TrueForgeStreamEvent[];
     try {
-      history = orderTrueForgeSessionHistoryChronologically(mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal)));
+      history = orderTrueForgeSessionHistoryChronologically(mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal), { sessionId: input.sessionId }));
     } catch (historyError) {
       if (historyController.signal.aborted) throw new LiveTurnPendingError();
       throw historyError;

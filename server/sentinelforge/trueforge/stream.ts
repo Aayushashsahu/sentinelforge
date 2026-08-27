@@ -1,4 +1,14 @@
-export type TrueForgeStreamEvent = { event: string; data: unknown };
+export type TrueForgeHistoryEnvelopeContext = {
+  sessionId?: string;
+  turnId?: string;
+};
+
+export type TrueForgeStreamEvent = {
+  event: string;
+  data: unknown;
+  /** Present only when an event originated from the documented session-history envelope. */
+  historyEnvelope?: TrueForgeHistoryEnvelopeContext;
+};
 
 export class TrueForgeSseAbortedError extends Error {
   constructor() { super("TrueForge turn stream was aborted before a terminal event."); }

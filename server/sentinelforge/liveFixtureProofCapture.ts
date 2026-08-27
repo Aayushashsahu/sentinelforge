@@ -7,6 +7,7 @@ import { addApprovalRequest, addEvidence, appendMissionEvent, appendMissionEvent
 import { persistTrueForgeFixtureProofApprovalRequired } from "./trueforgeApproval";
 import { fixtureProofFingerprint } from "./fixtureGithubProof";
 import { acquireFixtureProofServerEvidence } from "./fixtureProofServerEvidence";
+import { buildFixtureProviderHistoryAuditInputs, normalizeFixtureProviderHistory } from "./fixtureProviderHistoryNormalization";
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { notifyOwner } from "../_core/notification";
 
@@ -36,16 +37,17 @@ export async function runLiveFixtureProofApprovalCapture(input: { missionId: str
   const session = await client.createInlineSession(buildFixtureProofApprovalSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
   await linkTrueForgeSession({ missionId: input.missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "FIXTURE_PROOF_APPROVAL_CAPTURE" });
   await appendMissionEvent({ missionId: input.missionId, eventType: "TRUEFORGE_FIXTURE_PROOF_APPROVAL_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${FIXTURE_GITHUB_PR_GATE_TOOL_NAME}`, result: "A fixture-proof approval-capture session was created with only the non-mutating provider fixture gate. Mandatory package and manifest evidence remains server-orchestrated; sandbox and GitHub writes are disabled.", payload: { actionId: action.id, mcpServer: config.toolsMcpName, providerTool: FIXTURE_GITHUB_PR_GATE_TOOL_NAME, serverEvidenceRequired: true, sandbox: "disabled", continuation: "forbidden" } });
-  const events = await readBoundedTurn({ client, sessionId: session.id, message: buildFixtureProofApprovalMessage({ missionId: input.missionId, actionId: action.id }) });
-  const { pause, turnId, gateToolCallId, threadId, rawGateCallCount, canonicalGateCallCount, rawApprovalPauseCount, canonicalApprovalPauseCount } = validateFixtureProofApprovalCaptureSequence(events, config.toolsMcpName, await getFixtureProofExternalAction(input.actionId) ?? action, session.id);
+  const rawEvents = await readBoundedTurn({ client, sessionId: session.id, message: buildFixtureProofApprovalMessage({ missionId: input.missionId, actionId: action.id }) });
+  const normalizedEvents = normalizeFixtureProviderHistory({ events: rawEvents, sessionId: session.id });
+  const { pause, turnId, gateToolCallId, threadId, rawGateCallCount, canonicalGateCallCount, rawApprovalPauseCount, canonicalApprovalPauseCount } = validateFixtureProofApprovalCaptureSequence(normalizedEvents, config.toolsMcpName, await getFixtureProofExternalAction(input.actionId) ?? action, session.id);
   const approvalEvent = mapTrueForgeProviderApprovalPause({ providerEvent: pause, toolName: FIXTURE_GITHUB_PR_GATE_TOOL_NAME });
   const serverEvidencedAction = await getFixtureProofExternalAction(action.id);
   if (!serverEvidencedAction) throw new Error("Fixture proof approval capture refused: server-side read evidence action is unavailable.");
   const evidencedAction = bindFixtureProofReadEvidenceCorrelation({ action: serverEvidencedAction, trueforgeSessionId: session.id, turnId, threadId, gateToolCallId });
   await replaceFixtureProofExternalAction(evidencedAction);
   await recordTrueForgeTurn({ missionId: input.missionId, trueforgeSessionId: session.id, turnId, status: "WAITING_APPROVAL", threadId: pause.thread_id, requiredActionId: pause.id, toolCallId: pause.tool_calls[0]!.id });
-  await appendMissionEvents(buildStreamAuditInputs({ missionId: input.missionId, turnId, events }));
-  await appendMissionEvent({ missionId: input.missionId, eventType: "FIXTURE_PROOF_CANONICAL_PROVIDER_HISTORY", actor: "SentinelForge", correlationId: action.id, result: "Raw provider history was canonicalized by complete session, turn, thread, tool-call, required-action, and source-event correlation before approval capture validation.", payload: { sessionId: session.id, turnId, threadId, gateToolCallId, requiredActionId: pause.id, rawGateCallCount, canonicalGateCallCount, rawApprovalPauseCount, canonicalApprovalPauseCount } });
+  await appendMissionEvents(buildFixtureProviderHistoryAuditInputs({ missionId: input.missionId, turnId, rawEvents, normalizedEvents }));
+  await appendMissionEvent({ missionId: input.missionId, eventType: "FIXTURE_PROOF_CANONICAL_PROVIDER_HISTORY", actor: "SentinelForge", correlationId: action.id, result: "Raw provider history was normalized using documented session-event envelope turn context and capture-session context before strict approval validation. Thread, tool-call, required-action, and source-event correlation remained raw provider data.", payload: { sessionId: session.id, turnId, threadId, gateToolCallId, requiredActionId: pause.id, rawGateCallCount, canonicalGateCallCount, rawApprovalPauseCount, canonicalApprovalPauseCount } });
   const providerEvidence = await addEvidence({ missionId: input.missionId, kind: "OBSERVED", title: FIXTURE_PROOF_PROVIDER_APPROVAL_TITLE, content: FIXTURE_PROOF_PROVIDER_APPROVAL_CONTENT, source: FIXTURE_PROOF_PROVIDER_EVIDENCE_SOURCE });
   const persisted = await persistTrueForgeFixtureProofApprovalRequired({
     getMission: async id => { const current = await getMissionBundle(id); return current ? { id: current.mission.id, status: current.mission.status } : null; },
