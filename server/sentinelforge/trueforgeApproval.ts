@@ -1,6 +1,7 @@
 import type { MissionStatus, Risk } from "../../shared/sentinelforge";
 import { isValidRepairFingerprint, type TrueForgeApprovalRequired } from "./liveContracts";
 import { FIXTURE_GITHUB_PR_GATE_TOOL_NAME } from "./agents/fixtureProofApproval";
+import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE } from "./fixtureGithubProof";
 import { FIXTURE_PROOF_REPOSITORY, type FixtureProofAction } from "./fixtureGithubProof";
 
 type ApprovalRecord = { id: string };
@@ -92,7 +93,7 @@ export async function persistTrueForgeFixtureProofApprovalRequired<TBundle>(port
   if (!turn) throw new Error("Fixture proof approval-required event refused: no correlated turn exists.");
   const evidence = action.readEvidence;
   const serverEvidence = evidence?.serverEvidence;
-  if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !serverEvidence || serverEvidence.source !== "SERVER_ORCHESTRATED" || serverEvidence.package?.path !== "package.json" || serverEvidence.package.version !== action.intent.afterVersion || serverEvidence.manifest?.path !== action.intent.filePath || serverEvidence.manifest.version !== action.intent.beforeVersion || !evidence.correlation || evidence.correlation.trueforgeSessionId !== turn.trueforgeSessionId || evidence.correlation.turnId !== turn.turnId || evidence.correlation.threadId !== input.event.thread_id || evidence.correlation.gateToolCallId !== input.event.tool_call_id) throw new Error("Fixture proof approval-required event refused: both canonical server-orchestrated reads and exact session, turn, thread, and gate correlation are required.");
+  if (action.intent.beforeVersion !== FIXTURE_PROOF_BEFORE_VERSION || action.intent.afterVersion !== FIXTURE_PROOF_AFTER_VERSION || action.intent.filePath !== FIXTURE_PROOF_FILE || !evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !serverEvidence || serverEvidence.source !== "SERVER_ORCHESTRATED" || serverEvidence.package?.path !== "package.json" || serverEvidence.package.version !== FIXTURE_PROOF_AFTER_VERSION || serverEvidence.manifest?.path !== FIXTURE_PROOF_FILE || serverEvidence.manifest.version !== FIXTURE_PROOF_BEFORE_VERSION || !evidence.correlation || evidence.correlation.trueforgeSessionId !== turn.trueforgeSessionId || evidence.correlation.turnId !== turn.turnId || evidence.correlation.threadId !== input.event.thread_id || evidence.correlation.gateToolCallId !== input.event.tool_call_id) throw new Error("Fixture proof approval-required event refused: both canonical server-orchestrated reads and exact session, turn, thread, and gate correlation are required.");
   const approval = await port.addApprovalRequest({
     missionId: mission.id,
     actionType: `TRUEFORGE_FIXTURE_GITHUB_PR_GATE:${input.event.tool_name}`,

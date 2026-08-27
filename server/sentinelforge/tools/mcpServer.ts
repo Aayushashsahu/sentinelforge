@@ -5,7 +5,7 @@ import { SENTINELFORGE_ALLOWED_REPOSITORIES } from "./githubRead";
 import { GitHubReadApi } from "./githubRead";
 import { getFixtureProofExternalAction, getMissionBundle, replaceFixtureProofExternalAction } from "../repository";
 import { inspectApprovalProbe, inspectRepairProposalGate, parseSafetyInput, type SafetyInspectionPort } from "./safetyInspection";
-import { FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, fixtureProofFingerprint, type FixtureProofAction } from "../fixtureGithubProof";
+import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, fixtureProofFingerprint, type FixtureProofAction } from "../fixtureGithubProof";
 
 export type McpTextResponse = { content: [{ type: "text"; text: string }]; isError?: true };
 
@@ -109,7 +109,7 @@ export class SentinelForgeTools {
           if (!action || !bundle || action.missionId !== reference.missionId) throw new Error("Fixture proof gate refused: persisted action does not match proof_mission_id.");
           assertFixtureActionIntegrity(action, bundle, reference.missionId);
           const serverEvidence = evidence?.serverEvidence;
-          if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !serverEvidence || serverEvidence.source !== "SERVER_ORCHESTRATED" || serverEvidence.package?.path !== "package.json" || serverEvidence.package.version !== action.intent.afterVersion || serverEvidence.manifest?.path !== action.intent.filePath || serverEvidence.manifest.version !== action.intent.beforeVersion || evidence.correlation !== null) throw new Error("Fixture proof gate refused: both exact server-orchestrated read evidences for the persisted action are required before approval eligibility.");
+          if (action.intent.beforeVersion !== FIXTURE_PROOF_BEFORE_VERSION || action.intent.afterVersion !== FIXTURE_PROOF_AFTER_VERSION || action.intent.filePath !== FIXTURE_PROOF_FILE || !evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !serverEvidence || serverEvidence.source !== "SERVER_ORCHESTRATED" || serverEvidence.package?.path !== "package.json" || serverEvidence.package.version !== FIXTURE_PROOF_AFTER_VERSION || serverEvidence.manifest?.path !== FIXTURE_PROOF_FILE || serverEvidence.manifest.version !== FIXTURE_PROOF_BEFORE_VERSION || evidence.correlation !== null) throw new Error("Fixture proof gate refused: both exact server-orchestrated read evidences for the persisted action are required before approval eligibility.");
           return textResponse(JSON.stringify({ status: "EVIDENCE_VERIFIED_FOR_PROVIDER_APPROVAL", missionId: action.missionId, actionId: action.id, repository: action.intent.repository, base: action.intent.baseBranch, packageEvidenceVerified: true, manifestEvidenceVerified: true, remoteWriteAuthority: "UNVERIFIED", mutation: "NONE" }));
         }
 	      if (name === "get_file") {

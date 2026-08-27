@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { assertCanonicalFixtureProofPatch, executeApprovedFixtureProof, fixtureProofFingerprint, readFixtureProofPreflight, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort, buildFixtureProofIntent } from "./fixtureGithubProof";
+import { assertCanonicalFixtureProofPatch, executeApprovedFixtureProof, fixtureProofFingerprint, readFixtureProofPreflight, type FixtureProofAction, type FixtureProofGitHubPort, type FixtureProofPersistencePort, buildFixtureProofIntent, FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE } from "./fixtureGithubProof";
 
 type FixtureProofStagePort = FixtureProofPersistencePort & {
   getMissionBundle(missionId: string): Promise<{ mission: { id: string; status: string; repository: string; repairSummary: string | null; patch: string | null }; actions: Array<{ actionType: string }> } | null>;
@@ -57,8 +57,8 @@ export function markFixtureProofServerEvidence(input: { action: FixtureProofActi
         ...serverEvidence,
         source: "SERVER_ORCHESTRATED",
         ...(input.path === "package.json"
-          ? { package: { path: "package.json" as const, version: marked.intent.afterVersion } }
-          : { manifest: { path: marked.intent.filePath, version: marked.intent.beforeVersion } }),
+          ? { package: { path: "package.json" as const, version: FIXTURE_PROOF_AFTER_VERSION } }
+          : { manifest: { path: FIXTURE_PROOF_FILE, version: FIXTURE_PROOF_BEFORE_VERSION } }),
       },
     },
   };
@@ -67,7 +67,7 @@ export function markFixtureProofServerEvidence(input: { action: FixtureProofActi
 export function bindFixtureProofReadEvidenceCorrelation(input: { action: FixtureProofAction; trueforgeSessionId: string; turnId: string; threadId: string; packageToolCallId?: string | null; manifestToolCallId?: string | null; gateToolCallId: string }): FixtureProofAction {
   const evidence = input.action.readEvidence;
   const server = evidence.serverEvidence;
-  if (input.action.status !== "AWAITING_APPROVAL" || !evidence.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !server || server.source !== "SERVER_ORCHESTRATED" || server.package?.path !== "package.json" || server.package.version !== input.action.intent.afterVersion || server.manifest?.path !== input.action.intent.filePath || server.manifest.version !== input.action.intent.beforeVersion) throw new Error("Fixture proof approval capture refused: both exact server-orchestrated file evidences are required before the gate can become eligible.");
+  if (input.action.status !== "AWAITING_APPROVAL" || input.action.intent.beforeVersion !== FIXTURE_PROOF_BEFORE_VERSION || input.action.intent.afterVersion !== FIXTURE_PROOF_AFTER_VERSION || input.action.intent.filePath !== FIXTURE_PROOF_FILE || !evidence.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !server || server.source !== "SERVER_ORCHESTRATED" || server.package?.path !== "package.json" || server.package.version !== FIXTURE_PROOF_AFTER_VERSION || server.manifest?.path !== FIXTURE_PROOF_FILE || server.manifest.version !== FIXTURE_PROOF_BEFORE_VERSION) throw new Error("Fixture proof approval capture refused: both exact server-orchestrated file evidences are required before the gate can become eligible.");
   if (![input.trueforgeSessionId, input.turnId, input.threadId, input.gateToolCallId].every(value => Boolean(value.trim()))) throw new Error("Fixture proof approval capture refused: evidence correlation is incomplete.");
   return { ...input.action, readEvidence: { ...evidence, correlation: { trueforgeSessionId: input.trueforgeSessionId, turnId: input.turnId, threadId: input.threadId, packageToolCallId: input.packageToolCallId ?? null, manifestToolCallId: input.manifestToolCallId ?? null, gateToolCallId: input.gateToolCallId } } };
 }

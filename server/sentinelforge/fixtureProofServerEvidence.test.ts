@@ -101,4 +101,14 @@ describe("server-orchestrated fixture proof evidence", () => {
     await expect(acquireFixtureProofServerEvidence({ missionId, actionId, port: wrongRef, createReadClient: factory })).rejects.toThrow(/immutable mission/);
     expect(factory).not.toHaveBeenCalled();
   });
+
+  it("rejects a persisted version mismatch before it can create a server read client or record evidence", async () => {
+    const malformed = fixtureAction({ intent: { ...fixtureAction().intent, afterVersion: "9.9.9" } });
+    const p = persistence(malformed);
+    const factory = vi.fn(serverReadClient);
+    await expect(acquireFixtureProofServerEvidence({ missionId, actionId, port: p, createReadClient: factory })).rejects.toThrow(/immutable mission/);
+    expect(factory).not.toHaveBeenCalled();
+    expect(p.replaceAction).not.toHaveBeenCalled();
+    expect(p.appendAudit).not.toHaveBeenCalled();
+  });
 });

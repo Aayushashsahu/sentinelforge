@@ -31,7 +31,7 @@ async function resolveAction(input: { missionId: string; actionId: string; port:
   const [bundle, action] = await Promise.all([input.port.getMissionBundle(input.missionId), input.port.getAction(input.actionId)]);
   if (!bundle || !action || action.missionId !== input.missionId || action.status !== "AWAITING_APPROVAL") throw new Error("Fixture proof server evidence refused: persisted action does not match the planning mission.");
   const expectedFingerprint = fixtureProofFingerprint({ summary: bundle.mission.repairSummary, patch: bundle.mission.patch ?? "" });
-  if (bundle.mission.id !== input.missionId || bundle.mission.status !== "PLANNING_FIX" || bundle.mission.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.baseBranch !== FIXTURE_PROOF_BASE_BRANCH || action.intent.filePath !== FIXTURE_PROOF_FILE || action.intent.proposalFingerprint !== expectedFingerprint || action.readEvidence.correlation !== null) {
+  if (bundle.mission.id !== input.missionId || bundle.mission.status !== "PLANNING_FIX" || bundle.mission.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.baseBranch !== FIXTURE_PROOF_BASE_BRANCH || action.intent.filePath !== FIXTURE_PROOF_FILE || action.intent.beforeVersion !== FIXTURE_PROOF_BEFORE_VERSION || action.intent.afterVersion !== FIXTURE_PROOF_AFTER_VERSION || action.intent.proposalFingerprint !== expectedFingerprint || action.readEvidence.correlation !== null) {
     throw new Error("Fixture proof server evidence refused: immutable mission, action, fingerprint, target, or correlation state is invalid.");
   }
   return action;
