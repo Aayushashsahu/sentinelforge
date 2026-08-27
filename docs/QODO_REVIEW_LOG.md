@@ -183,6 +183,19 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** This PR has not started a provider session, staged a fixture action, requested an approval, sent a continuation, called the fixture repository, invoked a sandbox, or performed any fixture-repository mutation. |
 
+## PR #13 — Server-Orchestrated Fixture Evidence Capture
+
+| Field | Record |
+| --- | --- |
+| PR | [#13](https://github.com/Aayushashsahu/sentinelforge/pull/13) — `security/s2-server-evidence-capture` → `main` |
+| Scope | Replaces model-selected fixture-proof file reads with a server-only, action-bound scratch-credential evidence component. The provider receives only the non-mutating fixture gate after the server verifies the canonical `package.json` and `release-manifest.json` versions. Generic investigation reads, continuation semantics, the immutable executor, capability policy, and sandbox boundary remain separate and fail-closed. |
+| Initial Qodo review | **REAL** — 27 August 2026 UTC. Qodo submitted a review for `260fd2a` and published one validity-confirmed finding at [issue comment 5439540573](https://github.com/Aayushashsahu/sentinelforge/pull/13#issuecomment-5439540573). |
+| Finding | **Priority not label-published / MUST_FIX / valid.** Server-evidence markers originally copied fixed version values from persisted action intent, while the read bodies were validated against fixture constants. A corrupted intent could therefore produce markers inconsistent with the actual verified versions before later execution validation. |
+| Remediation | Commit `8ce29ef` rejects any persisted fixture action whose path or fixed version fields differ from the canonical constants. It records canonical constants in server evidence and independently checks the same constants at correlation binding, gate eligibility, and proof-specific approval persistence. Focused deterministic tests cover malformed persisted versions and passed. |
+| Follow-up | **REAL** — after the documented [`/agentic_review` request](https://github.com/Aayushashsahu/sentinelforge/pull/13#issuecomment-5439564248), Qodo confirmed that its review was updated through `8ce29ef` at [issue comment 5439540573](https://github.com/Aayushashsahu/sentinelforge/pull/13#issuecomment-5439540573). The update did not publish a separate formal dismissal or a new issue. |
+| Deferred findings | None. The one valid finding was remediated. |
+| Merge status | **Open, unmerged.** No live proof, provider session, fixture-repository call, approval, continuation, sandbox run, branch, commit, pull request, merge, or other external proof action occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
