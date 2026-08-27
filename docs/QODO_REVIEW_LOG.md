@@ -196,6 +196,18 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. The one valid finding was remediated. |
 | Merge status | **Open, unmerged.** No live proof, provider session, fixture-repository call, approval, continuation, sandbox run, branch, commit, pull request, merge, or other external proof action occurred. |
 
+## PR #16 — Provider-History Correlation Hardening
+
+| Field | Record |
+| --- | --- |
+| PR | [#16](https://github.com/Aayushashsahu/sentinelforge/pull/16) — `fix/s2-provider-history-normalization` → `main` |
+| Scope | Preserves raw fixture-provider history, produces a separate provenance-aware normalized view using only capture-session and documented parent-envelope turn context, validates initialization through `mcp_servers[].name`, and fails closed on incomplete, malformed, conflicting, duplicate, or misordered approval correlation. It does not change the executor, credential policy, approval architecture, mission lifecycle, sandbox boundary, fixture repository, or external-action semantics. |
+| Initial Qodo assessment | **REAL automated assessment** — Qodo published its initial PR summary and high-level assessment on 27 August 2026 UTC at [issue comment 5441976784](https://github.com/Aayushashsahu/sentinelforge/pull/16#issuecomment-5441976784). At inspection, GitHub returned no formal review object (`reviews: []`), so this record does **not** claim a formal review ID or dismissal. |
+| Findings | **No severity-labelled finding was published.** Qodo’s high-level assessment endorsed the immutable raw view, narrowly normalized validation view, and rejection of inferred correlation. This is not recorded as formal clearance. |
+| Remediation | None required from the published initial assessment. |
+| Follow-up | Not yet requested at this commit; the next authorized step is one `/agentic_review` follow-up request for the documented PR head. |
+| Merge status | **Open, unmerged.** No provider turn, approval, continuation, fixture-repository access or mutation, sandbox operation, external proof action, or merge occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
