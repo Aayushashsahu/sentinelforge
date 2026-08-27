@@ -27,8 +27,8 @@ function readResponse(callId: string, path: string, version: string): TrueForgeS
 }
 function validEvents(): TrueForgeStreamEvent[] {
   const proof = { proof_mission_id: action.missionId, proof_action_id: action.id };
-  const packageCall = modelTool("call_package", "get_file", { owner: "Aayushashsahu", repo: "sentinelforge-incident-fixture", ref: "main", path: "package.json", ...proof });
-  const manifestCall = modelTool("call_manifest", "get_file", { owner: "Aayushashsahu", repo: "sentinelforge-incident-fixture", ref: "main", path: "release-manifest.json", ...proof });
+  const packageCall = modelTool("call_package", "get_file", { artifact: "package.json", ...proof });
+  const manifestCall = modelTool("call_manifest", "get_file", { artifact: "release-manifest.json", ...proof });
   const gate = modelTool("call_gate", "fixture_github_pr_gate", proof);
   const pause: TrueForgeStreamEvent = { event: "tool.approval_required", data: { type: "tool.approval_required", id: "required_fixture_1", created_at: "2026-08-26T00:00:00.000Z", thread_id: threadId, tool_calls: [{ id: "call_gate", source_event_id: "event_call_gate" }] } };
   return [packageCall, readResponse("call_package", "package.json", "1.4.0"), manifestCall, readResponse("call_manifest", "release-manifest.json", "1.3.0"), gate, pause];
@@ -40,7 +40,9 @@ describe("fixture proof approval capture sequence", () => {
     const spec = buildFixtureProofApprovalSpec({ model: "model", toolsMcpName });
     expect(message).toContain(`proof_mission_id "${action.missionId}"`);
     expect(message).toContain(`proof_action_id "${action.id}"`);
-    expect(message).toContain("server, not this message, validates targets and evidence");
+    expect(message).toContain('artifact "package.json"');
+    expect(message).toContain("Do not supply owner, repo, ref, or path");
+    expect(message).not.toContain('repo "sentinelforge-incident-fixture"');
     expect(spec.mcp_servers?.[0]).toMatchObject({ enable_tools: ["get_file", "fixture_github_pr_gate"], require_approval_for_tools: ["fixture_github_pr_gate"], preload: true });
     expect(spec.config.sandbox.enabled).toBe(false);
   });
@@ -51,10 +53,11 @@ describe("fixture proof approval capture sequence", () => {
   });
 
   it.each([
-    ["wrong owner", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ owner: "other", repo: "sentinelforge-incident-fixture", ref: "main", path: "package.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
-    ["wrong repository", (events: TrueForgeStreamEvent[]) => { const call = record(events[2]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ owner: "Aayushashsahu", repo: "other", ref: "main", path: "release-manifest.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
-    ["wrong ref", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ owner: "Aayushashsahu", repo: "sentinelforge-incident-fixture", ref: "feature", path: "package.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
-    ["wrong action", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ owner: "Aayushashsahu", repo: "sentinelforge-incident-fixture", ref: "main", path: "package.json", proof_mission_id: action.missionId, proof_action_id: "act_other" }); }],
+    ["model-supplied owner", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ owner: "other", artifact: "package.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
+    ["model-supplied repository", (events: TrueForgeStreamEvent[]) => { const call = record(events[2]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ repo: "sentinelforce-incident-fixture", artifact: "release-manifest.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
+    ["model-supplied ref", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ ref: "feature", artifact: "package.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
+    ["wrong artifact", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ artifact: "other.json", proof_mission_id: action.missionId, proof_action_id: action.id }); }],
+    ["wrong action", (events: TrueForgeStreamEvent[]) => { const call = record(events[0]!); ((call.tool_calls as Array<{ function: { arguments: string } }>)[0]!).function.arguments = JSON.stringify({ artifact: "package.json", proof_mission_id: action.missionId, proof_action_id: "act_other" }); }],
     ["wrong body version", (events: TrueForgeStreamEvent[]) => { record(events[3]!).content = (record(readResponse("call_manifest", "release-manifest.json", "1.2.0")).content); }],
     ["wrong gate source event", (events: TrueForgeStreamEvent[]) => { ((record(events[5]!).tool_calls as Array<{ source_event_id: string }>)[0]!).source_event_id = "other_event"; }],
     ["pause before gate", (events: TrueForgeStreamEvent[]) => { const pause = events.pop()!; events.splice(0, 0, pause); }],

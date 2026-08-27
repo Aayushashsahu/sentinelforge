@@ -6,7 +6,7 @@ import { GitHubReadApi } from "./githubRead";
 import { getFixtureProofExternalAction, getMissionBundle, replaceFixtureProofExternalAction } from "../repository";
 import { inspectApprovalProbe, inspectRepairProposalGate, parseSafetyInput, type SafetyInspectionPort } from "./safetyInspection";
 import { markFixtureProofReadEvidence } from "../liveFixtureProof";
-import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, type FixtureProofAction } from "../fixtureGithubProof";
+import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, fixtureProofFingerprint, type FixtureProofAction } from "../fixtureGithubProof";
 
 export type McpTextResponse = { content: [{ type: "text"; text: string }]; isError?: true };
 
@@ -57,11 +57,43 @@ function parseFixtureActionReference(args: Record<string, unknown>): { missionId
   return { missionId: stringArgument(args, "proof_mission_id"), actionId: stringArgument(args, "proof_action_id") };
 }
 
-function canonicalFixtureTarget(action: FixtureProofAction, requested: { owner: string; repo: string; path: string; ref: string }) {
+type FixtureArtifact = "package.json" | "release-manifest.json";
+
+function fixtureArtifactArgument(args: Record<string, unknown>): FixtureArtifact {
+  const artifact = stringArgument(args, "artifact");
+  if (artifact !== "package.json" && artifact !== FIXTURE_PROOF_FILE) throw new Error("Fixture proof read refused: artifact must be package.json or release-manifest.json.");
+  return artifact;
+}
+
+function assertNoModelSuppliedFixtureTarget(args: Record<string, unknown>) {
+  const supplied = ["owner", "repo", "ref", "path"].filter(key => key in args);
+  if (supplied.length > 0) throw new Error("Fixture proof read refused: model-supplied target fields are not accepted; use only proof identifiers and artifact.");
+}
+
+function assertFixtureActionIntegrity(action: FixtureProofAction, bundle: NonNullable<Awaited<ReturnType<SafetyInspectionPort["getMissionBundle"]>>>, missionId: string) {
   const [owner, repo] = action.intent.repository.split("/") as [string, string];
-  const expectedVersion = requested.path === "package.json" ? FIXTURE_PROOF_AFTER_VERSION : FIXTURE_PROOF_BEFORE_VERSION;
-  if (action.missionId !== action.intent.missionId || action.intent.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.baseBranch !== FIXTURE_PROOF_BASE_BRANCH || requested.owner !== owner || requested.repo !== repo || requested.ref !== action.intent.baseBranch || (requested.path !== "package.json" && requested.path !== action.intent.filePath)) throw new Error("Fixture proof read refused: model-supplied target differs from the persisted immutable action intent.");
-  return { expectedVersion, evidencePath: requested.path as "package.json" | "release-manifest.json" };
+  const expectedFingerprint = fixtureProofFingerprint({ summary: bundle.mission.repairSummary, patch: bundle.mission.patch ?? "" });
+  if (action.status !== "AWAITING_APPROVAL") throw new Error("Fixture proof read refused: persisted action is not awaiting approval.");
+  if (action.missionId !== missionId || action.intent.missionId !== missionId || bundle.mission.id !== missionId || bundle.mission.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.baseBranch !== FIXTURE_PROOF_BASE_BRANCH || action.intent.filePath !== FIXTURE_PROOF_FILE || action.intent.proposalFingerprint !== expectedFingerprint) throw new Error("Fixture proof read refused: persisted action intent, mission, or proposal fingerprint does not match the canonical proof.");
+  return { owner, repo };
+}
+
+async function resolveFixtureArtifactRead(args: Record<string, unknown>, port: FixtureEvidencePort) {
+  const reference = parseFixtureActionReference(args);
+  if (!reference) return null;
+  assertNoModelSuppliedFixtureTarget(args);
+  const artifact = fixtureArtifactArgument(args);
+  const [action, bundle] = await Promise.all([port.getFixtureProofAction(reference.actionId), port.getMissionBundle(reference.missionId)]);
+  if (!action || action.missionId !== reference.missionId || !bundle) throw new Error("Fixture proof read refused: persisted action does not match proof_mission_id.");
+  const target = assertFixtureActionIntegrity(action, bundle, reference.missionId);
+  return {
+    action,
+    owner: target.owner,
+    repo: target.repo,
+    path: artifact,
+    ref: action.intent.baseBranch,
+    expectedVersion: artifact === "package.json" ? FIXTURE_PROOF_AFTER_VERSION : FIXTURE_PROOF_BEFORE_VERSION,
+  };
 }
 
 function assertExpectedVersion(text: string, expectedVersion: string, path: string) {
@@ -75,33 +107,34 @@ export class SentinelForgeTools {
 
   async call(name: string, args: Record<string, unknown>): Promise<McpTextResponse> {
     try {
-			if (name === "approval_probe") return textResponse(JSON.stringify(await inspectApprovalProbe(parseSafetyInput(args), this.safetyPort)));
-			if (name === "repair_proposal_gate") return textResponse(JSON.stringify(await inspectRepairProposalGate(parseSafetyInput(args), this.safetyPort)));
-			if (name === "fixture_github_pr_gate") {
+		if (name === "approval_probe") return textResponse(JSON.stringify(await inspectApprovalProbe(parseSafetyInput(args), this.safetyPort)));
+		if (name === "repair_proposal_gate") return textResponse(JSON.stringify(await inspectRepairProposalGate(parseSafetyInput(args), this.safetyPort)));
+		if (name === "fixture_github_pr_gate") {
           const reference = parseFixtureActionReference(args);
           if (!reference) throw new Error("Fixture proof gate requires persisted proof_mission_id and proof_action_id.");
-          const action = await this.safetyPort.getFixtureProofAction(reference.actionId);
+          const [action, bundle] = await Promise.all([this.safetyPort.getFixtureProofAction(reference.actionId), this.safetyPort.getMissionBundle(reference.missionId)]);
           const evidence = action?.readEvidence;
-          if (!action || action.missionId !== reference.missionId || action.status !== "AWAITING_APPROVAL" || !evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || evidence.correlation !== null) throw new Error("Fixture proof gate refused: both exact server-verified read evidences for the persisted action are required before approval eligibility.");
+          if (!action || !bundle || action.missionId !== reference.missionId) throw new Error("Fixture proof gate refused: persisted action does not match proof_mission_id.");
+          assertFixtureActionIntegrity(action, bundle, reference.missionId);
+          if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || evidence.correlation !== null) throw new Error("Fixture proof gate refused: both exact server-verified read evidences for the persisted action are required before approval eligibility.");
           return textResponse(JSON.stringify({ status: "EVIDENCE_VERIFIED_FOR_PROVIDER_APPROVAL", missionId: action.missionId, actionId: action.id, repository: action.intent.repository, base: action.intent.baseBranch, packageEvidenceVerified: true, manifestEvidenceVerified: true, remoteWriteAuthority: "UNVERIFIED", mutation: "NONE" }));
         }
-	      const owner = stringArgument(args, "owner");
-	      const repo = stringArgument(args, "repo");
-	      if (name === "get_repository") return textResponse(JSON.stringify(await this.github.getRepository(owner, repo), null, 2));
 	      if (name === "get_file") {
-	        const path = stringArgument(args, "path");
-          const ref = stringArgument(args, "ref");
-          const reference = parseFixtureActionReference(args);
-          const action = reference ? await this.safetyPort.getFixtureProofAction(reference.actionId) : null;
-          if (reference && (!action || action.missionId !== reference.missionId)) throw new Error("Fixture proof read refused: persisted action does not match proof_mission_id.");
-          const fixture = action ? canonicalFixtureTarget(action, { owner, repo, path, ref }) : null;
+          const fixture = await resolveFixtureArtifactRead(args, this.safetyPort);
+          const owner = fixture?.owner ?? stringArgument(args, "owner");
+          const repo = fixture?.repo ?? stringArgument(args, "repo");
+          const path = fixture?.path ?? stringArgument(args, "path");
+          const ref = fixture?.ref ?? stringArgument(args, "ref");
 	        const file = await this.github.getFile(owner, repo, path, ref);
-          if (action && fixture) {
+          if (fixture) {
             assertExpectedVersion(file.text, fixture.expectedVersion, path);
-            await this.safetyPort.replaceFixtureProofAction(markFixtureProofReadEvidence({ action, path: fixture.evidencePath }));
+            await this.safetyPort.replaceFixtureProofAction(markFixtureProofReadEvidence({ action: fixture.action, path: fixture.path }));
           }
 	        return textResponse(`Repository: ${file.repository}\nPath: ${file.path}\nRef: ${file.ref}\n\n${file.text}`);
       }
+	      const owner = stringArgument(args, "owner");
+	      const repo = stringArgument(args, "repo");
+	      if (name === "get_repository") return textResponse(JSON.stringify(await this.github.getRepository(owner, repo), null, 2));
       if (name === "get_issue") return textResponse(JSON.stringify(await this.github.getIssue(owner, repo, positiveIntegerArgument(args, "issue_number")), null, 2));
       if (name === "get_workflow_run") return textResponse(JSON.stringify(await this.github.getWorkflowRun(owner, repo, positiveIntegerArgument(args, "run_id")), null, 2));
       return errorResponse(`Unknown sentinelforge-tools tool: ${name}.`);
@@ -116,7 +149,7 @@ export function createSentinelForgeToolsMcpServer(tools = new SentinelForgeTools
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       { name: "get_repository", description: "Read allowlisted repository metadata.", inputSchema: { type: "object", required: ["owner", "repo"], properties: { owner: { type: "string" }, repo: { type: "string" } } } },
-	      { name: "get_file", description: "Read decoded text from an allowlisted repository file. Fixture-proof reads include persisted proof IDs and are validated against immutable action intent before server-side evidence is marked.", inputSchema: { type: "object", required: ["owner", "repo", "path", "ref"], properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" }, proof_mission_id: { type: "string" }, proof_action_id: { type: "string" } } } },
+	      { name: "get_file", description: "Read decoded text from an allowlisted repository file. Fixture-proof reads accept only persisted proof IDs plus artifact (package.json or release-manifest.json); the server derives owner, repository, and ref from immutable action intent before it reads or marks evidence.", inputSchema: { type: "object", oneOf: [{ required: ["owner", "repo", "path", "ref"] }, { required: ["proof_mission_id", "proof_action_id", "artifact"] }], properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" }, proof_mission_id: { type: "string" }, proof_action_id: { type: "string" }, artifact: { type: "string", enum: ["package.json", "release-manifest.json"] } } } },
       { name: "get_issue", description: "Read an issue from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "issue_number"], properties: { owner: { type: "string" }, repo: { type: "string" }, issue_number: { type: "integer", minimum: 1 } } } },
       { name: "get_workflow_run", description: "Read an Actions workflow run from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "run_id"], properties: { owner: { type: "string" }, repo: { type: "string" }, run_id: { type: "integer", minimum: 1 } } } },
 			{ name: "approval_probe", description: "Read and fail-closed inspect a persisted approval checkpoint and its supplied correlation. It never approves, resumes, mutates, or writes.", inputSchema: { type: "object", required: ["mission_id"], properties: { mission_id: { type: "string" }, action_id: { type: "string" }, required_action_id: { type: "string" }, thread_id: { type: "string" }, tool_call_id: { type: "string" }, proposal_fingerprint: { type: "string" } } }, annotations: { readOnlyHint: true } },
