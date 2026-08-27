@@ -1,14 +1,9 @@
 import { parseTrueForgeProviderApprovalPauseEvent } from "../liveContracts";
 import { FIXTURE_GITHUB_PR_GATE_TOOL_NAME } from "./fixtureProofApproval";
 import type { TrueForgeStreamEvent } from "../trueforge/stream";
+import type { FixtureProofAction } from "../fixtureGithubProof";
 
-type ExpectedRead = { path: "package.json" | "release-manifest.json"; expectedVersion: "1.4.0" | "1.3.0" };
 type ModelToolCall = { name: string; server: string | null; callId: string; eventId: string; turnId: string; threadId: string | null; eventIndex: number; arguments: Record<string, unknown> };
-
-const expectedReads: readonly ExpectedRead[] = [
-  { path: "package.json", expectedVersion: "1.4.0" },
-  { path: "release-manifest.json", expectedVersion: "1.3.0" },
-];
 
 function dataRecord(event: TrueForgeStreamEvent): Record<string, unknown> {
   return event.data && typeof event.data === "object" && !Array.isArray(event.data) ? event.data as Record<string, unknown> : {};
@@ -41,35 +36,38 @@ function extractModelToolCalls(event: TrueForgeStreamEvent, eventIndex: number):
   });
 }
 
-function assertReadCall(call: ModelToolCall, expected: ExpectedRead, toolsMcpName: string) {
-  if (call.name !== "get_file" || call.server !== toolsMcpName || call.arguments.owner !== "Aayushashsahu" || call.arguments.repo !== "sentinelforge-incident-fixture" || call.arguments.ref !== "main" || call.arguments.path !== expected.path) {
-    throw new Error(`Fixture proof approval capture requires an exact successful get_file(${expected.path}) call for the allowlisted target on main.`);
+function assertReadCall(call: ModelToolCall, expected: { path: string; expectedVersion: string }, toolsMcpName: string, action: FixtureProofAction) {
+  const [owner, repo] = action.intent.repository.split("/") as [string, string];
+  if (call.name !== "get_file" || call.server !== toolsMcpName || call.arguments.proof_mission_id !== action.missionId || call.arguments.proof_action_id !== action.id || call.arguments.owner !== owner || call.arguments.repo !== repo || call.arguments.ref !== action.intent.baseBranch || call.arguments.path !== expected.path) {
+    throw new Error(`Fixture proof approval capture requires an exact persisted-action-bound successful get_file(${expected.path}) call for the allowlisted target on main.`);
   }
 }
 
-function assertSuccessfulReadResponse(events: readonly TrueForgeStreamEvent[], call: ModelToolCall, expected: ExpectedRead) {
+function assertSuccessfulReadResponse(events: readonly TrueForgeStreamEvent[], call: ModelToolCall, expected: { path: string; expectedVersion: string }, action: FixtureProofAction) {
   const response = events.slice(call.eventIndex + 1).find(event => {
     const data = dataRecord(event);
     return data.type === "tool.response" && data.tool_call_id === call.callId && data.turn_id === call.turnId && data.thread_id === call.threadId && typeof data.content === "string";
   });
   const content = response ? dataRecord(response).content : null;
-  const expectedHeader = `Repository: Aayushashsahu/sentinelforge-incident-fixture\nPath: ${expected.path}\nRef: main`;
+  const expectedHeader = `Repository: ${action.intent.repository}\nPath: ${expected.path}\nRef: ${action.intent.baseBranch}`;
   const versionPattern = new RegExp(`"version"\\s*:\\s*"${expected.expectedVersion.replaceAll(".", "\\.")}"`);
   if (typeof content !== "string" || !content.includes(expectedHeader) || !versionPattern.test(content)) {
     throw new Error(`Fixture proof approval capture requires a successful allowlisted ${expected.path} body containing version ${expected.expectedVersion}.`);
   }
 }
 
-export function validateFixtureProofApprovalCaptureSequence(events: readonly TrueForgeStreamEvent[], toolsMcpName: string) {
+export function validateFixtureProofApprovalCaptureSequence(events: readonly TrueForgeStreamEvent[], toolsMcpName: string, action: FixtureProofAction) {
   const orderedCalls = events.flatMap((event, eventIndex) => extractModelToolCalls(event, eventIndex));
   if (orderedCalls.length !== 3) throw new Error("Fixture proof approval capture requires exactly two file reads and one fixture gate call.");
   const [packageCall, manifestCall, gateCall] = orderedCalls;
   if (!packageCall || !manifestCall || !gateCall) throw new Error("Fixture proof approval capture has an incomplete required sequence.");
-  assertReadCall(packageCall, expectedReads[0]!, toolsMcpName);
-  assertReadCall(manifestCall, expectedReads[1]!, toolsMcpName);
-  assertSuccessfulReadResponse(events, packageCall, expectedReads[0]!);
-  assertSuccessfulReadResponse(events, manifestCall, expectedReads[1]!);
-  if (gateCall.name !== FIXTURE_GITHUB_PR_GATE_TOOL_NAME || gateCall.server !== toolsMcpName || Object.keys(gateCall.arguments).length !== 0 || gateCall.turnId !== packageCall.turnId || gateCall.turnId !== manifestCall.turnId || gateCall.threadId !== packageCall.threadId || gateCall.threadId !== manifestCall.threadId) {
+  const expectedPackage = { path: "package.json", expectedVersion: action.intent.afterVersion };
+  const expectedManifest = { path: action.intent.filePath, expectedVersion: action.intent.beforeVersion };
+  assertReadCall(packageCall, expectedPackage, toolsMcpName, action);
+  assertReadCall(manifestCall, expectedManifest, toolsMcpName, action);
+  assertSuccessfulReadResponse(events, packageCall, expectedPackage, action);
+  assertSuccessfulReadResponse(events, manifestCall, expectedManifest, action);
+  if (gateCall.name !== FIXTURE_GITHUB_PR_GATE_TOOL_NAME || gateCall.server !== toolsMcpName || gateCall.arguments.proof_mission_id !== action.missionId || gateCall.arguments.proof_action_id !== action.id || gateCall.turnId !== packageCall.turnId || gateCall.turnId !== manifestCall.turnId || !gateCall.threadId || gateCall.threadId !== packageCall.threadId || gateCall.threadId !== manifestCall.threadId) {
     throw new Error("Fixture proof approval capture requires the exact non-mutating fixture gate after the two same-turn allowlisted reads.");
   }
   const pauseIndex = events.findIndex(event => parseTrueForgeProviderApprovalPauseEvent(event.data) !== null);
@@ -77,5 +75,5 @@ export function validateFixtureProofApprovalCaptureSequence(events: readonly Tru
   if (!pause || pauseIndex <= gateCall.eventIndex || pause.thread_id !== gateCall.threadId || pause.tool_calls.length !== 1 || pause.tool_calls[0]!.id !== gateCall.callId || pause.tool_calls[0]!.source_event_id !== gateCall.eventId) {
     throw new Error("Fixture proof approval capture requires a genuine approval pause correlated to the preceding fixture gate call.");
   }
-  return { pause, turnId: gateCall.turnId };
+  return { pause, turnId: gateCall.turnId, threadId: gateCall.threadId, packageToolCallId: packageCall.callId, manifestToolCallId: manifestCall.callId, gateToolCallId: gateCall.callId };
 }

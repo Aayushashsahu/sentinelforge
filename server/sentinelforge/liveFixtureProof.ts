@@ -24,12 +24,33 @@ export async function stageLiveFixtureProofAction(input: { missionId: string; gi
     status: "AWAITING_APPROVAL",
     intent,
     preflight,
+    readEvidence: { packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null },
     approval: { approvalRequestId: null, trueforgeSessionId: null, turnId: null, threadId: null, toolCallId: null, requiredActionId: null, continuationId: null, continuationStatus: "NOT_SENT" },
     remote: {},
   };
   const staged = await input.port.stageAction(action);
   await input.port.appendAudit({ missionId: staged.missionId, eventType: "FIXTURE_GITHUB_PROOF_STAGED", correlationId: staged.id, result: "A fixture-only GitHub proof action was persisted with exact target, file, content SHA, base SHA, branch, and idempotency data. No provider approval, continuation, or GitHub mutation has occurred.", payload: { actionId: staged.id, target: staged.intent.repository, base: staged.intent.baseBranch, file: staged.intent.filePath, branchName: staged.intent.branchName, proposalFingerprint: staged.intent.proposalFingerprint } });
   return staged;
+}
+
+export function markFixtureProofReadEvidence(input: { action: FixtureProofAction; path: "package.json" | "release-manifest.json" }): FixtureProofAction {
+  if (input.action.status !== "AWAITING_APPROVAL") throw new Error("Fixture proof read evidence refused: action is not awaiting approval.");
+  const expectedPath = input.path === "package.json" ? "package.json" : input.action.intent.filePath;
+  if (expectedPath !== input.path) throw new Error("Fixture proof read evidence refused: file path is outside the persisted proof intent.");
+  return {
+    ...input.action,
+    readEvidence: {
+      ...input.action.readEvidence,
+      ...(input.path === "package.json" ? { packageEvidenceVerified: true } : { manifestEvidenceVerified: true }),
+    },
+  };
+}
+
+export function bindFixtureProofReadEvidenceCorrelation(input: { action: FixtureProofAction; trueforgeSessionId: string; turnId: string; threadId: string; packageToolCallId: string; manifestToolCallId: string; gateToolCallId: string }): FixtureProofAction {
+  const evidence = input.action.readEvidence;
+  if (input.action.status !== "AWAITING_APPROVAL" || !evidence.packageEvidenceVerified || !evidence.manifestEvidenceVerified) throw new Error("Fixture proof approval capture refused: both server-verified file reads are required before the gate can become eligible.");
+  if (![input.trueforgeSessionId, input.turnId, input.threadId, input.packageToolCallId, input.manifestToolCallId, input.gateToolCallId].every(value => Boolean(value.trim()))) throw new Error("Fixture proof approval capture refused: evidence correlation is incomplete.");
+  return { ...input.action, readEvidence: { ...evidence, correlation: { trueforgeSessionId: input.trueforgeSessionId, turnId: input.turnId, threadId: input.threadId, packageToolCallId: input.packageToolCallId, manifestToolCallId: input.manifestToolCallId, gateToolCallId: input.gateToolCallId } } };
 }
 
 export async function bindFixtureProofApprovalCheckpoint(input: { action: FixtureProofAction; approval: { approvalRequestId: string; trueforgeSessionId: string; turnId: string; threadId: string; toolCallId: string; requiredActionId: string }; port: FixtureProofStagePort }): Promise<FixtureProofAction> {

@@ -5,7 +5,7 @@ import { FIXTURE_PROOF_REPOSITORY, type FixtureProofAction } from "./fixtureGith
 
 type ApprovalRecord = { id: string };
 type MissionRecord = { id: string; status: MissionStatus };
-type TurnRecord = { turnId: string };
+type TurnRecord = { turnId: string; trueforgeSessionId?: string };
 
 export type TrueForgeApprovalPersistencePort<TBundle = unknown> = {
   getMission(missionId: string): Promise<MissionRecord | null>;
@@ -90,6 +90,8 @@ export async function persistTrueForgeFixtureProofApprovalRequired<TBundle>(port
   if (!action || action.missionId !== mission.id || action.status !== "AWAITING_APPROVAL" || action.intent.repository !== FIXTURE_PROOF_REPOSITORY || action.intent.proposalFingerprint !== input.repairFingerprint) throw new Error("Fixture proof approval-required event refused: persisted staged action does not match mission, status, target, or fingerprint.");
   const turn = await port.getLatestTrueForgeTurn(input.missionId);
   if (!turn) throw new Error("Fixture proof approval-required event refused: no correlated turn exists.");
+  const evidence = action.readEvidence;
+  if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !evidence.correlation || evidence.correlation.trueforgeSessionId !== turn.trueforgeSessionId || evidence.correlation.turnId !== turn.turnId || evidence.correlation.threadId !== input.event.thread_id || evidence.correlation.gateToolCallId !== input.event.tool_call_id) throw new Error("Fixture proof approval-required event refused: both canonical server-verified reads and exact session, turn, thread, and gate correlation are required.");
   const approval = await port.addApprovalRequest({
     missionId: mission.id,
     actionType: `TRUEFORGE_FIXTURE_GITHUB_PR_GATE:${input.event.tool_name}`,

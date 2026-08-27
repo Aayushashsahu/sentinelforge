@@ -33,12 +33,26 @@ export type FixtureProofPreflight = {
 
 export type FixtureProofActionStatus = "AWAITING_APPROVAL" | "WAITING_APPROVAL" | "STAGED" | "EXECUTING" | "BRANCH_CREATED" | "COMMIT_CREATED" | "PR_CREATED" | "PARTIAL_BRANCH_CREATED" | "PARTIAL_COMMIT_CREATED" | "PARTIAL_PR_CREATED" | "FAILED";
 
+export type FixtureProofReadEvidence = {
+  packageEvidenceVerified: boolean;
+  manifestEvidenceVerified: boolean;
+  correlation: null | {
+    trueforgeSessionId: string;
+    turnId: string;
+    threadId: string;
+    packageToolCallId: string;
+    manifestToolCallId: string;
+    gateToolCallId: string;
+  };
+};
+
 export type FixtureProofAction = {
   id: string;
   missionId: string;
   status: FixtureProofActionStatus;
   intent: FixtureProofIntent;
   preflight: FixtureProofPreflight;
+  readEvidence: FixtureProofReadEvidence;
   approval: {
     approvalRequestId: string | null;
     trueforgeSessionId: string | null;
