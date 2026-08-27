@@ -175,9 +175,10 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | --- | --- |
 | PR | [#12](https://github.com/Aayushashsahu/sentinelforge/pull/12) — `security/s2-fixture-read-credential` → `main` |
 | Scope | Preserves the existing generic `GITHUB_READ_TOKEN` read path while making valid persisted action-bound fixture reads resolve only server-side `GITHUB_SCRATCH_PR_TOKEN`. The fixture branch remains model-token-free, schema-token-free, server-derived, and fail-closed without scratch-to-generic fallback. |
-| Initial Qodo review | **REAL** — 27 August 2026 UTC. After the documented `/agentic_review` request, Qodo published an automated code-review assessment for commit `712169d`, reporting **0 bugs, 0 rule violations, and 0 requirement gaps**. |
-| Findings | **None issued.** No High, Medium, Low, rule-violation, or requirement-gap remediation was identified by the initial review. |
-| Follow-up | **REQUESTED / PENDING** — the required status follow-up will be requested after this factual initial-review record is pushed to the PR. |
+| Initial Qodo review | **REAL** — 27 August 2026 UTC. After the first [`/agentic_review` request](https://github.com/Aayushashsahu/sentinelforge/pull/12#issuecomment-5437857210), Qodo published an automated code-review assessment for commit `712169d`, reporting **0 bugs, 0 rule violations, and 0 requirement gaps**. |
+| Finding | **Medium / SHOULD_FIX / valid.** On its review of the documentation-record update through `8d8485d`, Qodo found that the follow-up row was internally contradictory: it recorded `REQUESTED / PENDING` while saying the request would occur later. |
+| Remediation | This record now identifies only completed events: the initial request, the actual second [`/agentic_review` request](https://github.com/Aayushashsahu/sentinelforge/pull/12#issuecomment-5437878331), and the factual status of the resulting review. The correction changes no application behavior, credential path, or live-proof operation. |
+| Follow-up | **REQUESTED / PENDING** — the second documented request above caused Qodo to update its review through `8d8485d`, but the valid Medium documentation finding remains pending this remediation commit and one further requested review. |
 | Local validation | Frozen install, type check, 197 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check passed for `712169d`. |
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** This PR has not started a provider session, staged a fixture action, requested an approval, sent a continuation, called the fixture repository, invoked a sandbox, or performed any fixture-repository mutation. |
