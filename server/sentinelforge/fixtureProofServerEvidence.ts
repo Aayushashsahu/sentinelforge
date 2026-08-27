@@ -45,12 +45,12 @@ export async function acquireFixtureProofServerEvidence(input: { missionId: stri
   assertVersion(packageFile.text, FIXTURE_PROOF_AFTER_VERSION, "package.json");
   let evidenced = markFixtureProofServerEvidence({ action, path: "package.json" });
   await input.port.replaceAction(evidenced);
-  await input.port.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_PROOF_SERVER_PACKAGE_EVIDENCE_VERIFIED", correlationId: action.id, result: "The server verified the canonical package.json version with the action-bound scratch credential; no provider tool call or GitHub mutation occurred.", payload: { actionId: action.id, artifact: "package.json", expectedVersion: FIXTURE_PROOF_AFTER_VERSION, source: "SERVER_ORCHESTRATED" } });
+  await input.port.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_PROOF_SERVER_PACKAGE_EVIDENCE_VERIFIED", correlationId: action.id, result: "Server-orchestrated fixture evidence verified the canonical package.json version with the action-bound scratch credential. This artifact verification is server-side, not a provider MCP tool call; no GitHub mutation occurred.", payload: { actionId: action.id, artifact: "package.json", expectedVersion: FIXTURE_PROOF_AFTER_VERSION, source: "SERVER", evidenceMode: "SERVER_ORCHESTRATED", providerMcpToolCall: false } });
 
   const manifestFile = await client.getFile(owner, repository, action.intent.filePath, action.intent.baseBranch);
   assertVersion(manifestFile.text, FIXTURE_PROOF_BEFORE_VERSION, action.intent.filePath);
   evidenced = markFixtureProofServerEvidence({ action: evidenced, path: "release-manifest.json" });
   await input.port.replaceAction(evidenced);
-  await input.port.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_PROOF_SERVER_MANIFEST_EVIDENCE_VERIFIED", correlationId: action.id, result: "The server verified the canonical release-manifest.json version with the action-bound scratch credential; no provider tool call or GitHub mutation occurred.", payload: { actionId: action.id, artifact: FIXTURE_PROOF_FILE, expectedVersion: FIXTURE_PROOF_BEFORE_VERSION, source: "SERVER_ORCHESTRATED" } });
+  await input.port.appendAudit({ missionId: action.missionId, eventType: "FIXTURE_PROOF_SERVER_MANIFEST_EVIDENCE_VERIFIED", correlationId: action.id, result: "Server-orchestrated fixture evidence verified the canonical release-manifest.json version with the action-bound scratch credential. This artifact verification is server-side, not a provider MCP tool call; no GitHub mutation occurred.", payload: { actionId: action.id, artifact: FIXTURE_PROOF_FILE, expectedVersion: FIXTURE_PROOF_BEFORE_VERSION, source: "SERVER", evidenceMode: "SERVER_ORCHESTRATED", providerMcpToolCall: false } });
   return evidenced;
 }

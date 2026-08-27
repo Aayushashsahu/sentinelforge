@@ -10,6 +10,10 @@ import { acquireFixtureProofServerEvidence } from "./fixtureProofServerEvidence"
 import { getTrueForgeRuntimeConfig, TrueForgeClient } from "./trueforge/client";
 import { notifyOwner } from "../_core/notification";
 
+export const FIXTURE_PROOF_PROVIDER_EVIDENCE_SOURCE = "PROVIDER";
+export const FIXTURE_PROOF_PROVIDER_APPROVAL_TITLE = "TrueForge provider fixture-gate approval-required event";
+export const FIXTURE_PROOF_PROVIDER_APPROVAL_CONTENT = "Server-orchestrated fixture evidence had already verified package.json version 1.4.0 and release-manifest.json version 1.3.0. The provider then invoked fixture_github_pr_gate and emitted a genuine tool.approval_required event. No provider MCP file read, fabricated tool event, continuation, or GitHub write occurred.";
+
 export async function runLiveFixtureProofApprovalCapture(input: { missionId: string; actionId: string }) {
   const bundle = await getMissionBundle(input.missionId);
   const action = await getFixtureProofExternalAction(input.actionId);
@@ -31,7 +35,7 @@ export async function runLiveFixtureProofApprovalCapture(input: { missionId: str
   const resolvedModel = await client.resolveModelName(config.model);
   const session = await client.createInlineSession(buildFixtureProofApprovalSpec({ model: resolvedModel, toolsMcpName: config.toolsMcpName }));
   await linkTrueForgeSession({ missionId: input.missionId, sessionId: session.id, baseUrl: config.baseUrl, model: resolvedModel, status: "FIXTURE_PROOF_APPROVAL_CAPTURE" });
-  await appendMissionEvent({ missionId: input.missionId, eventType: "TRUEFORGE_FIXTURE_PROOF_APPROVAL_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${FIXTURE_GITHUB_PR_GATE_TOOL_NAME}`, result: "A fixture-proof approval-capture session was created with only read tools and the non-mutating approval gate. Sandbox and GitHub writes are disabled.", payload: { actionId: action.id, mcpServer: config.toolsMcpName, sandbox: "disabled", continuation: "forbidden" } });
+  await appendMissionEvent({ missionId: input.missionId, eventType: "TRUEFORGE_FIXTURE_PROOF_APPROVAL_SESSION_CREATED", actor: "TrueForge", correlationId: session.id, tool: `mcp:${config.toolsMcpName}/${FIXTURE_GITHUB_PR_GATE_TOOL_NAME}`, result: "A fixture-proof approval-capture session was created with only the non-mutating provider fixture gate. Mandatory package and manifest evidence remains server-orchestrated; sandbox and GitHub writes are disabled.", payload: { actionId: action.id, mcpServer: config.toolsMcpName, providerTool: FIXTURE_GITHUB_PR_GATE_TOOL_NAME, serverEvidenceRequired: true, sandbox: "disabled", continuation: "forbidden" } });
   const events = await readBoundedTurn({ client, sessionId: session.id, message: buildFixtureProofApprovalMessage({ missionId: input.missionId, actionId: action.id }) });
   const { pause, turnId, gateToolCallId, threadId } = validateFixtureProofApprovalCaptureSequence(events, config.toolsMcpName, await getFixtureProofExternalAction(input.actionId) ?? action);
   const approvalEvent = mapTrueForgeProviderApprovalPause({ providerEvent: pause, toolName: FIXTURE_GITHUB_PR_GATE_TOOL_NAME });
@@ -41,7 +45,7 @@ export async function runLiveFixtureProofApprovalCapture(input: { missionId: str
   await replaceFixtureProofExternalAction(evidencedAction);
   await recordTrueForgeTurn({ missionId: input.missionId, trueforgeSessionId: session.id, turnId, status: "WAITING_APPROVAL", threadId: pause.thread_id, requiredActionId: pause.id, toolCallId: pause.tool_calls[0]!.id });
   await appendMissionEvents(buildStreamAuditInputs({ missionId: input.missionId, turnId, events }));
-  const providerEvidence = await addEvidence({ missionId: input.missionId, kind: "OBSERVED", title: "TrueForge fixture-proof approval-required provider event", content: "The runtime emitted fixture_github_pr_gate tool.approval_required after the required package.json and release-manifest.json read calls. No continuation or GitHub write occurred.", source: "trueforge/fixture-proof-approval" });
+  const providerEvidence = await addEvidence({ missionId: input.missionId, kind: "OBSERVED", title: FIXTURE_PROOF_PROVIDER_APPROVAL_TITLE, content: FIXTURE_PROOF_PROVIDER_APPROVAL_CONTENT, source: FIXTURE_PROOF_PROVIDER_EVIDENCE_SOURCE });
   const persisted = await persistTrueForgeFixtureProofApprovalRequired({
     getMission: async id => { const current = await getMissionBundle(id); return current ? { id: current.mission.id, status: current.mission.status } : null; },
     getLatestTrueForgeTurn: async id => { const turn = await getTrueForgeTurnByMission(id); return turn ? { turnId: turn.turnId, trueforgeSessionId: turn.trueforgeSessionId } : null; },

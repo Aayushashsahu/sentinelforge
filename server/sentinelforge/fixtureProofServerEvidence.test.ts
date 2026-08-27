@@ -61,6 +61,11 @@ describe("server-orchestrated fixture proof evidence", () => {
     expect(action.readEvidence).toEqual({ packageEvidenceVerified: true, manifestEvidenceVerified: true, serverEvidence: { source: "SERVER_ORCHESTRATED", package: { path: "package.json", version: "1.4.0" }, manifest: { path: "release-manifest.json", version: "1.3.0" } }, correlation: null });
     expect(p.replaceAction).toHaveBeenCalledTimes(2);
     expect(p.appendAudit).toHaveBeenCalledTimes(2);
+    expect(p.audits()).toEqual([
+      expect.objectContaining({ eventType: "FIXTURE_PROOF_SERVER_PACKAGE_EVIDENCE_VERIFIED", payload: expect.objectContaining({ source: "SERVER", evidenceMode: "SERVER_ORCHESTRATED", providerMcpToolCall: false }) }),
+      expect.objectContaining({ eventType: "FIXTURE_PROOF_SERVER_MANIFEST_EVIDENCE_VERIFIED", payload: expect.objectContaining({ source: "SERVER", evidenceMode: "SERVER_ORCHESTRATED", providerMcpToolCall: false }) }),
+    ]);
+    expect(JSON.stringify(p.audits())).not.toContain("after the required package.json and release-manifest.json read calls");
     expect(JSON.stringify({ action: p.current(), audits: p.audits() })).not.toContain(scratchToken);
   });
 
