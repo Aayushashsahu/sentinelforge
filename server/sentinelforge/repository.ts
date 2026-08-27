@@ -85,7 +85,7 @@ function parseFixtureProofAction(record: typeof externalActions.$inferSelect): F
   try {
     const payload = JSON.parse(record.result) as FixtureProofAction;
     if (!payload || payload.id !== record.id || payload.missionId !== record.missionId || payload.intent?.idempotencyKey !== record.idempotencyKey) return null;
-    return { ...payload, readEvidence: payload.readEvidence ?? { packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null } };
+    return { ...payload, readEvidence: { ...(payload.readEvidence ?? { packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null }), serverEvidence: payload.readEvidence?.serverEvidence ?? null } };
   } catch { return null; }
 }
 

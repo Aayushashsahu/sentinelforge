@@ -12,7 +12,7 @@ function makePort(status: "VERIFYING" | "PLANNING_FIX" = "VERIFYING") {
     appendMissionEvent: vi.fn().mockResolvedValue(undefined),
     notifyOwner: vi.fn().mockResolvedValue(true),
     getMissionBundle: vi.fn().mockResolvedValue({ mission: { id: "SF_1", status: "WAITING_APPROVAL" } }),
-    getFixtureProofAction: vi.fn().mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: true, correlation: { trueforgeSessionId: "session_1", turnId: "turn_1", threadId: "thread_1", packageToolCallId: "read_package", manifestToolCallId: "read_manifest", gateToolCallId: "call_1" } } }),
+    getFixtureProofAction: vi.fn().mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: true, serverEvidence: { source: "SERVER_ORCHESTRATED", package: { path: "package.json", version: "1.4.0" }, manifest: { path: "release-manifest.json", version: "1.3.0" } }, correlation: { trueforgeSessionId: "session_1", turnId: "turn_1", threadId: "thread_1", packageToolCallId: null, manifestToolCallId: null, gateToolCallId: "call_1" } } }),
   };
 }
 
@@ -86,15 +86,24 @@ describe("TrueForge approval-required persistence", () => {
 
   it("refuses a fixture gate approval when either canonical read or exact gate correlation is not persisted", async () => {
     const port = makePort("PLANNING_FIX");
-    port.getFixtureProofAction.mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: false, correlation: null } });
-    await expect(persistTrueForgeFixtureProofApprovalRequired(port, { missionId: "SF_1", event: { type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "fixture_github_pr_gate" }, risk: "HIGH", repairFingerprint: "c".repeat(64), proofActionId: "act_proof", proposalEvidenceRefs: [] })).rejects.toThrow(/canonical server-verified reads/);
+    port.getFixtureProofAction.mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: false, serverEvidence: { source: "SERVER_ORCHESTRATED", package: { path: "package.json", version: "1.4.0" }, manifest: null }, correlation: null } });
+    await expect(persistTrueForgeFixtureProofApprovalRequired(port, { missionId: "SF_1", event: { type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "fixture_github_pr_gate" }, risk: "HIGH", repairFingerprint: "c".repeat(64), proofActionId: "act_proof", proposalEvidenceRefs: [] })).rejects.toThrow(/canonical server-orchestrated reads/);
     expect(port.addApprovalRequest).not.toHaveBeenCalled();
   });
 
   it("refuses a fixture gate approval when read evidence belongs to another provider session", async () => {
     const port = makePort("PLANNING_FIX");
-    port.getFixtureProofAction.mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: true, correlation: { trueforgeSessionId: "another_session", turnId: "turn_1", threadId: "thread_1", packageToolCallId: "read_package", manifestToolCallId: "read_manifest", gateToolCallId: "call_1" } } });
+    port.getFixtureProofAction.mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: true, serverEvidence: { source: "SERVER_ORCHESTRATED", package: { path: "package.json", version: "1.4.0" }, manifest: { path: "release-manifest.json", version: "1.3.0" } }, correlation: { trueforgeSessionId: "another_session", turnId: "turn_1", threadId: "thread_1", packageToolCallId: null, manifestToolCallId: null, gateToolCallId: "call_1" } } });
     await expect(persistTrueForgeFixtureProofApprovalRequired(port, { missionId: "SF_1", event: { type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "fixture_github_pr_gate" }, risk: "HIGH", repairFingerprint: "c".repeat(64), proofActionId: "act_proof", proposalEvidenceRefs: [] })).rejects.toThrow(/exact session/);
     expect(port.addApprovalRequest).not.toHaveBeenCalled();
+  });
+
+  it("does not create an approval checkpoint when server evidence exists but a zero-tool provider turn produced no gate correlation", async () => {
+    const port = makePort("PLANNING_FIX");
+    port.getFixtureProofAction.mockResolvedValue({ id: "act_proof", missionId: "SF_1", status: "AWAITING_APPROVAL", intent: buildFixtureProofIntent({ missionId: "SF_1", proposalFingerprint: "c".repeat(64) }), readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: true, serverEvidence: { source: "SERVER_ORCHESTRATED", package: { path: "package.json", version: "1.4.0" }, manifest: { path: "release-manifest.json", version: "1.3.0" } }, correlation: null } });
+    await expect(persistTrueForgeFixtureProofApprovalRequired(port, { missionId: "SF_1", event: { type: "tool.approval_required", thread_id: "thread_1", tool_call_id: "call_1", required_action_id: "action_1", tool_name: "fixture_github_pr_gate" }, risk: "HIGH", repairFingerprint: "c".repeat(64), proofActionId: "act_proof", proposalEvidenceRefs: [] })).rejects.toThrow(/server-orchestrated reads/);
+    expect(port.addApprovalRequest).not.toHaveBeenCalled();
+    expect(port.updateTrueForgeTurn).not.toHaveBeenCalled();
+    expect(port.setMissionStatus).not.toHaveBeenCalled();
   });
 });

@@ -16,7 +16,7 @@ function proofAction(overrides: Partial<FixtureProofAction> = {}): FixtureProofA
     status: "AWAITING_APPROVAL",
     intent: buildFixtureProofIntent({ missionId: "SF_fixture", proposalFingerprint: fingerprint }),
     preflight: { repository: `${fixtureOwner}/${fixtureRepo}`, baseBranch: "main", contentSha: "b".repeat(40), baseSha: "c".repeat(40), beforeContent: '{"version":"1.3.0"}', afterContent: '{"version":"1.4.0"}', branchName: "sentinelforge/sf_fixture" },
-    readEvidence: { packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null },
+    readEvidence: { packageEvidenceVerified: false, manifestEvidenceVerified: false, serverEvidence: null, correlation: null },
     approval: { approvalRequestId: null, trueforgeSessionId: null, turnId: null, threadId: null, toolCallId: null, requiredActionId: null, continuationId: null, continuationStatus: "NOT_SENT" },
     remote: {},
     ...overrides,
@@ -56,42 +56,21 @@ describe("sentinelforge-tools", () => {
     expect(fetchImpl).toHaveBeenCalledWith(expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/package.json?ref=main`), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${token}` }) }));
   });
 
-  it("uses the generic client for generic reads and the server-created scratch client only for valid action-bound fixture reads", async () => {
+  it("uses the generic client for generic reads and refuses model-issued action-bound fixture reads before I/O", async () => {
     const genericToken = "generic-read-test-token";
-    const scratchToken = "fixture-scratch-test-token";
     const genericFetch = vi.fn(async () => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from('{"version":"1.4.0"}').toString("base64") }), { status: 200 }));
-    const scratchFetch = vi.fn(async (url: string) => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from(url.includes("package.json") ? '{"version":"1.4.0"}' : '{"version":"1.3.0"}').toString("base64") }), { status: 200 }));
-    const createFixtureClient = vi.fn(() => new GitHubReadApi(scratchToken, scratchFetch as typeof fetch));
     const persistence = state(proofAction());
-    const tools = new SentinelForgeTools(new GitHubReadApi(genericToken, genericFetch as typeof fetch), persistence, createFixtureClient);
+    const tools = new SentinelForgeTools(new GitHubReadApi(genericToken, genericFetch as typeof fetch), persistence);
 
     const generic = await tools.call("get_file", { owner: fixtureOwner, repo: fixtureRepo, path: "package.json", ref: "main" });
     const proof = { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" };
     const fixturePackage = await tools.call("get_file", { ...proof, artifact: "package.json" });
-    const fixtureManifest = await tools.call("get_file", { ...proof, artifact: "release-manifest.json" });
 
     expect(generic.isError).toBeUndefined();
-    expect(fixturePackage.isError).toBeUndefined();
-    expect(fixtureManifest.isError).toBeUndefined();
-    expect(createFixtureClient).toHaveBeenCalledTimes(2);
+    expect(fixturePackage).toMatchObject({ isError: true, content: [{ text: expect.stringContaining("server-orchestrated action-bound evidence path") }] });
     expect(genericFetch).toHaveBeenCalledTimes(1);
-    expect(scratchFetch).toHaveBeenCalledTimes(2);
     expect(genericFetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${genericToken}` }) }));
-    expect(scratchFetch).toHaveBeenNthCalledWith(1, expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/package.json?ref=main`), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${scratchToken}` }) }));
-    expect(scratchFetch).toHaveBeenNthCalledWith(2, expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/release-manifest.json?ref=main`), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${scratchToken}` }) }));
-    expect(JSON.stringify({ generic, fixturePackage, fixtureManifest, action: persistence.current() })).not.toContain(genericToken);
-    expect(JSON.stringify({ generic, fixturePackage, fixtureManifest, action: persistence.current() })).not.toContain(scratchToken);
-  });
-
-  it("fails closed without a scratch credential and never falls back to the generic client for an action-bound read", async () => {
-    const genericFetch = vi.fn();
-    const createFixtureClient = vi.fn(() => { throw new Error("Fixture proof read refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side."); });
-    const persistence = state(proofAction());
-    const result = await new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", genericFetch as typeof fetch), persistence, createFixtureClient).call("get_file", { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture", artifact: "package.json" });
-
-    expect(result).toMatchObject({ isError: true, content: [{ text: expect.stringContaining("GITHUB_SCRATCH_PR_TOKEN") }] });
-    expect(createFixtureClient).toHaveBeenCalledTimes(1);
-    expect(genericFetch).not.toHaveBeenCalled();
+    expect(JSON.stringify({ generic, fixturePackage, action: persistence.current() })).not.toContain(genericToken);
     expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });
 
@@ -118,7 +97,7 @@ describe("sentinelforge-tools", () => {
     const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), state(proofAction()));
     const result = await tools.call("fixture_github_pr_gate", { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" });
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("server-verified read evidences");
+    expect(result.content[0].text).toContain("server-orchestrated read evidences");
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -146,31 +125,27 @@ describe("sentinelforge-tools", () => {
     ["failed package read", { artifact: "package.json" }, new Response(JSON.stringify({ message: "forbidden" }), { status: 403 })],
     ["wrong package version", { artifact: "package.json" }, new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from('{"version":"1.3.0"}').toString("base64"), size: 20 }), { status: 200 })],
     ["wrong artifact", { artifact: "other.json" }, null],
-  ])("does not mark evidence for %s", async (_label, request, response) => {
+  ])("refuses model-issued fixture read %s without marking evidence", async (_label, request, response) => {
     const fetchImpl = vi.fn(async () => response ?? new Response("unused", { status: 500 }));
     const persistence = state(proofAction());
-    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", vi.fn() as typeof fetch), persistence, () => new GitHubReadApi("fixture-scratch-test-token", fetchImpl as typeof fetch));
+    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", fetchImpl as typeof fetch), persistence);
     const result = await tools.call("get_file", { ...request, proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" });
     expect(result.isError).toBe(true);
-    expect(persistence.current()?.readEvidence).toEqual({ packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(persistence.current()?.readEvidence).toEqual({ packageEvidenceVerified: false, manifestEvidenceVerified: false, serverEvidence: null, correlation: null });
     expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });
 
-  it("marks only exact successful action-bound reads before returning non-mutating gate eligibility", async () => {
-    const fetchImpl = vi.fn(async (url: string) => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from(url.includes("package.json") ? '{"version":"1.4.0"}' : '{"version":"1.3.0"}').toString("base64"), size: 20 }), { status: 200 }));
-    const persistence = state(proofAction());
-    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", vi.fn() as typeof fetch), persistence, () => new GitHubReadApi("fixture-scratch-test-token", fetchImpl as typeof fetch));
+  it("accepts the non-mutating gate only after both server-orchestrated evidence flags are persisted", async () => {
+    const fetchImpl = vi.fn();
+    const persistence = state(proofAction({ readEvidence: { packageEvidenceVerified: true, manifestEvidenceVerified: true, serverEvidence: { source: "SERVER_ORCHESTRATED", package: { path: "package.json", version: "1.4.0" }, manifest: { path: "release-manifest.json", version: "1.3.0" } }, correlation: null } }));
+    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", fetchImpl as typeof fetch), persistence);
     const proof = { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" };
-    const packageRead = await tools.call("get_file", { ...proof, artifact: "package.json" });
-    const manifestRead = await tools.call("get_file", { ...proof, artifact: "release-manifest.json" });
-    expect(packageRead.isError).toBeUndefined();
-    expect(manifestRead.isError).toBeUndefined();
     const result = await tools.call("fixture_github_pr_gate", proof);
     expect(JSON.parse(result.content[0].text)).toMatchObject({ status: "EVIDENCE_VERIFIED_FOR_PROVIDER_APPROVAL", packageEvidenceVerified: true, manifestEvidenceVerified: true, mutation: "NONE" });
     expect(persistence.current()?.readEvidence).toMatchObject({ packageEvidenceVerified: true, manifestEvidenceVerified: true });
-    expect(persistence.replaceFixtureProofAction).toHaveBeenCalledTimes(2);
-    expect(fetchImpl).toHaveBeenNthCalledWith(1, expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/package.json?ref=main`), expect.any(Object));
-    expect(fetchImpl).toHaveBeenNthCalledWith(2, expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/release-manifest.json?ref=main`), expect.any(Object));
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -185,18 +160,16 @@ describe("sentinelforge-tools", () => {
     expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });
 
-  it("does not create a fixture credential client for the wrong mission or action", async () => {
+  it("does not perform a generic read for wrong action-bound references", async () => {
     const genericFetch = vi.fn();
-    const createFixtureClient = vi.fn();
     const persistence = state(proofAction());
-    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", genericFetch as typeof fetch), persistence, createFixtureClient);
+    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", genericFetch as typeof fetch), persistence);
 
     const wrongMission = await tools.call("get_file", { proof_mission_id: "SF_other", proof_action_id: "act_fixture", artifact: "package.json" });
     const wrongAction = await tools.call("get_file", { proof_mission_id: "SF_fixture", proof_action_id: "act_other", artifact: "package.json" });
 
     expect(wrongMission.isError).toBe(true);
     expect(wrongAction.isError).toBe(true);
-    expect(createFixtureClient).not.toHaveBeenCalled();
     expect(genericFetch).not.toHaveBeenCalled();
     expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });

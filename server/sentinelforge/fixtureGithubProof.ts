@@ -36,12 +36,17 @@ export type FixtureProofActionStatus = "AWAITING_APPROVAL" | "WAITING_APPROVAL" 
 export type FixtureProofReadEvidence = {
   packageEvidenceVerified: boolean;
   manifestEvidenceVerified: boolean;
+  serverEvidence: null | {
+    source: "SERVER_ORCHESTRATED";
+    package: null | { path: "package.json"; version: typeof FIXTURE_PROOF_AFTER_VERSION };
+    manifest: null | { path: typeof FIXTURE_PROOF_FILE; version: typeof FIXTURE_PROOF_BEFORE_VERSION };
+  };
   correlation: null | {
     trueforgeSessionId: string;
     turnId: string;
     threadId: string;
-    packageToolCallId: string;
-    manifestToolCallId: string;
+    packageToolCallId: string | null;
+    manifestToolCallId: string | null;
     gateToolCallId: string;
   };
 };

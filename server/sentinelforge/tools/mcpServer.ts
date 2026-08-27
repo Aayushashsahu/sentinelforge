@@ -5,8 +5,7 @@ import { SENTINELFORGE_ALLOWED_REPOSITORIES } from "./githubRead";
 import { GitHubReadApi } from "./githubRead";
 import { getFixtureProofExternalAction, getMissionBundle, replaceFixtureProofExternalAction } from "../repository";
 import { inspectApprovalProbe, inspectRepairProposalGate, parseSafetyInput, type SafetyInspectionPort } from "./safetyInspection";
-import { markFixtureProofReadEvidence } from "../liveFixtureProof";
-import { FIXTURE_PROOF_AFTER_VERSION, FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_BEFORE_VERSION, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, fixtureProofFingerprint, type FixtureProofAction } from "../fixtureGithubProof";
+import { FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, fixtureProofFingerprint, type FixtureProofAction } from "../fixtureGithubProof";
 
 export type McpTextResponse = { content: [{ type: "text"; text: string }]; isError?: true };
 
@@ -49,15 +48,6 @@ function positiveIntegerArgument(input: Record<string, unknown>, key: string): n
 type FixtureEvidencePort = SafetyInspectionPort & { replaceFixtureProofAction(action: FixtureProofAction): Promise<void> };
 const defaultSafetyPort: FixtureEvidencePort = { getMissionBundle, getFixtureProofAction: getFixtureProofExternalAction, replaceFixtureProofAction: replaceFixtureProofExternalAction };
 
-type FixtureProofGitHubReadPort = Pick<GitHubReadApi, "getFile">;
-type FixtureProofGitHubReadFactory = () => FixtureProofGitHubReadPort;
-
-function createScratchFixtureProofGitHubReadClient(): FixtureProofGitHubReadPort {
-  const token = ENV.githubScratchPrToken;
-  if (!token) throw new Error("Fixture proof read refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side.");
-  return new GitHubReadApi(token);
-}
-
 function parseFixtureActionReference(args: Record<string, unknown>): { missionId: string; actionId: string } | null {
   const hasMission = "proof_mission_id" in args;
   const hasAction = "proof_action_id" in args;
@@ -88,35 +78,23 @@ function assertFixtureActionIntegrity(action: FixtureProofAction, bundle: NonNul
   return { owner, repo };
 }
 
-async function resolveFixtureArtifactRead(args: Record<string, unknown>, port: FixtureEvidencePort) {
+async function isFixtureArtifactRead(args: Record<string, unknown>, port: FixtureEvidencePort): Promise<boolean> {
   const reference = parseFixtureActionReference(args);
-  if (!reference) return null;
+  if (!reference) return false;
   assertNoModelSuppliedFixtureTarget(args);
   const artifact = fixtureArtifactArgument(args);
   const [action, bundle] = await Promise.all([port.getFixtureProofAction(reference.actionId), port.getMissionBundle(reference.missionId)]);
   if (!action || action.missionId !== reference.missionId || !bundle) throw new Error("Fixture proof read refused: persisted action does not match proof_mission_id.");
   const target = assertFixtureActionIntegrity(action, bundle, reference.missionId);
-  return {
-    action,
-    owner: target.owner,
-    repo: target.repo,
-    path: artifact,
-    ref: action.intent.baseBranch,
-    expectedVersion: artifact === "package.json" ? FIXTURE_PROOF_AFTER_VERSION : FIXTURE_PROOF_BEFORE_VERSION,
-  };
-}
-
-function assertExpectedVersion(text: string, expectedVersion: string, path: string) {
-  let parsed: unknown;
-  try { parsed = JSON.parse(text); } catch { throw new Error(`Fixture proof read refused: ${path} is not valid JSON.`); }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || (parsed as { version?: unknown }).version !== expectedVersion) throw new Error(`Fixture proof read refused: ${path} does not contain required version ${expectedVersion}.`);
+  void artifact;
+  void target;
+  return true;
 }
 
 export class SentinelForgeTools {
 	constructor(
 		private readonly github = new GitHubReadApi(),
 		private readonly safetyPort: FixtureEvidencePort = defaultSafetyPort,
-		private readonly createFixtureProofGitHubReadClient: FixtureProofGitHubReadFactory = createScratchFixtureProofGitHubReadClient,
 	) {}
 
   async call(name: string, args: Record<string, unknown>): Promise<McpTextResponse> {
@@ -130,20 +108,18 @@ export class SentinelForgeTools {
           const evidence = action?.readEvidence;
           if (!action || !bundle || action.missionId !== reference.missionId) throw new Error("Fixture proof gate refused: persisted action does not match proof_mission_id.");
           assertFixtureActionIntegrity(action, bundle, reference.missionId);
-          if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || evidence.correlation !== null) throw new Error("Fixture proof gate refused: both exact server-verified read evidences for the persisted action are required before approval eligibility.");
+          const serverEvidence = evidence?.serverEvidence;
+          if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !serverEvidence || serverEvidence.source !== "SERVER_ORCHESTRATED" || serverEvidence.package?.path !== "package.json" || serverEvidence.package.version !== action.intent.afterVersion || serverEvidence.manifest?.path !== action.intent.filePath || serverEvidence.manifest.version !== action.intent.beforeVersion || evidence.correlation !== null) throw new Error("Fixture proof gate refused: both exact server-orchestrated read evidences for the persisted action are required before approval eligibility.");
           return textResponse(JSON.stringify({ status: "EVIDENCE_VERIFIED_FOR_PROVIDER_APPROVAL", missionId: action.missionId, actionId: action.id, repository: action.intent.repository, base: action.intent.baseBranch, packageEvidenceVerified: true, manifestEvidenceVerified: true, remoteWriteAuthority: "UNVERIFIED", mutation: "NONE" }));
         }
 	      if (name === "get_file") {
-          const fixture = await resolveFixtureArtifactRead(args, this.safetyPort);
-          const owner = fixture?.owner ?? stringArgument(args, "owner");
-          const repo = fixture?.repo ?? stringArgument(args, "repo");
-          const path = fixture?.path ?? stringArgument(args, "path");
-          const ref = fixture?.ref ?? stringArgument(args, "ref");
-	        const file = await (fixture ? this.createFixtureProofGitHubReadClient() : this.github).getFile(owner, repo, path, ref);
-          if (fixture) {
-            assertExpectedVersion(file.text, fixture.expectedVersion, path);
-            await this.safetyPort.replaceFixtureProofAction(markFixtureProofReadEvidence({ action: fixture.action, path: fixture.path }));
-          }
+          const fixture = await isFixtureArtifactRead(args, this.safetyPort);
+	        if (fixture) throw new Error("Fixture proof read refused: canonical evidence is acquired only by the server-orchestrated action-bound evidence path.");
+	        const owner = stringArgument(args, "owner");
+	        const repo = stringArgument(args, "repo");
+	        const path = stringArgument(args, "path");
+	        const ref = stringArgument(args, "ref");
+	        const file = await this.github.getFile(owner, repo, path, ref);
 	        return textResponse(`Repository: ${file.repository}\nPath: ${file.path}\nRef: ${file.ref}\n\n${file.text}`);
       }
 	      const owner = stringArgument(args, "owner");
@@ -163,7 +139,7 @@ export function createSentinelForgeToolsMcpServer(tools = new SentinelForgeTools
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       { name: "get_repository", description: "Read allowlisted repository metadata.", inputSchema: { type: "object", required: ["owner", "repo"], properties: { owner: { type: "string" }, repo: { type: "string" } } } },
-	      { name: "get_file", description: "Read decoded text from an allowlisted repository file. Fixture-proof reads accept only persisted proof IDs plus artifact (package.json or release-manifest.json); the server derives owner, repository, and ref from immutable action intent before it reads or marks evidence.", inputSchema: { oneOf: [{ type: "object", required: ["owner", "repo", "path", "ref"], additionalProperties: false, properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" } } }, { type: "object", required: ["proof_mission_id", "proof_action_id", "artifact"], additionalProperties: false, properties: { proof_mission_id: { type: "string" }, proof_action_id: { type: "string" }, artifact: { type: "string", enum: ["package.json", "release-manifest.json"] } } }] } },
+	      { name: "get_file", description: "Read decoded text from an allowlisted repository file using the generic investigation credential. Fixture-proof evidence is acquired only through the server-orchestrated action-bound evidence path and cannot be invoked by the model.", inputSchema: { type: "object", required: ["owner", "repo", "path", "ref"], additionalProperties: false, properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" } } } },
       { name: "get_issue", description: "Read an issue from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "issue_number"], properties: { owner: { type: "string" }, repo: { type: "string" }, issue_number: { type: "integer", minimum: 1 } } } },
       { name: "get_workflow_run", description: "Read an Actions workflow run from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "run_id"], properties: { owner: { type: "string" }, repo: { type: "string" }, run_id: { type: "integer", minimum: 1 } } } },
 			{ name: "approval_probe", description: "Read and fail-closed inspect a persisted approval checkpoint and its supplied correlation. It never approves, resumes, mutates, or writes.", inputSchema: { type: "object", required: ["mission_id"], properties: { mission_id: { type: "string" }, action_id: { type: "string" }, required_action_id: { type: "string" }, thread_id: { type: "string" }, tool_call_id: { type: "string" }, proposal_fingerprint: { type: "string" } } }, annotations: { readOnlyHint: true } },

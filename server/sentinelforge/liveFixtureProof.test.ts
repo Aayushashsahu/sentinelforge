@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildFixtureProofIntent, type FixtureProofAction, type FixtureProofGitHubPort } from "./fixtureGithubProof";
-import { bindFixtureProofApprovalCheckpoint, bindSentFixtureProofContinuation, stageLiveFixtureProofAction } from "./liveFixtureProof";
+import { bindFixtureProofApprovalCheckpoint, bindFixtureProofReadEvidenceCorrelation, bindSentFixtureProofContinuation, markFixtureProofServerEvidence, stageLiveFixtureProofAction } from "./liveFixtureProof";
 
 const fingerprint = "b".repeat(64);
 const sha = (character: string) => character.repeat(40);
@@ -77,5 +77,15 @@ describe("live fixture proof coordinator", () => {
     const staged = await bindSentFixtureProofContinuation({ action: waiting, continuation: { id: "continuation", status: "SENT", approvalRequestId: "apr", trueforgeSessionId: "session", turnId: "turn", threadId: "main", toolCallId: "call" }, port: p });
     expect(staged.status).toBe("STAGED");
     expect(staged.approval.continuationStatus).toBe("SENT");
+  });
+
+  it("refuses provider approval-correlation binding until both exact server-orchestrated artifact evidences exist", async () => {
+    const p = makePort();
+    const action = await stageLiveFixtureProofAction({ missionId: "SF_fixture", github: github(), port: p });
+    expect(() => bindFixtureProofReadEvidenceCorrelation({ action, trueforgeSessionId: "session", turnId: "turn", threadId: "main", gateToolCallId: "gate" })).toThrow(/server-orchestrated/);
+    const packageEvidence = markFixtureProofServerEvidence({ action, path: "package.json" });
+    expect(() => bindFixtureProofReadEvidenceCorrelation({ action: packageEvidence, trueforgeSessionId: "session", turnId: "turn", threadId: "main", gateToolCallId: "gate" })).toThrow(/server-orchestrated/);
+    const bothEvidence = markFixtureProofServerEvidence({ action: packageEvidence, path: "release-manifest.json" });
+    expect(bindFixtureProofReadEvidenceCorrelation({ action: bothEvidence, trueforgeSessionId: "session", turnId: "turn", threadId: "main", gateToolCallId: "gate" }).readEvidence.correlation).toMatchObject({ trueforgeSessionId: "session", turnId: "turn", threadId: "main", packageToolCallId: null, manifestToolCallId: null, gateToolCallId: "gate" });
   });
 });

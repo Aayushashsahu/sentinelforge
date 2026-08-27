@@ -24,7 +24,7 @@ export async function stageLiveFixtureProofAction(input: { missionId: string; gi
     status: "AWAITING_APPROVAL",
     intent,
     preflight,
-    readEvidence: { packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null },
+    readEvidence: { packageEvidenceVerified: false, manifestEvidenceVerified: false, serverEvidence: null, correlation: null },
     approval: { approvalRequestId: null, trueforgeSessionId: null, turnId: null, threadId: null, toolCallId: null, requiredActionId: null, continuationId: null, continuationStatus: "NOT_SENT" },
     remote: {},
   };
@@ -46,11 +46,30 @@ export function markFixtureProofReadEvidence(input: { action: FixtureProofAction
   };
 }
 
-export function bindFixtureProofReadEvidenceCorrelation(input: { action: FixtureProofAction; trueforgeSessionId: string; turnId: string; threadId: string; packageToolCallId: string; manifestToolCallId: string; gateToolCallId: string }): FixtureProofAction {
+export function markFixtureProofServerEvidence(input: { action: FixtureProofAction; path: "package.json" | "release-manifest.json" }): FixtureProofAction {
+  const marked = markFixtureProofReadEvidence(input);
+  const serverEvidence = marked.readEvidence.serverEvidence ?? { source: "SERVER_ORCHESTRATED" as const, package: null, manifest: null };
+  return {
+    ...marked,
+    readEvidence: {
+      ...marked.readEvidence,
+      serverEvidence: {
+        ...serverEvidence,
+        source: "SERVER_ORCHESTRATED",
+        ...(input.path === "package.json"
+          ? { package: { path: "package.json" as const, version: marked.intent.afterVersion } }
+          : { manifest: { path: marked.intent.filePath, version: marked.intent.beforeVersion } }),
+      },
+    },
+  };
+}
+
+export function bindFixtureProofReadEvidenceCorrelation(input: { action: FixtureProofAction; trueforgeSessionId: string; turnId: string; threadId: string; packageToolCallId?: string | null; manifestToolCallId?: string | null; gateToolCallId: string }): FixtureProofAction {
   const evidence = input.action.readEvidence;
-  if (input.action.status !== "AWAITING_APPROVAL" || !evidence.packageEvidenceVerified || !evidence.manifestEvidenceVerified) throw new Error("Fixture proof approval capture refused: both server-verified file reads are required before the gate can become eligible.");
-  if (![input.trueforgeSessionId, input.turnId, input.threadId, input.packageToolCallId, input.manifestToolCallId, input.gateToolCallId].every(value => Boolean(value.trim()))) throw new Error("Fixture proof approval capture refused: evidence correlation is incomplete.");
-  return { ...input.action, readEvidence: { ...evidence, correlation: { trueforgeSessionId: input.trueforgeSessionId, turnId: input.turnId, threadId: input.threadId, packageToolCallId: input.packageToolCallId, manifestToolCallId: input.manifestToolCallId, gateToolCallId: input.gateToolCallId } } };
+  const server = evidence.serverEvidence;
+  if (input.action.status !== "AWAITING_APPROVAL" || !evidence.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !server || server.source !== "SERVER_ORCHESTRATED" || server.package?.path !== "package.json" || server.package.version !== input.action.intent.afterVersion || server.manifest?.path !== input.action.intent.filePath || server.manifest.version !== input.action.intent.beforeVersion) throw new Error("Fixture proof approval capture refused: both exact server-orchestrated file evidences are required before the gate can become eligible.");
+  if (![input.trueforgeSessionId, input.turnId, input.threadId, input.gateToolCallId].every(value => Boolean(value.trim()))) throw new Error("Fixture proof approval capture refused: evidence correlation is incomplete.");
+  return { ...input.action, readEvidence: { ...evidence, correlation: { trueforgeSessionId: input.trueforgeSessionId, turnId: input.turnId, threadId: input.threadId, packageToolCallId: input.packageToolCallId ?? null, manifestToolCallId: input.manifestToolCallId ?? null, gateToolCallId: input.gateToolCallId } } };
 }
 
 export async function bindFixtureProofApprovalCheckpoint(input: { action: FixtureProofAction; approval: { approvalRequestId: string; trueforgeSessionId: string; turnId: string; threadId: string; toolCallId: string; requiredActionId: string }; port: FixtureProofStagePort }): Promise<FixtureProofAction> {

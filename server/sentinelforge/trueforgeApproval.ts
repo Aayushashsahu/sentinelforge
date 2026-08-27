@@ -91,7 +91,8 @@ export async function persistTrueForgeFixtureProofApprovalRequired<TBundle>(port
   const turn = await port.getLatestTrueForgeTurn(input.missionId);
   if (!turn) throw new Error("Fixture proof approval-required event refused: no correlated turn exists.");
   const evidence = action.readEvidence;
-  if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !evidence.correlation || evidence.correlation.trueforgeSessionId !== turn.trueforgeSessionId || evidence.correlation.turnId !== turn.turnId || evidence.correlation.threadId !== input.event.thread_id || evidence.correlation.gateToolCallId !== input.event.tool_call_id) throw new Error("Fixture proof approval-required event refused: both canonical server-verified reads and exact session, turn, thread, and gate correlation are required.");
+  const serverEvidence = evidence?.serverEvidence;
+  if (!evidence?.packageEvidenceVerified || !evidence.manifestEvidenceVerified || !serverEvidence || serverEvidence.source !== "SERVER_ORCHESTRATED" || serverEvidence.package?.path !== "package.json" || serverEvidence.package.version !== action.intent.afterVersion || serverEvidence.manifest?.path !== action.intent.filePath || serverEvidence.manifest.version !== action.intent.beforeVersion || !evidence.correlation || evidence.correlation.trueforgeSessionId !== turn.trueforgeSessionId || evidence.correlation.turnId !== turn.turnId || evidence.correlation.threadId !== input.event.thread_id || evidence.correlation.gateToolCallId !== input.event.tool_call_id) throw new Error("Fixture proof approval-required event refused: both canonical server-orchestrated reads and exact session, turn, thread, and gate correlation are required.");
   const approval = await port.addApprovalRequest({
     missionId: mission.id,
     actionType: `TRUEFORGE_FIXTURE_GITHUB_PR_GATE:${input.event.tool_name}`,
