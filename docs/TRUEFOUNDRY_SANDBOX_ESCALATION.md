@@ -1,6 +1,6 @@
 # TrueFoundry Sandbox Escalation
 
-**Status:** Provider remediation requested; SentinelForge cannot safely remediate this boundary itself.
+**Status:** Escalated publicly; no provider response or supported remediation has been observed. SentinelForge cannot safely remediate this boundary itself.
 
 ## Incident summary
 
@@ -36,6 +36,10 @@ After a provider-side remediation, SentinelForge can perform **one** bounded iso
 
 ## Escalation delivery status
 
-No supported TrueFoundry or WeMakeDevs contact mechanism is configured in this repository session. This document is the prepared technical escalation artifact; no fabricated support request or external escalation claim is made.
+The official [`truefoundry/trueforge` issue tracker](https://github.com/truefoundry/trueforge/issues/482) is an available public escalation channel. Issue [#482](https://github.com/truefoundry/trueforge/issues/482), **“TrueForge standalone sandbox bootstrap fails to install pydantic due to proxy/package-index connectivity,”** was observed open under the user’s GitHub identity on August 27, 2026.
+
+At the time of the bounded inspection, the issue had no provider comment, assignment, label, or documented workaround. A separate read-only search of the repository issue tracker found no existing public issue addressing this exact sandbox `pydantic` proxy/package-index bootstrap failure. This records `PROVIDER_NO_RESPONSE`; it does not imply that TrueForge has acknowledged, accepted, or remediated the report.
+
+No supported provider-side fix, repaired package-index route, or prebuilt sandbox image/snapshot is currently available to SentinelForge. Therefore, no fresh sandbox verification is eligible or has been attempted. The durable safety state remains `SANDBOX_VERIFICATION_BLOCKED` and `WRITE_BLOCKED`; no host fallback or substitute verification is permitted.
 
 See the detailed evidence and public-source findings in [SANDBOX_BLOCKER.md](./SANDBOX_BLOCKER.md).
