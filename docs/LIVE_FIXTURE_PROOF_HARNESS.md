@@ -15,3 +15,10 @@ For fixture approval capture, the model does not define the target and does not 
 | Canonical package verification | `SERVER` / `SERVER_ORCHESTRATED` | The server used the action-bound scratch credential to verify `package.json` version `1.4.0`; this is not a provider MCP call. |
 | Canonical manifest verification | `SERVER` / `SERVER_ORCHESTRATED` | The server used the action-bound scratch credential to verify `release-manifest.json` version `1.3.0`; this is not a provider MCP call. |
 | Fixture gate invocation and approval pause | `PROVIDER` | TrueForge invoked the non-mutating `fixture_github_pr_gate` and emitted the correlated `tool.approval_required` event. No provider file read is claimed. |
+
+Provider session history can serialize the same logical gate or approval pause more than once. Before fixture approval-capture validation, SentinelForge preserves the raw provider events for audit and canonicalizes only exact duplicate logical records. Gate identity is the complete `session_id`, `turn_id`, `thread_id`, `tool_call_id`, and source event ID; approval-pause identity additionally includes the provider `required_action_id`. Missing values, conflicting values, a second gate call, a second required action, an unrelated tool call, an out-of-order event, or mismatched approval tool-call correlation remain fail-closed. Replaying identical history after a durable checkpoint is an idempotent no-op; no local reconstruction may fabricate approval, provider, or file-read evidence.
+
+| Audit view | Purpose | Permitted interpretation |
+| --- | --- | --- |
+| Raw provider history | Preserves every returned event representation | Shows what the provider returned, including serialized duplicates. |
+| Canonical logical history | Validates exact approval correlation | Treats only fully identical correlated representations as one logical gate, pause, or terminal event. |
