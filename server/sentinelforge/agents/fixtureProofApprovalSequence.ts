@@ -6,6 +6,7 @@ import type { FixtureProofAction } from "../fixtureGithubProof";
 type ModelToolCall = { name: string; server: string | null; callId: string; eventId: string; turnId: string; threadId: string | null; eventIndex: number; arguments: Record<string, unknown> };
 type CanonicalGateCall = ModelToolCall & { identity: string };
 type CanonicalApprovalPause = { pause: NonNullable<ReturnType<typeof parseTrueForgeProviderApprovalPauseEvent>>; eventIndex: number; identity: string };
+type CanonicalLifecycleEvent = { eventIndex: number; identity: string };
 
 function dataRecord(event: TrueForgeStreamEvent): Record<string, unknown> {
   return event.data && typeof event.data === "object" && !Array.isArray(event.data) ? event.data as Record<string, unknown> : {};
@@ -41,28 +42,36 @@ function extractModelToolCalls(event: TrueForgeStreamEvent, eventIndex: number):
 }
 
 function canonicalizeGateCalls(events: readonly TrueForgeStreamEvent[], sessionId: string): CanonicalGateCall[] {
-  const unique = new Map<string, CanonicalGateCall>();
+  const unique = new Map<string, { call: CanonicalGateCall; signature: string }>();
   for (const call of events.flatMap((event, eventIndex) => extractModelToolCalls(event, eventIndex))) {
     const serializedSessionId = dataRecord(events[call.eventIndex]!).session_id;
     if (typeof serializedSessionId === "string" && serializedSessionId !== sessionId) throw new Error("Fixture proof approval capture refused: provider history gate session correlation differs from the capture session.");
-    if (!call.threadId || !call.server) continue;
+    if (!call.threadId || !call.server) throw new Error("Fixture proof approval capture refused: every provider tool call requires complete thread and MCP server correlation.");
     const identity = [sessionId, call.turnId, call.threadId, call.callId, call.eventId].join("\u0000");
-    if (!unique.has(identity)) unique.set(identity, { ...call, identity });
+    const canonical = { ...call, identity };
+    const signature = JSON.stringify({ name: call.name, server: call.server, arguments: call.arguments });
+    const existing = unique.get(identity);
+    if (existing && existing.signature !== signature) throw new Error("Fixture proof approval capture refused: duplicate gate correlation contains conflicting semantic payload.");
+    if (!existing) unique.set(identity, { call: canonical, signature });
   }
-  return Array.from(unique.values());
+  return Array.from(unique.values(), value => value.call);
 }
 
 function canonicalizeApprovalPauses(events: readonly TrueForgeStreamEvent[], sessionId: string, gate: CanonicalGateCall): CanonicalApprovalPause[] {
-  const unique = new Map<string, CanonicalApprovalPause>();
+  const unique = new Map<string, { value: CanonicalApprovalPause; signature: string }>();
   events.forEach((event, eventIndex) => {
     const pause = parseTrueForgeProviderApprovalPauseEvent(event.data);
     if (!pause) return;
     const call = pause.tool_calls[0];
     if (!call) return;
     const identity = [sessionId, gate.turnId, pause.thread_id, call.id, pause.id, call.source_event_id].join("\u0000");
-    if (!unique.has(identity)) unique.set(identity, { pause, eventIndex, identity });
+    const value = { pause, eventIndex, identity };
+    const signature = JSON.stringify(pause);
+    const existing = unique.get(identity);
+    if (existing && existing.signature !== signature) throw new Error("Fixture proof approval capture refused: duplicate approval correlation contains conflicting semantic payload.");
+    if (!existing) unique.set(identity, { value, signature });
   });
-  return Array.from(unique.values());
+  return Array.from(unique.values(), value => value.value);
 }
 
 function eventType(event: TrueForgeStreamEvent): string | null {
@@ -70,16 +79,37 @@ function eventType(event: TrueForgeStreamEvent): string | null {
   return typeof data.type === "string" ? data.type : event.event || null;
 }
 
-function countCanonicalLifecycleEvents(events: readonly TrueForgeStreamEvent[], type: string, turnId: string, threadId: string): number {
-  const identities = new Set<string>();
+function canonicalizeLifecycleEvents(events: readonly TrueForgeStreamEvent[], type: "turn.created" | "turn.done", sessionId: string, turnId: string, threadId: string): CanonicalLifecycleEvent[] {
+  const unique = new Map<string, { value: CanonicalLifecycleEvent; signature: string }>();
   events.forEach((event, index) => {
     const data = dataRecord(event);
-    if (eventType(event) !== type || data.turn_id !== turnId) return;
-    if (typeof data.thread_id === "string" && data.thread_id !== threadId) return;
-    const id = typeof data.id === "string" ? data.id : `${type}:${index}`;
-    identities.add([turnId, threadId, id].join("\u0000"));
+    if (eventType(event) !== type) return;
+    if (data.turn_id !== turnId || data.thread_id !== threadId || typeof data.id !== "string" || !data.id) throw new Error("Fixture proof approval capture refused: lifecycle event correlation is incomplete or differs from the canonical gate.");
+    if (typeof data.session_id === "string" && data.session_id !== sessionId) throw new Error("Fixture proof approval capture refused: lifecycle event session correlation differs from the capture session.");
+    const identity = [sessionId, turnId, threadId, type, data.id].join("\u0000");
+    const value = { eventIndex: index, identity };
+    const signature = JSON.stringify(data);
+    const existing = unique.get(identity);
+    if (existing && existing.signature !== signature) throw new Error("Fixture proof approval capture refused: duplicate lifecycle correlation contains conflicting semantic payload.");
+    if (!existing) unique.set(identity, { value, signature });
   });
-  return identities.size;
+  return Array.from(unique.values(), value => value.value);
+}
+
+function canonicalizeFixtureInitialization(events: readonly TrueForgeStreamEvent[], toolsMcpName: string): CanonicalLifecycleEvent[] {
+  const unique = new Map<string, { value: CanonicalLifecycleEvent; signature: string }>();
+  events.forEach((event, index) => {
+    const data = dataRecord(event);
+    if (eventType(event) !== "mcp.initialize") return;
+    if (data.server_name !== toolsMcpName || typeof data.id !== "string" || !data.id) throw new Error("Fixture proof approval capture refused: MCP initialization does not identify the fixture tools server.");
+    const identity = [toolsMcpName, data.id].join("\u0000");
+    const value = { eventIndex: index, identity };
+    const signature = JSON.stringify(data);
+    const existing = unique.get(identity);
+    if (existing && existing.signature !== signature) throw new Error("Fixture proof approval capture refused: duplicate MCP initialization contains conflicting semantic payload.");
+    if (!existing) unique.set(identity, { value, signature });
+  });
+  return Array.from(unique.values(), value => value.value);
 }
 
 export function validateFixtureProofApprovalCaptureSequence(events: readonly TrueForgeStreamEvent[], toolsMcpName: string, action: FixtureProofAction, sessionId: string) {
@@ -96,10 +126,10 @@ export function validateFixtureProofApprovalCaptureSequence(events: readonly Tru
   if (pauses.length !== 1) throw new Error("Fixture proof approval capture requires exactly one logical approval-required pause.");
   const canonicalPause = pauses[0]!;
   const pause = canonicalPause.pause;
-  const createdCount = countCanonicalLifecycleEvents(events, "turn.created", gateCall.turnId, gateCall.threadId);
-  const initializedCount = events.filter(event => eventType(event) === "mcp.initialize").length;
-  const terminalCount = countCanonicalLifecycleEvents(events, "turn.done", gateCall.turnId, gateCall.threadId);
-  if (createdCount !== 1 || initializedCount !== 1 || terminalCount !== 1 || canonicalPause.eventIndex <= gateCall.eventIndex || pause.thread_id !== gateCall.threadId || pause.tool_calls.length !== 1 || pause.tool_calls[0]!.id !== gateCall.callId || pause.tool_calls[0]!.source_event_id !== gateCall.eventId) {
+  const created = canonicalizeLifecycleEvents(events, "turn.created", sessionId, gateCall.turnId, gateCall.threadId);
+  const initialized = canonicalizeFixtureInitialization(events, toolsMcpName);
+  const terminal = canonicalizeLifecycleEvents(events, "turn.done", sessionId, gateCall.turnId, gateCall.threadId);
+  if (created.length !== 1 || initialized.length !== 1 || terminal.length !== 1 || !(created[0]!.eventIndex < initialized[0]!.eventIndex && initialized[0]!.eventIndex < gateCall.eventIndex && gateCall.eventIndex < canonicalPause.eventIndex && canonicalPause.eventIndex < terminal[0]!.eventIndex) || pause.thread_id !== gateCall.threadId || pause.tool_calls.length !== 1 || pause.tool_calls[0]!.id !== gateCall.callId || pause.tool_calls[0]!.source_event_id !== gateCall.eventId) {
     throw new Error("Fixture proof approval capture requires a genuine approval pause correlated to the preceding fixture gate call.");
   }
   return { pause, turnId: gateCall.turnId, threadId: gateCall.threadId, gateToolCallId: gateCall.callId, rawGateCallCount: events.flatMap((event, eventIndex) => extractModelToolCalls(event, eventIndex)).length, canonicalGateCallCount: orderedCalls.length, rawApprovalPauseCount: events.filter(event => parseTrueForgeProviderApprovalPauseEvent(event.data) !== null).length, canonicalApprovalPauseCount: pauses.length };

@@ -73,6 +73,21 @@ describe("fixture proof approval capture sequence", () => {
     expect(validate(events).canonicalGateCallCount).toBe(1);
   });
 
+  it.each([
+    ["gate payload", (events: TrueForgeStreamEvent[]) => { const duplicate = structuredClone(events[2]!); ((record(duplicate).tool_calls as Array<{ function: { name: string } }>)[0]!).function.name = "get_file"; events.splice(3, 0, duplicate); }],
+    ["approval timestamp", (events: TrueForgeStreamEvent[]) => { const duplicate = structuredClone(events[3]!); record(duplicate).created_at = "2026-08-27T00:00:00.000Z"; events.splice(4, 0, duplicate); }],
+    ["malformed extra tool", (events: TrueForgeStreamEvent[]) => { const extra = modelTool("call_incomplete", "get_file", {}, { eventId: "event_incomplete" }); delete record(extra).thread_id; events.splice(3, 0, extra); }],
+    ["missing lifecycle thread", (events: TrueForgeStreamEvent[]) => { delete record(events[0]!).thread_id; }],
+    ["created after gate", (events: TrueForgeStreamEvent[]) => { const created = events.shift()!; events.splice(3, 0, created); }],
+    ["initialization after gate", (events: TrueForgeStreamEvent[]) => { const initialized = events.splice(1, 1)[0]!; events.splice(3, 0, initialized); }],
+    ["terminal before pause", (events: TrueForgeStreamEvent[]) => { const done = events.pop()!; events.splice(3, 0, done); }],
+    ["initialization for another server", (events: TrueForgeStreamEvent[]) => { record(events[1]!).server_name = "other-tools"; }],
+  ])("fails closed for conflicting %s representation", (_label, mutate) => {
+    const events = validEvents();
+    mutate(events);
+    expect(() => validate(events)).toThrow(/Fixture proof approval capture/);
+  });
+
   it("accepts the observed failed S2 provider-history representation as one logical gate", () => {
     const proof = { proof_mission_id: "SF_Ey9cVUoLBNGn0M", proof_action_id: "act_Njt60Oiv-kvXAd" };
     const historicalAction = structuredClone(action);
