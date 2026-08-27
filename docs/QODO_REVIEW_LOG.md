@@ -130,6 +130,19 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** No provider turn, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
 
+## PR #9 — Strict Configured-Capability Array Parser
+
+| Field | Record |
+| --- | --- |
+| PR | [#9](https://github.com/Aayushashsahu/sentinelforge/pull/9) — `security/server-authoritative-fixture-gate` → `main` |
+| Scope | Corrects only the local `GITHUB_SCRATCH_CONFIGURED_CAPABILITIES` parser to accept the established exact JSON array contract and reject empty, incomplete, malformed, object-shaped, wrong-target, unsupported, or duplicate declarations. It neither changes the GitHub capability policy nor treats configured values as remote permission proof. |
+| Initial Qodo review | **REAL** — Qodo completed an initial no-issue assessment at [issue comment 5434089541](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434089541) for `87427e1`, reporting **0 bugs, 0 rule violations, and 0 requirement gaps**. |
+| Findings | **None issued.** No remediation or justified disagreement was required. |
+| Follow-up | **REAL** — after one [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434095676) request, Qodo confirmed at [issue comment 5434101212](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434101212) that its review was updated through the same commit. |
+| CI | GitHub `quality` workflow succeeded for `87427e1436b758953da5d2a4f95db2c4ecf576b7`. Local validation passed: frozen install, type check, 177 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** No provider turn, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
@@ -149,3 +162,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 [8] [PR #8 Qodo initial no-issue review](https://github.com/Aayushashsahu/sentinelforge/pull/8#issuecomment-5433524694) — real Qodo assessment showing zero issued findings.
 
 [9] [PR #8 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/8#issuecomment-5433538872) — real Qodo update after the documented `/agentic_review` request.
+
+[10] [PR #9 Qodo initial no-issue review](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434089541) — real Qodo assessment showing zero issued findings.
+
+[11] [PR #9 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434101212) — real Qodo update after the documented `/agentic_review` request.
