@@ -29,7 +29,7 @@ Decisions are idempotent. The bridge uses durable continuation records and atomi
 
 ## Verification and external execution
 
-The live sandbox boundary is real but currently unavailable for verification. The provider reached `truefoundry-system/exec`, then failed to bootstrap its environment because the proxy/package-index path could not install `pydantic`. SentinelForge persists the failed session, turn, run, exit code, stdout/stderr, evidence, and audit trail; it does not run the proposed repair on the host.
+The live sandbox boundary is real but currently unavailable for **real-repair** verification. The provider reached `truefoundry-system/exec`, then failed to bootstrap its environment because the proxy/package-index path could not install `pydantic`. SentinelForge persists the failed session, turn, run, exit code, stdout/stderr, evidence, and audit trail; it does not run the proposed repair on the host. This is distinct from the separately authorized S2 fixture proof, which created one bounded, open and unmerged fixture PR without claiming a sandbox pass or removing the real-repair sandbox gate.
 
 The GitHub boundary is deliberately a guarded intent, not a remote executor. A branch, commit, pull request, or GitHub write remains refused unless all of the following are independently present:
 
@@ -43,4 +43,4 @@ Because the real sandbox is blocked, `WRITE_BLOCKED` is the correct current stat
 
 ## Qodo role
 
-Qodo Code Review is installed for the repository. PR #2 is a substantive unmerged implementation PR for the CI workflow compatibility scenario. Qodo found two correctness issues; both were fixed and Qodo updated the review to the remediation commit. The review record is maintained in [QODO_REVIEW_LOG.md](./QODO_REVIEW_LOG.md).
+Qodo Code Review is installed for the repository. PR #2 is a merged implementation PR for the CI workflow compatibility scenario. Its two published correctness issues were remediated, and Qodo updated the review to the remediation commit. The review record—including later public-review discrepancies identified by S7—is maintained in [QODO_REVIEW_LOG.md](./QODO_REVIEW_LOG.md).

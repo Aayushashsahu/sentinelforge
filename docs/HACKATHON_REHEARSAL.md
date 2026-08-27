@@ -1,5 +1,7 @@
 # Hackathon Rehearsal Checklist
 
+> **Historical UI rehearsal note.** This checklist describes the contextual deterministic dashboard and a prior loading-state polish, not the authoritative S2 proof screen sequence. The current evidence-led recording plan is [HACKATHON_DEMO.md](./HACKATHON_DEMO.md); do not use this note to imply that the generic dashboard rendered the live S2 receipt.
+
 ## Observed Demo Presentation
 
 The persisted mission page communicates the intended safety story through the derived timeline: real evidence and approval stages are complete, sandbox verification and write execution are visibly blocked, and safe completion is explicit. The readiness page consistently distinguishes **REAL**, **BLOCKED**, and **GUARDED** capabilities.

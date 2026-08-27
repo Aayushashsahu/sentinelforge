@@ -1,5 +1,7 @@
 # SentinelForge Final Demo State
 
+> **Historical pre-S2 baseline.** This document preserves the earlier real-repair, sandbox-blocked/no-write state for mission `SF_xF37FKFqr1NvtA`. It is not the current S2 fixture-proof receipt and must not be used to claim that no SentinelForge external action has ever occurred. For the current evidence-led demo, use [HACKATHON_DEMO.md](./HACKATHON_DEMO.md).
+
 ## Verified End-to-End Sequence
 
 | Stage | Verified state | Evidence boundary |
@@ -8,7 +10,7 @@
 | Proposed | **REAL, unapplied** | The Repair Engineer persisted a minimal `release-manifest.json` version-alignment proposal. |
 | Approved | **REAL** | A provider-originated `tool.approval_required` checkpoint was durably correlated and exactly one `user.tool_approval` continuation was accepted. |
 | Verification | **SANDBOX_VERIFICATION_BLOCKED** | The real sandbox reached `truefoundry-system/exec` but bootstrap failed while installing `pydantic` through its proxy before the repair command could run. |
-| GitHub write | **NOT PERMITTED** | No branch, commit, pull request, or GitHub mutation was performed. The deterministic execution plan refuses any write without a real verification pass and separate write authorization. |
+| GitHub write | **NOT PERMITTED for this historical real-repair mission** | No branch, commit, pull request, or GitHub mutation was performed for this mission. The separate S2 fixture proof later produced one bounded open PR without changing this real-repair sandbox gate. |
 
 > The demo must not represent the simulated verifier as a real sandbox pass. The persisted sandbox result is a provider-real **FAIL** with empty stdout, exit code `2`, and a documented bootstrap/proxy error.
 
@@ -18,7 +20,7 @@
 2. Show the real approval checkpoint, its durable correlation, and the exactly-once continuation record.
 3. Show the failed isolated sandbox run, its preserved stdout/stderr/exit code, and the `SANDBOX_VERIFICATION_BLOCKED` capability state.
 4. Show the deterministic future branch/commit/pull-request plan and its fail-closed prerequisites.
-5. Conclude with zero external action records and no GitHub mutation.
+5. Conclude that this historical real-repair mission recorded zero external action records; do not extend that statement to the separately completed S2 fixture proof.
 
 ## Required Conditions Before Any Future Write
 

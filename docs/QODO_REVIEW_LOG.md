@@ -9,9 +9,9 @@
 | Qodo task connector | **NOT REQUIRED** | Qodo review is supplied by the existing GitHub App rather than a task connector. |
 | Qodo GitHub App installation | **REAL** | The authenticated GitHub settings page lists **Qodo Code Review** as an installed GitHub App. |
 | SentinelForge repository access | **OWNER-CONFIRMED** | The owner confirmed the existing Qodo installation has already been configured for `Aayushashsahu/sentinelforge`. A supplementary read-only GitHub REST probe could not authenticate because the supplied CLI credential returned HTTP 401; no access setting was changed. |
-| Pull-request review capability | **REAL** | Qodo completed real review cycles for PR #2 and PR #3, including documented findings and follow-ups below. [1] |
+| Pull-request review capability | **REAL** | Qodo published review evidence across the small PR series below. The S7 audit reconciles documented review claims to the publicly visible Qodo record without treating an empty or busy response as clearance. [1] |
 
-> **QODO: REAL** — Qodo Code Review is installed and repository access is owner-confirmed. Real review cycles for PR #2 and PR #3, including remediation follow-ups, are recorded below.
+> **QODO: REAL** — Qodo Code Review is installed and repository access is owner-confirmed. The ledger distinguishes published findings, code remediations, review updates, and formal clearance rather than treating a merged PR or an empty review body as a dismissal.
 
 ## Historical Small Pull-Request Review Plan
 
@@ -23,7 +23,7 @@ This original planning table is superseded by the actual PR #2 and PR #3 review 
 
 ## Backend Milestone — Sandbox-Blocked Execution Boundary
 
-The sandbox-blocked execution boundary remains a documented, evidence-based limitation: GitHub execution is non-executable without a genuine sandbox pass, the approved fingerprint, correlated provider approval, separate write authorization, and a write-scoped credential.
+The real-repair sandbox-blocked execution boundary remains a documented, evidence-based limitation: real-repair GitHub execution is non-executable without a genuine sandbox pass, the approved fingerprint, correlated provider approval, separate write authorization, and a write-scoped credential. The separately authorized, fixture-only S2 proof is documented in [HACKATHON_DEMO.md](./HACKATHON_DEMO.md); it did not remove that gate from the real-repair path.
 
 Qodo has run real reviews for the merged PR #2 and PR #3 scenario increments. This log does not claim a separate Qodo review for the sandbox-blocked execution boundary itself.
 
@@ -81,10 +81,10 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | --- | --- |
 | PR | [#5](https://github.com/Aayushashsahu/sentinelforge/pull/5) — `security/write-capability-evidence` → `main` |
 | Scope | Adds a default-deny, repository-bound capability-evidence policy for the existing fixture-only branch, exact manifest-update, and PR-create boundaries. The policy does not infer write authority from metadata, contents, pull-request reads, ownership, or rulesets visibility. |
-| Initial Qodo review | **REAL** — review `PRR_kwDOUDCFQ88AAAABLBIycQ`, submitted 26 August 2026 UTC for commit `3360c1f`. The Qodo review comment described the operation-specific fail-closed boundary as appropriate and did not issue a severity-labelled finding. [2] |
-| Findings | **None issued.** Qodo provided an assessment and change summary, not a High, Medium, or Low defect report. No remediation was required. |
-| Follow-up | **REAL** — the owner invoked `/agentic_review`; Qodo created follow-up review `PRR_kwDOUDCFQ88AAAABLBKItA` and confirmed its review was updated through the same commit. [3] |
-| Deferred findings | None. |
+| Initial Qodo review | **REAL** — review `PRR_kwDOUDCFQ88AAAABLBIycQ`, submitted 26 August 2026 UTC for commit `3360c1f`. The published review contains two severity-labelled findings: **High** credential-identity evidence binding and **Medium** malformed-evidence refusal handling. [2] |
+| Findings | **Two issued.** The High finding states that reusable capability evidence was not bound to the bearer credential actually sent by the adapter. The Medium finding states that malformed evidence could throw an incidental error instead of the declared fail-closed capability error. |
+| Follow-up | **REAL review object, but not formal clearance.** Qodo created `PRR_kwDOUDCFQ88AAAABLBKItA` on the same reviewed commit. The S7 audit does not treat that update as a formal dismissal of the two initial findings. [3] |
+| Deferred findings | The historical log did not document a Qodo dismissal. The S7 audit flags the credential-identity binding concern for remediation review before a production-safety freeze. |
 | Merge status | **Merged into `main`** as `71a2e41d4042541f06166fb6b298b2dd9a7fed8c` after separate explicit authorization. No provider action, sandbox action, or fixture-repository mutation occurred. |
 
 ## PR #6 — Opt-In Live Fixture Proof Harness
@@ -93,13 +93,12 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | --- | --- |
 | PR | [#6](https://github.com/Aayushashsahu/sentinelforge/pull/6) — `test/live-fixture-proof-harness` → `main` |
 | Scope | Adds a disabled-by-default integration harness that composes the existing live Investigator, Repair Engineer, fixture-gate approval capture, durable approval persistence, continuation bridge, immutable executor, audit persistence, allowlists, and write-capability policy. The harness itself was **not** enabled or run. |
-| Initial Qodo review | **REAL** — review `PRR_kwDOUDCFQ88AAAABLBVYVA`, submitted 26 August 2026 UTC for `7a06a9e`. Qodo reported two valid correctness findings. [4] |
-| Finding 1 | **High / MUST_FIX / valid.** The proof sequence accepted file-call ordering without proving the exact allowlisted owner, repository, `main` ref, successful response correlation, or observed package/manifest versions. |
-| Finding 2 | **Medium / SHOULD_FIX / valid.** The approval pause and provider turn could be selected independently of the fixture-gate model event, risking a false checkpoint or wrong continuation correlation. |
-| Remediation | Commit `118787d` validates exact request arguments; binds response bodies to their corresponding same-turn calls and expected versions; requires the gate after both reads; and requires the approval pause’s tool-call and `source_event_id` to match the gate event. Eight focused deterministic sequence tests cover success plus fail-closed owner, repository, ref, body, source-event, ordering, and missing-pause cases. |
-| Follow-up | **REAL** — the owner invoked `/agentic_review`; Qodo created follow-up review `PRR_kwDOUDCFQ88AAAABLBYlig` and confirmed review coverage through `118787d`. [5] The update did not publish a separate formal dismissal message, so this log records the evidenced code fix and Qodo’s updated review without overstating formal clearance. |
+| Initial Qodo review | **REAL** — review `PRR_kwDOUDCFQ88AAAABLBVYVA`, submitted 26 August 2026 UTC for `7a06a9e`. The published review reports **four** correctness findings, not two. [4] |
+| Findings | The four published concerns were: successful read responses arriving after the next call or approval pause; nested version text qualifying as authoritative evidence; insufficient validation of read target/result evidence; and an approval pause not being tied to the fixture-gate call. |
+| Remediation | Commit `118787d` added same-turn, response, target, body, source-event, ordering, and missing-pause regressions. Later server-orchestrated evidence changes further removed model control over fixture evidence acquisition. This is remediation evidence, not a retroactive claim that the initial review found only two issues. |
+| Follow-up | **REAL** — Qodo created `PRR_kwDOUDCFQ88AAAABLBYlig` for `118787d`. The visible update is not a standalone formal dismissal of the four initial findings; this ledger therefore records the update without overstating clearance. [5] |
 | Deferred findings | None. |
-| Merge status | **Open, unmerged.** No merge, auto-merge, provider action, approval, continuation, sandbox action, fixture branch, fixture commit, or fixture PR occurred. |
+| Merge status | **Merged into `main`** as `226c54f1229f0e006ae853364ccd8990b16430c1` after separate authorization. The implementation PR itself did not perform a live proof action. |
 
 ## PR #7 — Stateful MCP Safety Tools
 
@@ -107,15 +106,13 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | --- | --- |
 | PR | [#7](https://github.com/Aayushashsahu/sentinelforge/pull/7) — `feat/stateful-mcp-safety-tools` → `main` |
 | Scope | Replaces constant `approval_probe` and `repair_proposal_gate` MCP stubs with bounded, structured inspectors over persisted SentinelForge state. The inspectors read only existing mission/action data and policy evidence; they cannot approve, continue, persist, call a provider, invoke a sandbox, or execute a GitHub action. |
-| Initial Qodo review | **REAL** — Qodo submitted formal review `PRR_kwDOUDCFQ88AAAABLBnGAw` on 26 August 2026 UTC for commit `6e12544`, with its published finding details at [issue comment 5430811515](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430811515). |
-| Finding 1 | **High / MUST_FIX / valid.** Mission-only `approval_probe` calls could never show a usable persisted approval because ownership was treated as fixture-action-only even though the prompt supplies only a mission identifier. |
-| Finding 2 | **High / MUST_FIX / valid.** An action-backed request could select a newer unrelated waiting turn instead of proving the exact action-persisted turn/thread/tool-call/required-action checkpoint. |
-| Finding 3 | **Medium / SHOULD_FIX / valid.** Any historical sandbox `PASS` could mask a newer non-passing verification run, giving inaccurate sandbox readiness evidence. |
-| Remediation | Commit `0850802` selects one unambiguous mission-only `TRUEFORGE_PENDING:approval_probe` record, binds action-backed calls to every persisted action checkpoint field (`turnId`, `threadId`, `toolCallId`, and `requiredActionId`), and derives sandbox state from the newest persisted run. Focused regressions cover each concern; full deterministic validation passed. |
-| Follow-up | **REQUESTED / PENDING** — the owner invoked one post-remediation [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430872270). Qodo replied that it was busy at [issue comment 5430874257](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430874257); no follow-up assessment or formal review appeared during the authorized bounded wait. The earlier pre-finding request and busy response remain recorded above as incomplete evidence. |
-| CI | GitHub `quality` workflow succeeded for remediation head `0850802b6f5b619cc479f35a5405c51f0b4eaf5c`. Local remediation validation passed: frozen install, type check, 153 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
-| Deferred findings | None. All published High and practical Medium findings were remediated; **formal Qodo follow-up clearance remains pending**. |
-| Merge status | **Open, unmerged.** No merge, provider action, approval, continuation, sandbox action, or fixture-repository mutation occurred. |
+| Initial Qodo review | **REAL** — Qodo submitted formal review `PRR_kwDOUDCFQ88AAAABLBnGAw` on 26 August 2026 UTC for commit `6e12544`, with four published finding details at [issue comment 5430811515](https://github.com/Aayushashsahu/sentinelforge/pull/7#issuecomment-5430811515). |
+| Findings | **Four issued initially:** unrelated turn correlation, a mission-only probe that always blocks, unrelated runs influencing sandbox state, and a historical pass masking a later failure. The published updated-review context still lists three findings, so the record does not support a formal-clearance claim. |
+| Remediation | Commit `0850802` added focused correlation, mission-only, and newest-run tests. Later S2 hardening further changed the fixture evidence and approval path. These changes do not erase the historical Qodo finding count. |
+| Follow-up | **REAL review object, no formal clearance.** Qodo submitted `PRR_kwDOUDCFQ88AAAABLBq_NA` for `0850802`; the available public record does not contain an explicit dismissal of the remaining updated-review findings. |
+| CI | GitHub `quality` workflow succeeded for remediation head `0850802b6f5b619cc479f35a5405c51f0b4eaf5c`. Historical local validation recorded 153 deterministic tests with 16 opt-in live tests skipped. |
+| Deferred findings | No formal Qodo clearance is claimed; the S7 audit retains these items as review-history evidence and evaluates current code separately. |
+| Merge status | **Merged into `main`** as `25c35d7ee2f0741a95f0975dd3bce0715a83fdcb` after separate authorization. |
 
 ## PR #8 — Configured GitHub Write-Capability Model
 
@@ -128,7 +125,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Follow-up | **REAL** — after the owner invoked [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/8#issuecomment-5433528407), Qodo confirmed at [issue comment 5433538872](https://github.com/Aayushashsahu/sentinelforge/pull/8#issuecomment-5433538872) that the code review was updated through `71b87f0`; its review context reports no changes from the previous review. |
 | CI | GitHub `quality` workflow succeeded for `71b87f0d8de7073c9518f36c43e5fea551723337`. Local validation passed: frozen install, type check, 161 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
 | Deferred findings | None. |
-| Merge status | **Open, unmerged.** No provider turn, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+| Merge status | **Merged into `main`** as `5ec35581f26a5d962142d79f5856ff5a0280ac47` after separate authorization. The implementation PR itself did not invoke a live proof action. |
 
 ## PR #9 — Strict Configured-Capability Array Parser
 
@@ -141,7 +138,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Follow-up | **REAL** — after one [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434095676) request, Qodo confirmed at [issue comment 5434101212](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434101212) that its review was updated through the same commit. |
 | CI | GitHub `quality` workflow succeeded for `87427e1436b758953da5d2a4f95db2c4ecf576b7`. Local validation passed: frozen install, type check, 177 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
 | Deferred findings | None. |
-| Merge status | **Open, unmerged.** No provider turn, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+| Merge status | **Merged into `main`** as `1e677c03b3f57c6ca88ca3baa2d1596c2fef1cf1` after separate authorization. The implementation PR itself did not invoke a live proof action. |
 
 ## PR #10 — Legal Fixture-Proof Planning Lifecycle
 
@@ -149,12 +146,12 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | --- | --- |
 | PR | [#10](https://github.com/Aayushashsahu/sentinelforge/pull/10) — `fix/fixture-proof-legal-lifecycle` → `main` |
 | Scope | Adds a narrow setup helper for the one-use fixture-proof runner. It preserves the production state machine’s refusal of direct `CREATED` → `PLANNING_FIX` and uses only the legal `CREATED` → `INVESTIGATING` → `PLANNING_FIX` path, with exact canonical proposal and idempotency checks. |
-| Initial Qodo review | **REAL** — Qodo submitted review `PRR_kwDOUDCFQ88AAAABLD9jTw` on 27 August 2026 UTC for `7d59696`. Its assessment found **0 bugs, 0 rule violations, and 0 requirement gaps** at [issue comment 5434500761](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434500761). |
-| Findings | **None issued.** No remediation or justified disagreement was required. |
-| Follow-up | **REQUESTED / PENDING** — after one [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434501786) request, Qodo replied that it was busy at [issue comment 5434502935](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434502935). No formal follow-up review appeared during the authorized bounded wait. |
+| Initial Qodo review | **REAL** — Qodo submitted `PRR_kwDOUDCFQ88AAAABLD9jTw` on 27 August 2026 UTC for `7d59696`. The published review reports two findings, not zero: a **High** planning-audit loss on a failed audit insert and a **Medium** concurrent planning overwrite risk. [12] |
+| Findings | **Two issued.** The published record identifies independently persisted planning/audit writes and an unguarded concurrent planning transition as the risks. |
+| Follow-up | **REAL review object, no formal clearance.** Qodo created `PRR_kwDOUDCFQ88AAAABLD-NLg`; the public evidence available to S7 does not establish a formal dismissal of the two initial findings. The prior busy response remains historical evidence, not clearance. |
 | CI | GitHub `quality` workflow succeeded for `7d59696afa1b386822d77021614a243cc17a0dfd`. Local validation passed: frozen install, type check, 181 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
-| Deferred findings | None. No initial finding requires a fix; **formal Qodo follow-up remains pending**. |
-| Merge status | **Open, unmerged.** No provider turn, proof action, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+| Deferred findings | No formal Qodo dismissal is claimed. The S7 audit retains the lifecycle atomicity/concurrency concerns for remediation review before a production-safety freeze. |
+| Merge status | **Merged into `main`** as `5ef59d5057285d38d56fff8e9781167cd0f98e3f` after separate authorization. |
 
 ## PR #11 — Server-Derived Fixture Artifact Reads
 
@@ -167,7 +164,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Remediation | The MCP handler and post-stream validator now accept exactly `proof_mission_id`, `proof_action_id`, and `artifact`; all other fields are rejected before GitHub I/O. Both JSON-schema alternatives now set `additionalProperties: false`, and deterministic regressions cover alias and arbitrary-field injection. |
 | Follow-up | **REAL** — after the remediation request at [issue comment 5437535828](https://github.com/Aayushashsahu/sentinelforge/pull/11#issuecomment-5437535828), Qodo confirmed at [issue comment 5437546155](https://github.com/Aayushashsahu/sentinelforge/pull/11#issuecomment-5437546155) that its review was updated through remediation commit `8de88e3`. The original Medium finding remains retained in review history; no additional finding was issued. |
 | Deferred findings | None. |
-| Merge status | **Open, unmerged.** No provider turn, proof action, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+| Merge status | **Merged into `main`** as `405a6c309f15541afcdbe5c92b373395319fdf51` after separate authorization. The implementation PR itself did not invoke a live proof action. |
 
 ## PR #12 — Fixture-Read Credential Boundary
 
@@ -181,7 +178,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Follow-up | **REAL** — after the remediation request at [issue comment 5437900636](https://github.com/Aayushashsahu/sentinelforge/pull/12#issuecomment-5437900636), Qodo confirmed at [issue comment 5437867056](https://github.com/Aayushashsahu/sentinelforge/pull/12#issuecomment-5437867056) that its code review was updated through remediation commit `2f67bcb`. No additional issue was published. The original Medium finding remains retained as historical review context; Qodo did not publish a separate formal dismissal message. |
 | Local validation | Frozen install, type check, 197 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check passed for `712169d`. |
 | Deferred findings | None. |
-| Merge status | **Open, unmerged.** This PR has not started a provider session, staged a fixture action, requested an approval, sent a continuation, called the fixture repository, invoked a sandbox, or performed any fixture-repository mutation. |
+| Merge status | **Merged into `main`** as `fcccc43e75e268e2c10a014b730ba1173c271312` after separate authorization. The implementation PR itself did not start a provider session, stage a fixture action, send a continuation, invoke a sandbox, or mutate the fixture repository. |
 
 ## PR #13 — Server-Orchestrated Fixture Evidence Capture
 
@@ -194,7 +191,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Remediation | Commit `8ce29ef` rejects any persisted fixture action whose path or fixed version fields differ from the canonical constants. It records canonical constants in server evidence and independently checks the same constants at correlation binding, gate eligibility, and proof-specific approval persistence. Focused deterministic tests cover malformed persisted versions and passed. |
 | Follow-up | **REAL** — after the documented [`/agentic_review` request](https://github.com/Aayushashsahu/sentinelforge/pull/13#issuecomment-5439564248), Qodo confirmed that its review was updated through `8ce29ef` at [issue comment 5439540573](https://github.com/Aayushashsahu/sentinelforge/pull/13#issuecomment-5439540573). The update did not publish a separate formal dismissal or a new issue. |
 | Deferred findings | None. The one valid finding was remediated. |
-| Merge status | **Open, unmerged.** No live proof, provider session, fixture-repository call, approval, continuation, sandbox run, branch, commit, pull request, merge, or other external proof action occurred. |
+| Merge status | **Merged into `main`** as `7b17d98f5c6681649bb35b2d209d58f1e120c8fb` after separate authorization. The implementation PR itself did not invoke the live proof or mutate the fixture repository. |
 
 ## PR #16 — Provider-History Correlation Hardening
 
@@ -208,7 +205,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Finding 3 | **Medium / SHOULD_FIX / valid.** The raw audit row projected selected metadata rather than retaining a safe, complete representation of the provider event used by validation. |
 | Remediation | Commit `afc3a8f` adds a bounded session-history reader, makes capture retrieve the documented history envelope before normalization, persists raw history before a potentially rejecting normalization, and persists a separate complete normalized view with provenance. Raw audit copies retain event, data, and envelope fields while redacting secret-shaped field values. Deterministic regressions cover authoritative envelope mapping and safe complete raw-audit retention. |
 | Follow-up | **REAL** — after the remediation request at [issue comment 5442054391](https://github.com/Aayushashsahu/sentinelforge/pull/16#issuecomment-5442054391), Qodo initially replied that it was busy at [issue comment 5442056145](https://github.com/Aayushashsahu/sentinelforge/pull/16#issuecomment-5442056145), then submitted `COMMENTED` review `PRR_kwDOUDCFQ88AAAABLJgwJg` at 16:25:21 UTC for remediation commit `afc3a8f`. Its review body was empty and no new Qodo issue comment, formal dismissal, or additional finding was published. |
-| Merge status | **Open, unmerged.** No provider turn, approval, continuation, fixture-repository access or mutation, sandbox operation, external proof action, or merge occurred. |
+| Merge status | **Merged into `main`** as `5b4b6a0d969dd6ada01bb43d497396ad92f01d6a` after separate authorization. The implementation PR itself did not invoke a provider turn, continuation, sandbox, or fixture proof action. |
 
 ## References
 

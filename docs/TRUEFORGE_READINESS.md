@@ -1,14 +1,16 @@
-# TrueForge and MCP readiness
+# TrueForge and MCP Readiness
 
-SentinelForge intentionally separates domain logic from its future harness provider. A future adapter should create and resume TrueForge sessions, call scoped GitHub MCP read tools, delegate typed Investigator/Repair Engineer/Verifier work, send repairs to a provider sandbox, and resume only after a persisted approval decision.
+This document records the current audited status, not a planned-provider state. SentinelForge preserves a separation between provider evidence, human approval, sandbox verification, and external execution.
 
-| Capability | Current state | Evidence |
+| Capability | Current audited state | Evidence boundary |
 |---|---|---|
-| Mission state and approval continuation | Ready | Persisted mission and approval tables, state validation, tests. |
-| Audit trail | Ready | Events are append-only; no update or delete procedure exists. |
-| Deterministic verifier | Ready for fixture | No-shell, no-network, no-filesystem-mutation adapter with timeout and output capture. |
-| TrueForge session | Not connected | Architecture is documented; no live provider claim is made. |
-| GitHub MCP read/write | Not connected | A simulated action demonstrates the approval boundary only. |
-| Provider sandbox | Not connected | Connect a TrueForge sandbox before generated code or arbitrary repositories are accepted. |
+| Mission state and approval continuation | **Verified for the recorded flows** | Persisted mission, approval, continuation, and audit records exist; duplicate continuation delivery is guarded server-side. |
+| Audit trail | **Implemented and tested** | Events are append-only in the application model; the S7 report identifies remaining public-route authorization concerns separately. |
+| Deterministic verifier | **Fixture-only support** | No-shell, no-network, no-filesystem-mutation deterministic adapter; it is not represented as a provider sandbox pass. |
+| TrueForge session and approval | **Verified from historical live execution** | Real Investigator/Repair flows, provider approval pauses, and correlated continuations were recorded. No new provider action is authorized by this status. |
+| First-party MCP reads | **Verified from historical live execution** | `sentinelforge-tools` supplied ordinary read-only file text for recorded investigator/repair flows. |
+| Fixture GitHub proof | **Completed, bounded external proof** | One immutable fixture action produced one branch, one manifest-only commit, and one open, unmerged PR; no merge or auto-merge occurred. |
+| Real-repair sandbox | **`SANDBOX_VERIFICATION_BLOCKED`** | `truefoundry-system/exec` admission was observed, but bootstrap failed at the provider proxy/package-index boundary before the repair command ran. |
+| Real-repair GitHub execution | **`WRITE_BLOCKED`** | A real-repair write still requires a genuine sandbox pass and separate authorization; the S2 fixture proof does not relax this requirement. |
 
-Do not change a UI label from **Not connected** or **Simulated** until its integration is configured and verified end to end.
+> Do not convert historical evidence into a claim of continuously available provider connectivity, sandbox functionality, or general repository-write authority. See [HACKATHON_DEMO.md](./HACKATHON_DEMO.md) and [SANDBOX_BLOCKER.md](./SANDBOX_BLOCKER.md).

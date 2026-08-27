@@ -1,6 +1,6 @@
 # TrueForge Approval Bridge
 
-**Status:** **Implemented and deterministically tested; no continuation has been sent.** The verified paused `approval_probe` remains untouched as a reference artifact. The bridge consumes the same provider correlation contract only when a future, real repair action emits `tool.approval_required`.
+**Status:** **Implemented and deterministically tested.** The verified paused `approval_probe` remains untouched as a reference artifact. A later repair-specific continuation and the separately authorized S2 fixture-proof continuation were each sent once through their own persisted correlations; neither resumed the reference probe. The bridge consumes the same provider correlation contract only when a real repair action emits `tool.approval_required`.
 
 ## Durable Model
 
@@ -29,4 +29,4 @@ The bridge tests cover allow staging, reject-without-resume, identical duplicate
 
 ## Remaining Live PR Blocker
 
-The bridge does **not** authorize or implement a GitHub pull request. A live repair path still requires a real sandbox pass, a repair-specific verified approval event, separately authorized continuation, and the existing valid fingerprint/idempotency gates. The verified `approval_probe` event is non-mutating and cannot satisfy those repair-execution prerequisites.
+The bridge does **not** authorize a GitHub pull request by itself. The real-repair path still requires a real sandbox pass, a repair-specific verified approval event, separately authorized continuation, and the existing valid fingerprint/idempotency gates. The verified `approval_probe` event is non-mutating and cannot satisfy those repair-execution prerequisites. The completed S2 fixture proof is separately bounded and does not remove these real-repair conditions.

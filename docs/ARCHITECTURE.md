@@ -37,7 +37,9 @@ The persisted mission lifecycle remains conservative (`COMPLETED` means the prov
 
 ## Execution Boundary
 
-The deterministic GitHub plan includes one idempotency key per mission and repair fingerprint, a branch name, the approved changed-file set, and ordered future operations: create branch, commit the exact patch, then create pull request. It is not an executor. Any execution attempt is rejected unless it has a real verification pass, matching fingerprint, correlated provider approval, separate write authorization, and write-scoped credential.
+For the **real-repair path**, the deterministic GitHub plan includes one idempotency key per mission and repair fingerprint, a branch name, the approved changed-file set, and ordered future operations: create branch, commit the exact patch, then create pull request. It remains inert unless it has a real verification pass, matching fingerprint, correlated provider approval, separate write authorization, and a write-scoped credential.
+
+The completed **S2 fixture proof** is a distinct, explicitly authorized one-time executor with an immutable fixture target and one-file transformation. It produced one branch, one manifest-only commit, and one open, unmerged fixture PR, then stopped. It did not claim a sandbox pass or change the real-repair execution prerequisites. See [HACKATHON_DEMO.md](./HACKATHON_DEMO.md) for the evidence boundary.
 
 ## Current Sandbox Constraint
 

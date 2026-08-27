@@ -1,5 +1,7 @@
 # Submission Audit
 
+> **Historical snapshot, superseded for current submission state.** This 26 August 2026 self-assessment predates the completed S2 fixture proof, merged PRs #4–#16, the S4 recording, and the S5 provider escalation. It remains useful as a dated audit artifact, but it must not be read as a claim that SentinelForge has never created an external fixture PR or that no video exists. Current boundaries are recorded in [HACKATHON_DEMO.md](./HACKATHON_DEMO.md), [VIDEO_CAPTURE_STATUS.md](./VIDEO_CAPTURE_STATUS.md), and [TRUEFOUNDRY_SANDBOX_ESCALATION.md](./TRUEFOUNDRY_SANDBOX_ESCALATION.md).
+
 **Audit date:** 26 August 2026 UTC
 **Assessment type:** Evidence-based self-assessment. It is not a claim of judging outcome.
 
@@ -16,7 +18,7 @@
 | Real provider and approval | SentinelForge retains provider-real MCP evidence, approval-required correlation, and an exact approved continuation. | Verified. |
 | Sandbox verification | Real `exec` admission occurred, but provider bootstrap could not install `pydantic` through its proxy/package-index path. | Blocked; not treated as a pass. |
 | GitHub repair execution | Deterministic write intent remains guarded; no repair branch, commit, PR, or GitHub mutation was performed by SentinelForge. | Correctly refused. |
-| Video | The local app rendered in a real browser. The available browser recorder lacked required artifacts, so no video was created. | No fabricated fallback. |
+| Video | **Historical 26 August observation:** the available browser recorder then lacked required artifacts, so no video was created at that time. | No fabricated fallback; this was later superseded by the separately documented S4 recording. |
 
 ## Honest readiness scores
 
