@@ -88,13 +88,16 @@ describe("sentinelforge-tools", () => {
     ["alternate owner", { owner: "other" }],
     ["alternate ref", { ref: "feature" }],
     ["alternate path", { path: "other.json" }],
+    ["alternate repository alias", { repository: "sentinelforce-incident-fixture" }],
+    ["alternate reference alias", { reference: "feature" }],
+    ["unrecognized extra field", { arbitrary: "value" }],
   ])("rejects %s as model-supplied fixture target injection before a GitHub read", async (_label, injected) => {
     const fetchImpl = vi.fn();
     const persistence = state(proofAction());
     const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), persistence);
     const result = await tools.call("get_file", { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture", artifact: "package.json", ...injected });
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("model-supplied target fields are not accepted");
+    expect(result.content[0].text).toContain("accept only proof identifiers and artifact");
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });

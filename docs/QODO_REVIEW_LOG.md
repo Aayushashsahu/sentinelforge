@@ -156,6 +156,19 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. No initial finding requires a fix; **formal Qodo follow-up remains pending**. |
 | Merge status | **Open, unmerged.** No provider turn, proof action, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
 
+## PR #11 — Server-Derived Fixture Artifact Reads
+
+| Field | Record |
+| --- | --- |
+| PR | [#11](https://github.com/Aayushashsahu/sentinelforge/pull/11) — `security/fixture-artifact-selector` → `main` |
+| Scope | Removes model control over the fixture-proof owner, repository, reference, and path. Action-bound `get_file` calls carry only proof identifiers plus an allowed artifact selector; the server derives the canonical target from immutable action intent. |
+| Initial Qodo review | **REAL** — Qodo submitted review `PRR_kwDOUDCFQ88AAAABLGIC1A` on 27 August 2026 UTC for `5d47876`, reporting one valid correctness finding at [issue comment 5437494711](https://github.com/Aayushashsahu/sentinelforge/pull/11#issuecomment-5437494711). |
+| Finding | **Medium / SHOULD_FIX / valid.** The initial action-bound read guard rejected only four legacy target keys, allowing other extra fields despite the promised exact three-field fixture interface. |
+| Remediation | The MCP handler and post-stream validator now accept exactly `proof_mission_id`, `proof_action_id`, and `artifact`; all other fields are rejected before GitHub I/O. Both JSON-schema alternatives now set `additionalProperties: false`, and deterministic regressions cover alias and arbitrary-field injection. |
+| Follow-up | **PENDING REQUEST** — a fresh `/agentic_review` request will be made after the remediation commit is pushed. The earlier Qodo update through `5d47876` predates this remediation and is not claimed as clearance. |
+| Deferred findings | None. |
+| Merge status | **Open, unmerged.** No provider turn, proof action, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.

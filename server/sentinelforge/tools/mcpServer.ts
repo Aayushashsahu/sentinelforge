@@ -66,8 +66,9 @@ function fixtureArtifactArgument(args: Record<string, unknown>): FixtureArtifact
 }
 
 function assertNoModelSuppliedFixtureTarget(args: Record<string, unknown>) {
-  const supplied = ["owner", "repo", "ref", "path"].filter(key => key in args);
-  if (supplied.length > 0) throw new Error("Fixture proof read refused: model-supplied target fields are not accepted; use only proof identifiers and artifact.");
+  const permitted = new Set(["proof_mission_id", "proof_action_id", "artifact"]);
+  const supplied = Object.keys(args).filter(key => !permitted.has(key));
+  if (supplied.length > 0) throw new Error("Fixture proof read refused: action-bound fixture reads accept only proof identifiers and artifact.");
 }
 
 function assertFixtureActionIntegrity(action: FixtureProofAction, bundle: NonNullable<Awaited<ReturnType<SafetyInspectionPort["getMissionBundle"]>>>, missionId: string) {
@@ -149,7 +150,7 @@ export function createSentinelForgeToolsMcpServer(tools = new SentinelForgeTools
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       { name: "get_repository", description: "Read allowlisted repository metadata.", inputSchema: { type: "object", required: ["owner", "repo"], properties: { owner: { type: "string" }, repo: { type: "string" } } } },
-	      { name: "get_file", description: "Read decoded text from an allowlisted repository file. Fixture-proof reads accept only persisted proof IDs plus artifact (package.json or release-manifest.json); the server derives owner, repository, and ref from immutable action intent before it reads or marks evidence.", inputSchema: { type: "object", oneOf: [{ required: ["owner", "repo", "path", "ref"] }, { required: ["proof_mission_id", "proof_action_id", "artifact"] }], properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" }, proof_mission_id: { type: "string" }, proof_action_id: { type: "string" }, artifact: { type: "string", enum: ["package.json", "release-manifest.json"] } } } },
+	      { name: "get_file", description: "Read decoded text from an allowlisted repository file. Fixture-proof reads accept only persisted proof IDs plus artifact (package.json or release-manifest.json); the server derives owner, repository, and ref from immutable action intent before it reads or marks evidence.", inputSchema: { oneOf: [{ type: "object", required: ["owner", "repo", "path", "ref"], additionalProperties: false, properties: { owner: { type: "string" }, repo: { type: "string" }, path: { type: "string" }, ref: { type: "string" } } }, { type: "object", required: ["proof_mission_id", "proof_action_id", "artifact"], additionalProperties: false, properties: { proof_mission_id: { type: "string" }, proof_action_id: { type: "string" }, artifact: { type: "string", enum: ["package.json", "release-manifest.json"] } } }] } },
       { name: "get_issue", description: "Read an issue from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "issue_number"], properties: { owner: { type: "string" }, repo: { type: "string" }, issue_number: { type: "integer", minimum: 1 } } } },
       { name: "get_workflow_run", description: "Read an Actions workflow run from an allowlisted repository.", inputSchema: { type: "object", required: ["owner", "repo", "run_id"], properties: { owner: { type: "string" }, repo: { type: "string" }, run_id: { type: "integer", minimum: 1 } } } },
 			{ name: "approval_probe", description: "Read and fail-closed inspect a persisted approval checkpoint and its supplied correlation. It never approves, resumes, mutates, or writes.", inputSchema: { type: "object", required: ["mission_id"], properties: { mission_id: { type: "string" }, action_id: { type: "string" }, required_action_id: { type: "string" }, thread_id: { type: "string" }, tool_call_id: { type: "string" }, proposal_fingerprint: { type: "string" } } }, annotations: { readOnlyHint: true } },

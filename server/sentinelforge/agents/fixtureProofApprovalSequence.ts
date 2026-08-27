@@ -37,7 +37,9 @@ function extractModelToolCalls(event: TrueForgeStreamEvent, eventIndex: number):
 }
 
 function assertReadCall(call: ModelToolCall, expected: { path: string; expectedVersion: string }, toolsMcpName: string, action: FixtureProofAction) {
-  if (call.name !== "get_file" || call.server !== toolsMcpName || call.arguments.proof_mission_id !== action.missionId || call.arguments.proof_action_id !== action.id || call.arguments.artifact !== expected.path || ["owner", "repo", "ref", "path"].some(key => key in call.arguments)) {
+  const permitted = ["artifact", "proof_action_id", "proof_mission_id"];
+  const keys = Object.keys(call.arguments).sort();
+  if (call.name !== "get_file" || call.server !== toolsMcpName || keys.length !== permitted.length || !keys.every((key, index) => key === permitted[index]) || call.arguments.proof_mission_id !== action.missionId || call.arguments.proof_action_id !== action.id || call.arguments.artifact !== expected.path) {
     throw new Error(`Fixture proof approval capture requires an exact persisted-action-bound successful get_file(${expected.path}) call for the allowlisted target on main.`);
   }
 }
