@@ -143,6 +143,19 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Deferred findings | None. |
 | Merge status | **Open, unmerged.** No provider turn, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
 
+## PR #10 — Legal Fixture-Proof Planning Lifecycle
+
+| Field | Record |
+| --- | --- |
+| PR | [#10](https://github.com/Aayushashsahu/sentinelforge/pull/10) — `fix/fixture-proof-legal-lifecycle` → `main` |
+| Scope | Adds a narrow setup helper for the one-use fixture-proof runner. It preserves the production state machine’s refusal of direct `CREATED` → `PLANNING_FIX` and uses only the legal `CREATED` → `INVESTIGATING` → `PLANNING_FIX` path, with exact canonical proposal and idempotency checks. |
+| Initial Qodo review | **REAL** — Qodo submitted review `PRR_kwDOUDCFQ88AAAABLD9jTw` on 27 August 2026 UTC for `7d59696`. Its assessment found **0 bugs, 0 rule violations, and 0 requirement gaps** at [issue comment 5434500761](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434500761). |
+| Findings | **None issued.** No remediation or justified disagreement was required. |
+| Follow-up | **REQUESTED / PENDING** — after one [`/agentic_review`](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434501786) request, Qodo replied that it was busy at [issue comment 5434502935](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434502935). No formal follow-up review appeared during the authorized bounded wait. |
+| CI | GitHub `quality` workflow succeeded for `7d59696afa1b386822d77021614a243cc17a0dfd`. Local validation passed: frozen install, type check, 181 deterministic tests with 16 opt-in live tests skipped, production build, and whitespace check. |
+| Deferred findings | None. No initial finding requires a fix; **formal Qodo follow-up remains pending**. |
+| Merge status | **Open, unmerged.** No provider turn, proof action, approval, continuation, sandbox run, fixture branch, fixture commit, fixture PR, or other live proof action occurred. |
+
 ## References
 
 [1] [Qodo GitHub Marketplace listing](https://github.com/marketplace/qodo-merge-pro) — states the installation sequence: install the GitHub App, select repositories, then open a PR for automatic review.
@@ -166,3 +179,7 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 [10] [PR #9 Qodo initial no-issue review](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434089541) — real Qodo assessment showing zero issued findings.
 
 [11] [PR #9 Qodo follow-up update](https://github.com/Aayushashsahu/sentinelforge/pull/9#issuecomment-5434101212) — real Qodo update after the documented `/agentic_review` request.
+
+[12] [PR #10 Qodo initial no-issue review](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434500761) — real Qodo assessment showing zero issued findings.
+
+[13] [PR #10 Qodo follow-up pending response](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434502935) — real Qodo response after the one requested `/agentic_review` follow-up, which did not yet provide a completed review.
