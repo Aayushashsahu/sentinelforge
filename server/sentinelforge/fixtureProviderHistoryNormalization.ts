@@ -72,22 +72,35 @@ function sanitizeEvent(event: TrueForgeStreamEvent, normalized = false) {
   };
 }
 
-export function buildFixtureProviderHistoryAuditInputs(input: { missionId: string; turnId: string; rawEvents: readonly TrueForgeStreamEvent[]; normalizedEvents: readonly NormalizedFixtureProviderEvent[] }) {
-  const raw = input.rawEvents.map((event, index) => ({
+function safeAuditValue(value: unknown): unknown {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.map(safeAuditValue);
+  if (!value || typeof value !== "object") return "[UNSUPPORTED_AUDIT_VALUE]";
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, /authorization|cookie|password|secret|token/i.test(key) ? "[REDACTED]" : safeAuditValue(item)]));
+}
+
+export function buildFixtureProviderRawHistoryAuditInputs(input: { missionId: string; turnId: string; rawEvents: readonly TrueForgeStreamEvent[] }) {
+  return input.rawEvents.map((event, index) => ({
     missionId: input.missionId,
     eventType: "RAW_PROVIDER_EVENT",
     actor: "TrueForge",
     correlationId: input.turnId,
     result: "Observed raw provider-history event before correlation normalization.",
-    payload: { index, ...sanitizeEvent(event) },
+    payload: { index, ...sanitizeEvent(event), rawProviderEvent: safeAuditValue({ event: event.event, data: event.data, historyEnvelope: event.historyEnvelope ?? null }) },
   }));
-  const normalized = input.normalizedEvents.map((event, index) => ({
+}
+
+export function buildFixtureProviderNormalizedHistoryAuditInputs(input: { missionId: string; turnId: string; normalizedEvents: readonly NormalizedFixtureProviderEvent[] }) {
+  return input.normalizedEvents.map((event, index) => ({
     missionId: input.missionId,
     eventType: "NORMALIZED_PROVIDER_EVENT",
     actor: "SentinelForge",
     correlationId: input.turnId,
     result: "Normalized provider-history event using only authoritative raw, session-route, or session-history-envelope correlation context.",
-    payload: { index, ...sanitizeEvent(event, true), correlationProvenance: event.normalizedCorrelation },
+    payload: { index, ...sanitizeEvent(event, true), correlationProvenance: event.normalizedCorrelation, normalizedProviderEvent: safeAuditValue({ event: event.event, data: event.normalizedData, historyEnvelope: event.historyEnvelope ?? null, correlationProvenance: event.normalizedCorrelation }) },
   }));
-  return [...raw, ...normalized];
+}
+
+export function buildFixtureProviderHistoryAuditInputs(input: { missionId: string; turnId: string; rawEvents: readonly TrueForgeStreamEvent[]; normalizedEvents: readonly NormalizedFixtureProviderEvent[] }) {
+  return [...buildFixtureProviderRawHistoryAuditInputs(input), ...buildFixtureProviderNormalizedHistoryAuditInputs(input)];
 }

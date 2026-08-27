@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFixtureProviderHistoryAuditInputs, normalizeFixtureProviderHistory } from "./fixtureProviderHistoryNormalization";
+import { buildFixtureProviderHistoryAuditInputs, buildFixtureProviderRawHistoryAuditInputs, normalizeFixtureProviderHistory } from "./fixtureProviderHistoryNormalization";
 import type { TrueForgeStreamEvent } from "./trueforge/stream";
 import { mapTrueForgeSessionHistory } from "./liveWorkflow";
 
@@ -52,5 +52,11 @@ describe("fixture provider-history normalization", () => {
     expect(rows.map(row => row.eventType)).toEqual(["RAW_PROVIDER_EVENT", "NORMALIZED_PROVIDER_EVENT"]);
     expect(rows[0]?.payload).toMatchObject({ rawTurnId: null, historyEnvelope: { sessionId, turnId } });
     expect(rows[1]?.payload).toMatchObject({ correlationProvenance: { turnId: "session_history_envelope" } });
+  });
+
+  it("retains a complete safe raw representation before normalization while redacting secret-shaped fields", () => {
+    const raw = [event({ type: "model.message", id: "gate", tool_calls: [{ id: "call", function: { name: "fixture_github_pr_gate", arguments: "{}" } }], token: "must-not-persist" })];
+    const rows = buildFixtureProviderRawHistoryAuditInputs({ missionId: "SF_fixture", turnId, rawEvents: raw });
+    expect(rows[0]?.payload).toMatchObject({ rawProviderEvent: { event: "model.message", data: { id: "gate", tool_calls: [{ id: "call" }], token: "[REDACTED]" }, historyEnvelope: { sessionId, turnId } } });
   });
 });

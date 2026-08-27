@@ -157,6 +157,19 @@ export function orderTrueForgeSessionHistoryChronologically(events: readonly Tru
   return typeAt(0) === "turn.done" && typeAt(events.length - 1) === "turn.created" ? [...events].reverse() : [...events];
 }
 
+export async function readBoundedSessionHistory(input: { client: TrueForgeClient; sessionId: string }) {
+  const historyController = new AbortController();
+  const historyTimeout = setTimeout(() => historyController.abort(), LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS);
+  try {
+    return orderTrueForgeSessionHistoryChronologically(mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal), { sessionId: input.sessionId }));
+  } catch (error) {
+    if (historyController.signal.aborted) throw new LiveTurnPendingError();
+    throw error;
+  } finally {
+    clearTimeout(historyTimeout);
+  }
+}
+
 function hasTerminalTurn(events: readonly TrueForgeStreamEvent[]): boolean {
   return events.some(event => event.event === "turn.done" || (event.data !== null && typeof event.data === "object" && !Array.isArray(event.data) && (event.data as Record<string, unknown>).type === "turn.done"));
 }
@@ -169,17 +182,7 @@ export async function readBoundedTurn(input: { client: TrueForgeClient; sessionI
     return await readTrueForgeSse(response, controller.signal);
   } catch (error) {
     if (!(error instanceof TrueForgeSseAbortedError) && !controller.signal.aborted) throw error;
-    const historyController = new AbortController();
-    const historyTimeout = setTimeout(() => historyController.abort(), LIVE_HISTORY_RECONCILIATION_TIMEOUT_MS);
-    let history: TrueForgeStreamEvent[];
-    try {
-      history = orderTrueForgeSessionHistoryChronologically(mapTrueForgeSessionHistory(await input.client.listSessionEvents(input.sessionId, historyController.signal), { sessionId: input.sessionId }));
-    } catch (historyError) {
-      if (historyController.signal.aborted) throw new LiveTurnPendingError();
-      throw historyError;
-    } finally {
-      clearTimeout(historyTimeout);
-    }
+    const history = await readBoundedSessionHistory({ client: input.client, sessionId: input.sessionId });
     if (hasTerminalTurn(history) || findTrueForgeApprovalProbePause(history)) return history;
     throw new LiveTurnPendingError();
   } finally {
