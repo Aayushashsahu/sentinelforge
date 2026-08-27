@@ -21,9 +21,17 @@ describe("live fixture proof harness configuration", () => {
     ["wrong owner", { GITHUB_SCRATCH_OWNER: "other" }, /exact fixture allowlist owner/],
     ["wrong repository", { GITHUB_SCRATCH_REPO: "other" }, /exact fixture allowlist repository/],
     ["missing configured capability", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: undefined }, /configured write capabilities/],
-    ["malformed configured capability", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: "{}" }, /must be an array/],
+    ["malformed JSON", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: "[" }, /not valid JSON/],
+    ["object instead of array", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: "{}" }, /must be an array/],
+    ["empty array", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: "[]" }, /must not be empty/],
+    ["missing entry repository", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ capability: "contents:write" }, { repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "pull_requests:write" }]) }, /repository is required/],
+    ["missing entry capability", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/sentinelforge-incident-fixture" }, { repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "pull_requests:write" }]) }, /capability is required/],
     ["read-only configured capability", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "contents:read" }]) }, /exact required write capability/],
     ["wrong configured repository", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/other", capability: "contents:write" }]) }, /outside the exact fixture allowlist/],
+    ["duplicate capability", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "contents:write" }, { repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "contents:write" }, { repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "pull_requests:write" }]) }, /contents:write is duplicated/],
+    ["duplicate repository capability entry", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "pull_requests:write" }, { repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "pull_requests:write" }, { repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "contents:write" }]) }, /pull_requests:write is duplicated/],
+    ["missing contents write", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "pull_requests:write" }]) }, /contents:write is missing/],
+    ["missing pull requests write", { GITHUB_SCRATCH_CONFIGURED_CAPABILITIES: JSON.stringify([{ repository: "Aayushashsahu/sentinelforge-incident-fixture", capability: "contents:write" }]) }, /pull_requests:write is missing/],
   ])("fails closed for %s", (_label, overrides, message) => {
     expect(() => parseLiveFixtureProofHarnessConfig(environment(overrides))).toThrow(message);
   });

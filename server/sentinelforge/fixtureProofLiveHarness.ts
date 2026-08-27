@@ -18,11 +18,17 @@ function parseConfiguredCapabilities(rawConfiguration: string | undefined): GitH
   let parsed: unknown;
   try { parsed = JSON.parse(rawConfiguration); } catch { throw new Error("Live fixture proof refused: configured write capabilities are not valid JSON."); }
   if (!Array.isArray(parsed)) throw new Error("Live fixture proof refused: configured write capabilities must be an array.");
+  if (parsed.length === 0) throw new Error("Live fixture proof refused: configured write capabilities must not be empty.");
+  const seenCapabilities = new Set<string>();
   const configured = parsed.map(item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Live fixture proof refused: configured capability entry is malformed.");
     const record = item as Record<string, unknown>;
+    if (typeof record.repository !== "string" || !record.repository.trim()) throw new Error("Live fixture proof refused: configured capability repository is required.");
+    if (typeof record.capability !== "string" || !record.capability.trim()) throw new Error("Live fixture proof refused: configured capability is required.");
     if (record.repository !== liveTarget) throw new Error("Live fixture proof refused: configured capability repository is outside the exact fixture allowlist.");
     if (record.capability !== "contents:write" && record.capability !== "pull_requests:write") throw new Error("Live fixture proof refused: configured capability must be an exact required write capability.");
+    if (seenCapabilities.has(record.capability)) throw new Error(`Live fixture proof refused: configured capability ${record.capability} is duplicated.`);
+    seenCapabilities.add(record.capability);
     return { repository: record.repository, capability: record.capability } as GitHubConfiguredWriteCapability;
   });
   for (const capability of ["contents:write", "pull_requests:write"] as const) if (!configured.some(item => item.capability === capability)) throw new Error(`Live fixture proof refused: required configured capability ${capability} is missing.`);
