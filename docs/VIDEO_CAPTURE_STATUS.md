@@ -2,13 +2,13 @@
 
 ## Recorded
 
-**YES.** A **180-second**, visual-only MP4 was captured from the real, read-only browser surfaces. The final artifact is `sentinelforge_s4_demo_final.mp4`.
+**YES.** A **180-second** MP4 was captured from the real, read-only browser surfaces. The final narrated and captioned artifact is `sentinelforge_s4_demo_narrated_captioned.mp4`.
 
-The recording presents, in order, the persisted SentinelForge S2 mission and audit route, the documented read-only TrueForge session-history API for the exact existing provider session, the open fixture PR, and its one-file diff. It contains no simulated UI, reconstructed provider event, replayed approval, new provider turn, new continuation, sandbox operation, or GitHub write.
+The recording presents, in order, the persisted SentinelForge S2 mission and audit route, the documented read-only TrueForge session-history API for the exact existing provider session, the open fixture PR, and its one-file diff. A generated English voice-over and hard-coded captions explain this displayed evidence only; they add no claim beyond the existing records. The video contains no simulated UI, reconstructed provider event, replayed approval, new provider turn, new continuation, sandbox operation, or GitHub write.
 
 ## Recording boundary
 
-`ffmpeg` captured the sandbox display through an isolated Chromium window. That browser accessed only the existing public/read-only evidence routes. The completed recording has no voice-over or added captions; the exact spoken narration remains in [HACKATHON_DEMO.md](./HACKATHON_DEMO.md).
+`ffmpeg` captured the sandbox display through an isolated Chromium window. That browser accessed only the existing public/read-only evidence routes. The completed recording adds a clear, factual English narration track and readable bottom captions. Its narration was checked against the prepared evidence-grounded transcript, and the unchanged underlying screen sequence remains available in `sentinelforge_s4_demo_final.mp4`.
 
 The generic SentinelForge dashboard is not used as proof-state footage: it presents deterministic no-shell fixtures, zero persisted-mission/approval counters, and older sandbox-blocked GitHub-guarded copy. The recording instead uses the real mission-detail route. That route itself retains an older **pre-write** timeline, so the demo presents it only for persisted incident/proposal/approval/audit evidence and uses the fixture PR as the final external-action receipt.
 
