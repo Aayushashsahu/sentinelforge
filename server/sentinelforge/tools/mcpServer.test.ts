@@ -56,6 +56,45 @@ describe("sentinelforge-tools", () => {
     expect(fetchImpl).toHaveBeenCalledWith(expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/package.json?ref=main`), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${token}` }) }));
   });
 
+  it("uses the generic client for generic reads and the server-created scratch client only for valid action-bound fixture reads", async () => {
+    const genericToken = "generic-read-test-token";
+    const scratchToken = "fixture-scratch-test-token";
+    const genericFetch = vi.fn(async () => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from('{"version":"1.4.0"}').toString("base64") }), { status: 200 }));
+    const scratchFetch = vi.fn(async (url: string) => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from(url.includes("package.json") ? '{"version":"1.4.0"}' : '{"version":"1.3.0"}').toString("base64") }), { status: 200 }));
+    const createFixtureClient = vi.fn(() => new GitHubReadApi(scratchToken, scratchFetch as typeof fetch));
+    const persistence = state(proofAction());
+    const tools = new SentinelForgeTools(new GitHubReadApi(genericToken, genericFetch as typeof fetch), persistence, createFixtureClient);
+
+    const generic = await tools.call("get_file", { owner: fixtureOwner, repo: fixtureRepo, path: "package.json", ref: "main" });
+    const proof = { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" };
+    const fixturePackage = await tools.call("get_file", { ...proof, artifact: "package.json" });
+    const fixtureManifest = await tools.call("get_file", { ...proof, artifact: "release-manifest.json" });
+
+    expect(generic.isError).toBeUndefined();
+    expect(fixturePackage.isError).toBeUndefined();
+    expect(fixtureManifest.isError).toBeUndefined();
+    expect(createFixtureClient).toHaveBeenCalledTimes(2);
+    expect(genericFetch).toHaveBeenCalledTimes(1);
+    expect(scratchFetch).toHaveBeenCalledTimes(2);
+    expect(genericFetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${genericToken}` }) }));
+    expect(scratchFetch).toHaveBeenNthCalledWith(1, expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/package.json?ref=main`), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${scratchToken}` }) }));
+    expect(scratchFetch).toHaveBeenNthCalledWith(2, expect.stringContaining(`/repos/${fixtureOwner}/${fixtureRepo}/contents/release-manifest.json?ref=main`), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${scratchToken}` }) }));
+    expect(JSON.stringify({ generic, fixturePackage, fixtureManifest, action: persistence.current() })).not.toContain(genericToken);
+    expect(JSON.stringify({ generic, fixturePackage, fixtureManifest, action: persistence.current() })).not.toContain(scratchToken);
+  });
+
+  it("fails closed without a scratch credential and never falls back to the generic client for an action-bound read", async () => {
+    const genericFetch = vi.fn();
+    const createFixtureClient = vi.fn(() => { throw new Error("Fixture proof read refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side."); });
+    const persistence = state(proofAction());
+    const result = await new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", genericFetch as typeof fetch), persistence, createFixtureClient).call("get_file", { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture", artifact: "package.json" });
+
+    expect(result).toMatchObject({ isError: true, content: [{ text: expect.stringContaining("GITHUB_SCRATCH_PR_TOKEN") }] });
+    expect(createFixtureClient).toHaveBeenCalledTimes(1);
+    expect(genericFetch).not.toHaveBeenCalled();
+    expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
+  });
+
   it("rejects repositories outside the explicit allowlist before a generic network request", async () => {
     const fetchImpl = vi.fn();
     const result = await new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch)).call("get_file", { owner: "other", repo: "repository", path: "package.json", ref: "main" });
@@ -90,6 +129,7 @@ describe("sentinelforge-tools", () => {
     ["alternate path", { path: "other.json" }],
     ["alternate repository alias", { repository: "sentinelforce-incident-fixture" }],
     ["alternate reference alias", { reference: "feature" }],
+    ["model-supplied credential", { token: "model-supplied-secret" }],
     ["unrecognized extra field", { arbitrary: "value" }],
   ])("rejects %s as model-supplied fixture target injection before a GitHub read", async (_label, injected) => {
     const fetchImpl = vi.fn();
@@ -109,7 +149,7 @@ describe("sentinelforge-tools", () => {
   ])("does not mark evidence for %s", async (_label, request, response) => {
     const fetchImpl = vi.fn(async () => response ?? new Response("unused", { status: 500 }));
     const persistence = state(proofAction());
-    const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), persistence);
+    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", vi.fn() as typeof fetch), persistence, () => new GitHubReadApi("fixture-scratch-test-token", fetchImpl as typeof fetch));
     const result = await tools.call("get_file", { ...request, proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" });
     expect(result.isError).toBe(true);
     expect(persistence.current()?.readEvidence).toEqual({ packageEvidenceVerified: false, manifestEvidenceVerified: false, correlation: null });
@@ -119,7 +159,7 @@ describe("sentinelforge-tools", () => {
   it("marks only exact successful action-bound reads before returning non-mutating gate eligibility", async () => {
     const fetchImpl = vi.fn(async (url: string) => new Response(JSON.stringify({ type: "file", encoding: "base64", content: Buffer.from(url.includes("package.json") ? '{"version":"1.4.0"}' : '{"version":"1.3.0"}').toString("base64"), size: 20 }), { status: 200 }));
     const persistence = state(proofAction());
-    const tools = new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), persistence);
+    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", vi.fn() as typeof fetch), persistence, () => new GitHubReadApi("fixture-scratch-test-token", fetchImpl as typeof fetch));
     const proof = { proof_mission_id: "SF_fixture", proof_action_id: "act_fixture" };
     const packageRead = await tools.call("get_file", { ...proof, artifact: "package.json" });
     const manifestRead = await tools.call("get_file", { ...proof, artifact: "release-manifest.json" });
@@ -142,6 +182,22 @@ describe("sentinelforge-tools", () => {
     const result = await new SentinelForgeTools(new GitHubReadApi("server-only-test-token", fetchImpl as typeof fetch), persistence).call("get_file", request);
     expect(result.isError).toBe(true);
     expect(fetchImpl).not.toHaveBeenCalled();
+    expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
+  });
+
+  it("does not create a fixture credential client for the wrong mission or action", async () => {
+    const genericFetch = vi.fn();
+    const createFixtureClient = vi.fn();
+    const persistence = state(proofAction());
+    const tools = new SentinelForgeTools(new GitHubReadApi("generic-read-test-token", genericFetch as typeof fetch), persistence, createFixtureClient);
+
+    const wrongMission = await tools.call("get_file", { proof_mission_id: "SF_other", proof_action_id: "act_fixture", artifact: "package.json" });
+    const wrongAction = await tools.call("get_file", { proof_mission_id: "SF_fixture", proof_action_id: "act_other", artifact: "package.json" });
+
+    expect(wrongMission.isError).toBe(true);
+    expect(wrongAction.isError).toBe(true);
+    expect(createFixtureClient).not.toHaveBeenCalled();
+    expect(genericFetch).not.toHaveBeenCalled();
     expect(persistence.replaceFixtureProofAction).not.toHaveBeenCalled();
   });
 });

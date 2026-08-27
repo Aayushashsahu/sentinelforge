@@ -49,6 +49,15 @@ function positiveIntegerArgument(input: Record<string, unknown>, key: string): n
 type FixtureEvidencePort = SafetyInspectionPort & { replaceFixtureProofAction(action: FixtureProofAction): Promise<void> };
 const defaultSafetyPort: FixtureEvidencePort = { getMissionBundle, getFixtureProofAction: getFixtureProofExternalAction, replaceFixtureProofAction: replaceFixtureProofExternalAction };
 
+type FixtureProofGitHubReadPort = Pick<GitHubReadApi, "getFile">;
+type FixtureProofGitHubReadFactory = () => FixtureProofGitHubReadPort;
+
+function createScratchFixtureProofGitHubReadClient(): FixtureProofGitHubReadPort {
+  const token = ENV.githubScratchPrToken;
+  if (!token) throw new Error("Fixture proof read refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side.");
+  return new GitHubReadApi(token);
+}
+
 function parseFixtureActionReference(args: Record<string, unknown>): { missionId: string; actionId: string } | null {
   const hasMission = "proof_mission_id" in args;
   const hasAction = "proof_action_id" in args;
@@ -104,7 +113,11 @@ function assertExpectedVersion(text: string, expectedVersion: string, path: stri
 }
 
 export class SentinelForgeTools {
-	constructor(private readonly github = new GitHubReadApi(), private readonly safetyPort: FixtureEvidencePort = defaultSafetyPort) {}
+	constructor(
+		private readonly github = new GitHubReadApi(),
+		private readonly safetyPort: FixtureEvidencePort = defaultSafetyPort,
+		private readonly createFixtureProofGitHubReadClient: FixtureProofGitHubReadFactory = createScratchFixtureProofGitHubReadClient,
+	) {}
 
   async call(name: string, args: Record<string, unknown>): Promise<McpTextResponse> {
     try {
@@ -126,7 +139,7 @@ export class SentinelForgeTools {
           const repo = fixture?.repo ?? stringArgument(args, "repo");
           const path = fixture?.path ?? stringArgument(args, "path");
           const ref = fixture?.ref ?? stringArgument(args, "ref");
-	        const file = await this.github.getFile(owner, repo, path, ref);
+	        const file = await (fixture ? this.createFixtureProofGitHubReadClient() : this.github).getFile(owner, repo, path, ref);
           if (fixture) {
             assertExpectedVersion(file.text, fixture.expectedVersion, path);
             await this.safetyPort.replaceFixtureProofAction(markFixtureProofReadEvidence({ action: fixture.action, path: fixture.path }));
