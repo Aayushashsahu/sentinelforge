@@ -6,9 +6,9 @@
 
 ## Exact blocker
 
-`ffmpeg` is installed in the sandbox, but no screen-capture recorder is available that can capture the connected **My Browser** session. The sandbox’s `DISPLAY=:0` is a separate graphical environment; it has no access to the user-connected browser where the real fixture PR was inspected. Browser automation can navigate and inspect the page, but it has no video-export or screen-recording interface.
+`ffmpeg` can capture the sandbox display, and an isolated Chromium window successfully rendered the public fixture PR for capture. The sandbox display is nevertheless separate from the connected **My Browser** session and has no authenticated access to the persisted SentinelForge or TrueForge S2 audit/approval records.
 
-The currently deployed SentinelForge dashboard is also not a truthful S2 evidence surface: it presents deterministic no-shell fixtures, zero persisted-mission/approval counters, and older sandbox-blocked GitHub-guarded copy. Recording that screen as if it reflected the completed S2 proof would be misleading.
+The currently deployed SentinelForge dashboard is also not a truthful S2 evidence surface: it presents deterministic no-shell fixtures, zero persisted-mission/approval counters, and older sandbox-blocked GitHub-guarded copy. Recording that screen as if it reflected the completed S2 proof would be misleading. The public fixture PR alone is insufficient to demonstrate the required real provider approval checkpoint and same-turn continuation.
 
 ## Authentic evidence verified during S4 inspection
 
@@ -16,7 +16,7 @@ The currently deployed SentinelForge dashboard is also not a truthful S2 evidenc
 | --- | --- | --- |
 | SentinelForge dashboard | Contextual deterministic UI only; no persisted S2 evidence displayed | Do not use as proof-state footage |
 | SentinelForge readiness view | Historical provider/MCP context; stale GitHub-guarded S2 copy | Optional architecture context only, with explicit historical caveat |
-| Fixture PR [#1](https://github.com/Aayushashsahu/sentinelforge-incident-fixture/pull/1) | Open; `main ← sentinelforge/sf_kqb-repdfiug-i`; one commit; `+1/-1`; two checks passed; no conflict | Primary authentic external-action footage |
+| Fixture PR [#1](https://github.com/Aayushashsahu/sentinelforge-incident-fixture/pull/1) | Open; `main ← sentinelforge/sf_kqb-repdfiug-i`; one commit; `+1/-1`; two checks passed; no conflict | Capture-ready authentic external-action footage |
 
 ## Exact local-desktop recording shot list and narration
 
