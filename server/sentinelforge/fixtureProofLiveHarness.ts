@@ -1,5 +1,5 @@
 import { GitHubFixtureWriteApi } from "./githubFixtureWrite";
-import { GitHubWriteCapabilityPolicy, type GitHubObservedWriteCapabilityEvidence } from "./githubWriteCapability";
+import { GitHubWriteCapabilityPolicy, type GitHubConfiguredWriteCapability } from "./githubWriteCapability";
 import { executeLiveFixtureProof, bindSentFixtureProofContinuation, stageLiveFixtureProofAction } from "./liveFixtureProof";
 import { runLiveFixtureProofApprovalCapture } from "./liveFixtureProofCapture";
 import { createLiveMission, investigateLiveMission, runLiveRepairPlan } from "./liveWorkflow";
@@ -11,19 +11,30 @@ export const LIVE_FIXTURE_PROOF_REPO = "sentinelforge-incident-fixture";
 const liveTarget = `${LIVE_FIXTURE_PROOF_OWNER}/${LIVE_FIXTURE_PROOF_REPO}`;
 
 type Environment = Record<string, string | undefined>;
-export type LiveFixtureProofHarnessConfig = { token: string; owner: typeof LIVE_FIXTURE_PROOF_OWNER; repo: typeof LIVE_FIXTURE_PROOF_REPO; writeCapabilityEvidence: GitHubObservedWriteCapabilityEvidence[] };
+export type LiveFixtureProofHarnessConfig = { token: string; owner: typeof LIVE_FIXTURE_PROOF_OWNER; repo: typeof LIVE_FIXTURE_PROOF_REPO; configuredCapabilities: GitHubConfiguredWriteCapability[] };
+
+function parseConfiguredCapabilities(rawConfiguration: string | undefined): GitHubConfiguredWriteCapability[] {
+  if (!rawConfiguration?.trim()) throw new Error("Live fixture proof refused: no fixture-only configured write capabilities were supplied.");
+  let parsed: unknown;
+  try { parsed = JSON.parse(rawConfiguration); } catch { throw new Error("Live fixture proof refused: configured write capabilities are not valid JSON."); }
+  if (!Array.isArray(parsed)) throw new Error("Live fixture proof refused: configured write capabilities must be an array.");
+  const configured = parsed.map(item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Live fixture proof refused: configured capability entry is malformed.");
+    const record = item as Record<string, unknown>;
+    if (record.repository !== liveTarget) throw new Error("Live fixture proof refused: configured capability repository is outside the exact fixture allowlist.");
+    if (record.capability !== "contents:write" && record.capability !== "pull_requests:write") throw new Error("Live fixture proof refused: configured capability must be an exact required write capability.");
+    return { repository: record.repository, capability: record.capability } as GitHubConfiguredWriteCapability;
+  });
+  for (const capability of ["contents:write", "pull_requests:write"] as const) if (!configured.some(item => item.capability === capability)) throw new Error(`Live fixture proof refused: required configured capability ${capability} is missing.`);
+  return configured;
+}
 
 export function parseLiveFixtureProofHarnessConfig(env: Environment): LiveFixtureProofHarnessConfig {
   const token = env.GITHUB_SCRATCH_PR_TOKEN?.trim();
   if (!token) throw new Error("Live fixture proof requires GITHUB_SCRATCH_PR_TOKEN from the explicit secure environment.");
   if (env.GITHUB_SCRATCH_OWNER !== LIVE_FIXTURE_PROOF_OWNER) throw new Error("Live fixture proof refused: GITHUB_SCRATCH_OWNER is not the exact fixture allowlist owner.");
   if (env.GITHUB_SCRATCH_REPO !== LIVE_FIXTURE_PROOF_REPO) throw new Error("Live fixture proof refused: GITHUB_SCRATCH_REPO is not the exact fixture allowlist repository.");
-  const rawEvidence = env.GITHUB_SCRATCH_WRITE_CAPABILITY_EVIDENCE?.trim();
-  if (!rawEvidence) throw new Error("Live fixture proof refused: no independently established write-capability evidence was supplied.");
-  let writeCapabilityEvidence: unknown;
-  try { writeCapabilityEvidence = JSON.parse(rawEvidence); } catch { throw new Error("Live fixture proof refused: write-capability evidence is not valid JSON."); }
-  if (!Array.isArray(writeCapabilityEvidence)) throw new Error("Live fixture proof refused: write-capability evidence must be an array of response-shaped observations.");
-  return { token, owner: LIVE_FIXTURE_PROOF_OWNER, repo: LIVE_FIXTURE_PROOF_REPO, writeCapabilityEvidence: writeCapabilityEvidence as GitHubObservedWriteCapabilityEvidence[] };
+  return { token, owner: LIVE_FIXTURE_PROOF_OWNER, repo: LIVE_FIXTURE_PROOF_REPO, configuredCapabilities: parseConfiguredCapabilities(env.GITHUB_SCRATCH_CONFIGURED_CAPABILITIES) };
 }
 
 function fixturePort() {
@@ -39,7 +50,7 @@ function fixturePort() {
 }
 
 export async function runLiveFixtureProofHarness(config: LiveFixtureProofHarnessConfig) {
-  const github = new GitHubFixtureWriteApi(config.token, fetch, new GitHubWriteCapabilityPolicy(config.writeCapabilityEvidence));
+  const github = new GitHubFixtureWriteApi(config.token, fetch, new GitHubWriteCapabilityPolicy(config.configuredCapabilities));
   const created = await createLiveMission({ title: "Opt-in fixture GitHub proof", repository: liveTarget, incident: "Authoritative package version 1.4.0 differs from release-manifest version 1.3.0.", risk: "LOW" });
   if (!created) throw new Error("Live fixture proof refused: mission creation returned no persisted mission.");
   const investigated = await investigateLiveMission(created.mission.id);

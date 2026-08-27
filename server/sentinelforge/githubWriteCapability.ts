@@ -1,18 +1,14 @@
 export type GitHubWriteCapability = "contents:write" | "pull_requests:write";
 export type GitHubWriteOperation = { capability: GitHubWriteCapability; method: "POST" | "PUT"; endpoint: string };
 
-export type GitHubObservedWriteCapabilityEvidence = {
+export type GitHubConfiguredWriteCapability = {
   repository: string;
   capability: GitHubWriteCapability;
-  method: "POST" | "PUT";
-  endpoint: string;
-  status: number;
-  acceptedGithubPermissions: string;
 };
 
 export class GitHubWriteCapabilityError extends Error {
-  constructor(public readonly operation: GitHubWriteOperation, public readonly reason: "MISSING_EVIDENCE" | "REPOSITORY_MISMATCH" | "INVALID_EVIDENCE") {
-    super(`Fixture GitHub proof refused: ${operation.capability} is not positively established for ${operation.method} ${operation.endpoint} (${reason}).`);
+  constructor(public readonly operation: GitHubWriteOperation, public readonly reason: "MISSING_CONFIGURATION" | "REPOSITORY_MISMATCH" | "CAPABILITY_MISMATCH") {
+    super(`Fixture GitHub proof refused: ${operation.capability} is not configured for ${operation.method} ${operation.endpoint} (${reason}).`);
     this.name = "GitHubWriteCapabilityError";
   }
 }
@@ -23,33 +19,33 @@ function normalizedPath(value: string): string {
   return path;
 }
 
-function permissionMatches(header: string, capability: GitHubWriteCapability): boolean {
-  const [resource, access] = capability.split(":") as [string, string];
-  return header.split(",").map(value => value.trim().toLowerCase()).includes(`${resource}=${access}`);
-}
-
-function matchesOperation(evidence: GitHubObservedWriteCapabilityEvidence, operation: GitHubWriteOperation): boolean {
-  return evidence.capability === operation.capability
-    && evidence.method === operation.method
-    && normalizedPath(evidence.endpoint) === operation.endpoint
-    && evidence.status >= 200
-    && evidence.status < 300
-    && permissionMatches(evidence.acceptedGithubPermissions, evidence.capability);
-}
-
 /**
- * This policy intentionally does not query a token manifest or infer write access from reads.
- * It accepts only a repository-bound, response-shaped success evidence record whose declared
- * write capability exactly matches the protected operation. With no evidence, every write fails
- * closed before fetch is called.
+ * This policy proves only that an explicit, fixture-bound deployment configuration declares the
+ * capability needed for a protected operation. It does not query a token manifest, infer write
+ * access from reads, or claim the remote endpoint will accept the request. GitHub remains the
+ * final enforcement point, and a non-2xx write response remains terminal and fail-closed.
  */
 export class GitHubWriteCapabilityPolicy {
-  constructor(private readonly evidence: readonly GitHubObservedWriteCapabilityEvidence[] = []) {}
+  constructor(private readonly configuredCapabilities: readonly GitHubConfiguredWriteCapability[] = []) {}
 
   require(repository: string, operation: GitHubWriteOperation): void {
-    const candidates = this.evidence.filter(item => item.capability === operation.capability && item.method === operation.method && normalizedPath(item.endpoint) === operation.endpoint);
-    if (candidates.length === 0) throw new GitHubWriteCapabilityError(operation, "MISSING_EVIDENCE");
-    if (!candidates.some(item => item.repository === repository)) throw new GitHubWriteCapabilityError(operation, "REPOSITORY_MISMATCH");
-    if (!candidates.some(item => item.repository === repository && matchesOperation(item, operation))) throw new GitHubWriteCapabilityError(operation, "INVALID_EVIDENCE");
+    if (normalizedPath(operation.endpoint) !== operation.endpoint) throw new GitHubWriteCapabilityError(operation, "CAPABILITY_MISMATCH");
+    const capabilityMatches = this.configuredCapabilities.filter(item => item.capability === operation.capability);
+    if (capabilityMatches.length === 0) throw new GitHubWriteCapabilityError(operation, "MISSING_CONFIGURATION");
+    if (!capabilityMatches.some(item => item.repository === repository)) throw new GitHubWriteCapabilityError(operation, "REPOSITORY_MISMATCH");
   }
+}
+
+export type GitHubWriteCapabilityAssessment = {
+  configured: "VERIFIED" | "BLOCKED";
+  effective: "UNVERIFIED";
+  fullPermissionManifest: "UNVERIFIABLE";
+};
+
+export function assessConfiguredWriteCapability(configuredCapabilities: readonly GitHubConfiguredWriteCapability[], repository: string, capability: GitHubWriteCapability): GitHubWriteCapabilityAssessment {
+  return {
+    configured: configuredCapabilities.some(item => item.repository === repository && item.capability === capability) ? "VERIFIED" : "BLOCKED",
+    effective: "UNVERIFIED",
+    fullPermissionManifest: "UNVERIFIABLE",
+  };
 }
