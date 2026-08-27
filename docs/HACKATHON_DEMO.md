@@ -16,6 +16,14 @@ SentinelForge demonstrates an approval-gated engineering incident response for a
 
 > **Final message:** The approved fixture proof made one precisely bounded external change and stopped at an open, unmerged PR. It did not merge, auto-merge, bypass sandbox requirements for the separate real-repair path, or act autonomously beyond the approved boundary.
 
+## Verified Browser Evidence Routes
+
+| Demo purpose | Exact read-only route | What it may truthfully establish | Required caveat |
+| --- | --- | --- | --- |
+| Primary SentinelForge mission / incident / proposal / audit | `https://3000-iwtfcrsdleeiewbd29rdg-fe331c92.sg1.manus.computer/missions/SF_kqb-rEpDFIUg-I` | The persisted S2 incident, root cause, one-file proposal, provider-originated gate evidence, approval acceptance, and continuation audit items. | This existing mission-detail rendering retains an older pre-write timeline. Use it for the real mission and approval/audit portion only; do not narrate its “GitHub mutation is blocked” copy as the final S2 result. |
+| TrueForge approval / continuation evidence | `https://trueforge.octiqai.com/api/v1/sessions/01m124j9ypt5b9932esrkjeyxk/events` | The documented read-only provider session-history API for the exact S2 session. | This is JSON, not a dedicated browser UI. Show only the event fields needed to establish the genuine approval and continuation; redact no secrets because none should be shown. |
+| Final external-action receipt | `https://github.com/Aayushashsahu/sentinelforge-incident-fixture/pull/1` | The open fixture PR, branch relationship, one commit, one-file diff, successful checks, and absence of a merge being performed. | This is the final receipt, not a substitute for the SentinelForge UI or provider history. |
+
 ## What Is Real
 
 The live TrueForge runtime, NVIDIA NIM model route, first-party `sentinelforge-tools` MCP server, server-orchestrated fixture evidence, provider approval pause, persisted correlation, one provider continuation, and the fixture GitHub PR are real. The fixture proof action is `act_rxZQ7xnfK4vmm5`; it is distinct from every earlier terminal action and has the exact proposal fingerprint `8dc6995a084ada629ed0f7d5e7581e1f22c17e446046963a4c34bcc57c700d6d`.

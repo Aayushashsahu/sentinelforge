@@ -2,21 +2,34 @@
 
 ## Recorded
 
-**NO.** No authentic three-minute recording was created in this environment.
+**YES.** A **180-second**, visual-only MP4 was captured from the real, read-only browser surfaces. The final artifact is `sentinelforge_s4_demo_final.mp4`.
 
-## Exact blocker
+The recording presents, in order, the persisted SentinelForge S2 mission and audit route, the documented read-only TrueForge session-history API for the exact existing provider session, the open fixture PR, and its one-file diff. It contains no simulated UI, reconstructed provider event, replayed approval, new provider turn, new continuation, sandbox operation, or GitHub write.
 
-`ffmpeg` can capture the sandbox display, and an isolated Chromium window successfully rendered the public fixture PR for capture. The sandbox display is nevertheless separate from the connected **My Browser** session and has no authenticated access to the persisted SentinelForge or TrueForge S2 audit/approval records.
+## Recording boundary
 
-The currently deployed SentinelForge dashboard is also not a truthful S2 evidence surface: it presents deterministic no-shell fixtures, zero persisted-mission/approval counters, and older sandbox-blocked GitHub-guarded copy. Recording that screen as if it reflected the completed S2 proof would be misleading. The public fixture PR alone is insufficient to demonstrate the required real provider approval checkpoint and same-turn continuation.
+`ffmpeg` captured the sandbox display through an isolated Chromium window. That browser accessed only the existing public/read-only evidence routes. The completed recording has no voice-over or added captions; the exact spoken narration remains in [HACKATHON_DEMO.md](./HACKATHON_DEMO.md).
+
+The generic SentinelForge dashboard is not used as proof-state footage: it presents deterministic no-shell fixtures, zero persisted-mission/approval counters, and older sandbox-blocked GitHub-guarded copy. The recording instead uses the real mission-detail route. That route itself retains an older **pre-write** timeline, so the demo presents it only for persisted incident/proposal/approval/audit evidence and uses the fixture PR as the final external-action receipt.
 
 ## Authentic evidence verified during S4 inspection
 
 | Evidence surface | Verified fact | Recording use |
 | --- | --- | --- |
+| SentinelForge mission detail | `https://3000-iwtfcrsdleeiewbd29rdg-fe331c92.sg1.manus.computer/missions/SF_kqb-rEpDFIUg-I` renders the real persisted S2 incident, root cause, proposal, approval/continuation audit, and provider-gate evidence | Primary SentinelForge UI footage; identify it as the pre-write/audit portion because its timeline has older GitHub-blocked copy |
 | SentinelForge dashboard | Contextual deterministic UI only; no persisted S2 evidence displayed | Do not use as proof-state footage |
 | SentinelForge readiness view | Historical provider/MCP context; stale GitHub-guarded S2 copy | Optional architecture context only, with explicit historical caveat |
+| TrueForge session history | `GET https://trueforge.octiqai.com/api/v1/sessions/01m124j9ypt5b9932esrkjeyxk/events` returned HTTP 200 JSON for the S2 session | Read-only API-backed provider evidence; not a dedicated UI |
 | Fixture PR [#1](https://github.com/Aayushashsahu/sentinelforge-incident-fixture/pull/1) | Open; `main ← sentinelforge/sf_kqb-repdfiug-i`; one commit; `+1/-1`; two checks passed; no conflict | Capture-ready authentic external-action footage |
+
+## Capture sequence verified
+
+| Window | Captured content | Provenance boundary |
+| --- | --- | --- |
+| 0:00–1:25 | SentinelForge mission-detail UI for `SF_kqb-rEpDFIUg-I`, including incident, root cause, proposal, provider-gate evidence, approval/continuation audit, and complete immutable audit expansion | Existing persisted SentinelForge data; no approval button or other mutation control was selected |
+| 1:25–1:45 | TrueForge `GET /api/v1/sessions/01m124j9ypt5b9932esrkjeyxk/events` response | Existing provider history read-only; no session or turn creation |
+| 1:45–2:25 | Fixture PR #1 overview | Existing GitHub PR read-only; no comment, review, merge, or edit |
+| 2:25–3:00 | Fixture PR #1 **Files changed** diff and return to overview | Existing one-file external-action receipt read-only |
 
 ## Exact local-desktop recording shot list and narration
 
