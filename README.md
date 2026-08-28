@@ -107,19 +107,17 @@ SentinelForge is **not** an LLM wrapper and not a scripted GitHub bot. It is a m
 
 ## 🔥 TrueForge Integration
 
-TrueForge is used as a **real runtime boundary**, not a branding layer.
+TrueForge is not merely called as an LLM endpoint — it is part of the **control architecture**.
 
-SentinelForge demonstrates genuine:
-
-- provider **sessions** and **turns**
-- streamed **event history** (SSE)
-- first-party **MCP** integration (`sentinelforge-tools`)
-- genuine `tool.approval_required` checkpoints
-- persisted **approval correlation** (session, turn, thread, tool-call, required-action)
-- exactly-once `user.tool_approval` **continuation**
-- provider/session/thread/tool-call **correlation**
-
-The application records the relationship between provider events and SentinelForge actions — treating the provider as an actual dependency, not as decoration.
+| TrueForge capability | How SentinelForge uses it |
+| --- | --- |
+| Sessions / turns | Persistent provider execution and audit correlation |
+| MCP (`sentinelforge-tools`) | First-party read-only engineering evidence |
+| `tool.approval_required` | Genuine provider approval checkpoint |
+| `user.tool_approval` | Exact human-approved continuation |
+| Event history (SSE) | Auditable provider evidence |
+| Session/turn/thread/tool-call correlation | Immutable audit trail linking every decision |
+| Safety boundary | Refusal when verification cannot establish safety |
 
 ```text
 TrueForge session
@@ -142,6 +140,8 @@ user.tool_approval
       ▼
 exact continuation
 ```
+
+The application records the relationship between provider events and SentinelForge actions — treating TrueForge as an actual dependency, not decoration.
 
 ---
 
@@ -256,66 +256,52 @@ Verification failure or block means **no external write**. No host fallback. No 
 
 ## 🧪 Deterministic Fixtures
 
-The repository contains no-shell, deterministic contract scenarios for:
-
-- release-manifest version drift
-- CI workflow Node.js compatibility
-- dependency/plugin compatibility
-
-These scenarios exercise the orchestration and safety contracts reproducibly **without contacting TrueForge, a sandbox, MCP, or GitHub**. They are contract fixtures — not live provider execution.
+No-shell, deterministic contract scenarios for release-manifest version drift, CI workflow Node.js compatibility, and dependency/plugin compatibility. These exercise orchestration and safety contracts reproducibly **without contacting TrueForge, a sandbox, MCP, or GitHub** — they are contract fixtures, not live provider execution.
 
 ---
 
 ## 🚧 Sandbox Status
 
 ```text
-SANDBOX_VERIFICATION_BLOCKED
-```
-
-The separate real-repair sandbox verification remains **provider-blocked**. The TrueForge sandbox reached `truefoundry-system/exec`, then failed to install:
-
-```text
-pydantic>=2.0.0,<3.0.0
-```
-
-The observed failure was at the proxy/package-index connectivity boundary.
-
-**Official escalation:** [truefoundry/trueforge#482](https://github.com/truefoundry/trueforge/issues/482)
-
-### What SentinelForge does NOT do
-
-- run the verifier on the host and call that a sandbox pass
-- use deterministic fixtures as a substitute for a real provider sandbox
-- fabricate a provider event or approval
-- bypass the safety gate
-- claim a real-repair GitHub mutation occurred
-
-The resulting state is:
-
-```text
 SANDBOX_VERIFICATION_BLOCKED → WRITE_BLOCKED
 ```
 
-This is an explicit **safety boundary**: when isolated verification cannot be established, SentinelForge refuses the write. That is the system working correctly.
+The separate real-repair sandbox verification remains **provider-blocked**. The TrueForge sandbox reached `truefoundry-system/exec`, then failed to install `pydantic>=2.0.0,<3.0.0` through the proxy/package-index boundary.
+
+**Official escalation:** [truefoundry/trueforge#482](https://github.com/truefoundry/trueforge/issues/482)
+
+No host fallback, no fake pass, no bypass, no fabricated repair claim. When isolated verification cannot be established, SentinelForge refuses the write — that is the system working correctly.
 
 ---
 
 ## 🧩 MCP Safety Surface
 
-SentinelForge includes state-aware MCP inspectors:
-
-- **`approval_probe`** — reads persisted approval/session/action state; exposes bounded correlation evidence
-- **`repair_proposal_gate`** — reads repair proposal and policy state; returns structured allow/block evidence
-
-These tools are **read-only**. They do not approve, continue, persist, invoke a provider, execute a sandbox, or execute GitHub writes.
+State-aware MCP inspectors (`approval_probe`, `repair_proposal_gate`) that read persisted state and return structured evidence. They are **read-only** — they cannot approve, continue, or execute writes.
 
 ---
 
 ## 🔎 Qodo: Adversarial Code Review
 
-Qodo was used as an **actual engineering review mechanism** throughout the project — not as decoration. The review history contains substantive findings, remediation commits, regression coverage, and follow-up review activity.
+Qodo was used as an **actual engineering review mechanism** — not as decoration. Across 14 reviewed PRs, Qodo identified **32 findings** (including 10 High/MUST_FIX), all of which were addressed through remediation commits and merged into `main`.
 
-### Review history
+### Representative Review — PR #19
+
+[#19](https://github.com/Aayushashsahu/sentinelforge/pull/19) — the final S7 security-hardening cycle.
+
+```text
+Qodo identified 3 High findings
+      │
+      ├── Finding 1: decideApproval must stay public (browser cannot send auth headers)
+      ├── Finding 2: tRPC boundary tests never exercised the actual middleware
+      └── Finding 3: capability config was hardcoded, not flowing from harness
+      │
+      ▼
+All 3 remediated → additional boundary tests added → validation passed → merged
+```
+
+This is the pattern that repeated across the entire project: **Qodo finding → remediation → regression coverage → validation → merge**.
+
+### Full review history
 
 | PR | Scope | Qodo result |
 | --- | --- | --- |
@@ -332,21 +318,11 @@ Qodo was used as an **actual engineering review mechanism** throughout the proje
 | [#12](https://github.com/Aayushashsahu/sentinelforge/pull/12) | Fixture-read credential boundary | 0 findings → **merged** |
 | [#13](https://github.com/Aayushashsahu/sentinelforge/pull/13) | Server-orchestrated evidence capture | 1 finding → fixed → **merged** |
 | [#16](https://github.com/Aayushashsahu/sentinelforge/pull/16) | Provider-history correlation | 3 findings → fixed → **merged** |
-| [#19](https://github.com/Aayushashsahu/sentinelforge/pull/19) | **S7 auth boundary test coverage** | **3 High findings → remediated → merged** |
+| [#19](https://github.com/Aayushashsahu/sentinelforge/pull/19) | **S7 auth boundary test coverage** | **3 High → remediated → merged** |
 
-### PR #19 — Final security hardening
+👉 [`docs/QODO_REVIEW_LOG.md`](./docs/QODO_REVIEW_LOG.md) — complete factual ledger with commit links
 
-PR #19 is the culmination of the S7 security remediation cycle. Qodo identified **3 High-severity findings**:
-
-1. `decideApproval` must stay public — the browser cannot send auth headers
-2. Tests must exercise the actual tRPC boundary, not just unit functions
-3. Capability configuration must flow from harness, not be hardcoded
-
-All three were remediated. The resulting PR was merged into `main`.
-
-👉 [`docs/QODO_REVIEW_LOG.md`](./docs/QODO_REVIEW_LOG.md) — complete factual ledger
-
-> **Important:** This repository does not equate an empty review response, a busy response, or a review update with a formal dismissal unless Qodo explicitly provides that evidence.
+> This repository does not equate an empty review response, a busy response, or a review update with a formal dismissal unless Qodo explicitly provides that evidence.
 
 ---
 
@@ -434,15 +410,11 @@ Detailed architecture and evidence provenance:
 
 ## 🎥 Demo
 
-The final demo follows one central story:
-
 ```text
 Incident → Evidence → Proposal → Approval → Continuation → Bounded external result → STOP
 ```
 
-The demo uses authentic persisted evidence surfaces and the real fixture pull request. It does **not** present the deterministic dashboard as a fresh live record of the S2 provider run.
-
-See: [`docs/HACKATHON_DEMO.md`](./docs/HACKATHON_DEMO.md)
+Uses authentic persisted evidence and the real fixture PR. See: [`docs/HACKATHON_DEMO.md`](./docs/HACKATHON_DEMO.md)
 
 ---
 
