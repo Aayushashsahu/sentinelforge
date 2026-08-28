@@ -1,7 +1,7 @@
 import { ENV } from "../_core/env";
 import { FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, transformFixtureReleaseManifest, type FixtureProofGitHubPort } from "./fixtureGithubProof";
 import { createGitHubWriteFailure } from "./githubWriteDiagnostics";
-import { GitHubWriteCapabilityPolicy } from "./githubWriteCapability";
+import { GitHubWriteCapabilityPolicy, type GitHubConfiguredWriteCapability } from "./githubWriteCapability";
 import { computeCredentialIdentifier } from "../_core/auth";
 
 type GitHubResponse = { status: number; headers?: Headers; json(): Promise<unknown> };
@@ -26,7 +26,11 @@ function nonBlankString(value: unknown, message: string): string {
 export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
   private readonly capabilityPolicy: GitHubWriteCapabilityPolicy;
 
-  constructor(private readonly token = ENV.githubScratchPrToken, private readonly fetchImpl: GitHubFixtureFetch = fetch) {
+  constructor(
+    private readonly token = ENV.githubScratchPrToken,
+    private readonly fetchImpl: GitHubFixtureFetch = fetch,
+    configuredCapabilities?: readonly GitHubConfiguredWriteCapability[],
+  ) {
     if (!this.token) {
       throw new Error("Fixture GitHub proof refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side.");
     }
@@ -34,11 +38,11 @@ export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
     if (!expectedIdentifier) {
       throw new Error("Fixture GitHub proof refused: GITHUB_SCRATCH_PR_TOKEN could not be identified.");
     }
-    const configuredCapabilities: readonly import("./githubWriteCapability").GitHubConfiguredWriteCapability[] = [
+    const effectiveCapabilities: readonly GitHubConfiguredWriteCapability[] = configuredCapabilities ?? [
       { repository: FIXTURE_PROOF_REPOSITORY, capability: "contents:write" },
       { repository: FIXTURE_PROOF_REPOSITORY, capability: "pull_requests:write" },
     ];
-    this.capabilityPolicy = new GitHubWriteCapabilityPolicy(expectedIdentifier, configuredCapabilities);
+    this.capabilityPolicy = new GitHubWriteCapabilityPolicy(expectedIdentifier, effectiveCapabilities);
   }
 
   private async request(operation: string, path: string, init: RequestInit = {}): Promise<unknown> {

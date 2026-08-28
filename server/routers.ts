@@ -30,7 +30,7 @@ export const appRouter = router({
     reconcileLiveInvestigation: protectedProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).mutation(async ({ input }) => reconcileLiveInvestigation(input.missionId)),
     runRepairPlan: protectedProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).mutation(async ({ input }) => runLiveRepairPlan(input.missionId)),
     status: publicProcedure.input(z.object({ missionId: z.string().min(4).max(32) })).query(async ({ input }) => getMissionBundle(input.missionId)),
-    decideApproval: protectedProcedure.input(z.object({ requestId: z.string().min(4).max(32), approve: z.boolean() })).mutation(async ({ input }) => resolveApproval(input.requestId, input.approve)),
+    decideApproval: publicProcedure.input(z.object({ requestId: z.string().min(4).max(32), approve: z.boolean() })).mutation(async ({ input }) => resolveApproval(input.requestId, input.approve)),
   }),
 });
 export type AppRouter = typeof appRouter;

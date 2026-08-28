@@ -59,7 +59,7 @@ function fixturePort() {
 export async function runLiveFixtureProofHarness(config: LiveFixtureProofHarnessConfig) {
   const expectedIdentifier = computeCredentialIdentifier(config.token);
   if (!expectedIdentifier) throw new Error("Live fixture proof refused: GITHUB_SCRATCH_PR_TOKEN could not be identified.");
-  const github = new GitHubFixtureWriteApi(config.token, fetch);
+  const github = new GitHubFixtureWriteApi(config.token, fetch, config.configuredCapabilities);
   const created = await createLiveMission({ title: "Opt-in fixture GitHub proof", repository: liveTarget, incident: "Authoritative package version 1.4.0 differs from release-manifest version 1.3.0.", risk: "LOW" });
   if (!created) throw new Error("Live fixture proof refused: mission creation returned no persisted mission.");
   const investigated = await investigateLiveMission(created.mission.id);
