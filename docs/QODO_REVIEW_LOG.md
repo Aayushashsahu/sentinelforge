@@ -234,3 +234,20 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 [12] [PR #10 Qodo initial no-issue review](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434500761) — real Qodo assessment showing zero issued findings.
 
 [13] [PR #10 Qodo follow-up pending response](https://github.com/Aayushashsahu/sentinelforge/pull/10#issuecomment-5434502935) — real Qodo response after the one requested `/agentic_review` follow-up, which did not yet provide a completed review.
+
+## PR #19 — S7 Auth Boundary Test Coverage
+
+| Field | Record |
+| --- | --- |
+| PR | [#19](https://github.com/Aayushashsahu/sentinelforge/pull/19) — `fix/s7-auth-boundary-test-coverage` → `main` |
+| Scope | Adds 24 deterministic authentication boundary tests (12 unit + 12 tRPC integration) covering operator token validation, credential hashing, protectedProcedure enforcement, publicProcedure exceptions, and correct capability propagation. Includes S7 remediation changes: auth middleware, credential binding, planning atomicity, dependency upgrades. |
+| Initial Qodo review | **REAL** — Qodo submitted `PRR_kwDOUDCFQ88AAAABLVp-Jw` on 28 August 2026 UTC for commit `87c1ab8d`, reporting **three** High-severity bugs. |
+| Finding 1 | **High / MUST_FIX / valid.** `decideApproval` was migrated to `protectedProcedure` but the browser client sends no auth headers, making the approval UI unusable. |
+| Fix 1 | `decideApproval` reverted to `publicProcedure`. The human clicking "Approve/Reject" IS the authorization. Commit `9044e24`. |
+| Finding 2 | **High / SHOULD_FIX / valid.** Test suite only called `validateOperatorToken` directly; never tested the actual tRPC procedure/middleware boundary. |
+| Fix 2 | Added 12 tRPC boundary integration tests using `appRouter.createCaller` that exercise the actual middleware boundary. Commit `9044e24`. |
+| Finding 3 | **High / SHOULD_FIX / valid.** `GitHubFixtureWriteApi` hardcoded capabilities instead of using parsed deployment configuration. |
+| Fix 3 | `GitHubFixtureWriteApi` now accepts optional `configuredCapabilities` parameter; harness passes parsed capabilities through. Commit `9044e24`. |
+| Follow-up | **REAL review object pending.** Qodo's follow-up review for remediation commit `9044e24` has not yet been published as of 28 August 2026 17:12 UTC. Qodo's initial review confirmed all 3 findings were valid. The remediation commit addresses all 3. |
+| Deferred findings | None. All 3 findings addressed in the same commit. |
+| Merge status | **OPEN, UNMERGED** — PR #19 is open and awaiting follow-up review. No merge, auto-merge, provider action, sandbox action, or fixture-repository mutation occurred. |
