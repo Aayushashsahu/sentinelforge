@@ -248,6 +248,6 @@ For each future pull request, append the PR number and URL, Qodo’s review stat
 | Fix 2 | Added 12 tRPC boundary integration tests using `appRouter.createCaller` that exercise the actual middleware boundary. Commit `9044e24`. |
 | Finding 3 | **High / SHOULD_FIX / valid.** `GitHubFixtureWriteApi` hardcoded capabilities instead of using parsed deployment configuration. |
 | Fix 3 | `GitHubFixtureWriteApi` now accepts optional `configuredCapabilities` parameter; harness passes parsed capabilities through. Commit `9044e24`. |
-| Follow-up | **REAL review object pending.** Qodo's follow-up review for remediation commit `9044e24` has not yet been published as of 28 August 2026 17:12 UTC. Qodo's initial review confirmed all 3 findings were valid. The remediation commit addresses all 3. |
+| Follow-up | **REAL review object pending.** Qodo's follow-up review for remediation commit `9044e24` has not yet been published. Qodo's initial review confirmed all 3 findings were valid. The remediation commit addresses all 3. |
 | Deferred findings | None. All 3 findings addressed in the same commit. |
-| Merge status | **OPEN, UNMERGED** — PR #19 is open and awaiting follow-up review. No merge, auto-merge, provider action, sandbox action, or fixture-repository mutation occurred. |
+| Merge status | **Merged into `main`** as `9c0a2f52d263a62e3a4fc28848d963e8f5b800ba` on 28 August 2026 UTC. No provider action, sandbox action, or fixture-repository mutation occurred. |

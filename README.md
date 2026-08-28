@@ -410,6 +410,8 @@ Detailed architecture and evidence provenance:
 
 ## 🎥 Demo
 
+**Watch the 3-minute demo:** [https://youtu.be/jy35fyIde68](https://youtu.be/jy35fyIde68)
+
 ```text
 Incident → Evidence → Proposal → Approval → Continuation → Bounded external result → STOP
 ```
