@@ -2,6 +2,7 @@ import { ENV } from "../_core/env";
 import { FIXTURE_PROOF_BASE_BRANCH, FIXTURE_PROOF_FILE, FIXTURE_PROOF_REPOSITORY, transformFixtureReleaseManifest, type FixtureProofGitHubPort } from "./fixtureGithubProof";
 import { createGitHubWriteFailure } from "./githubWriteDiagnostics";
 import { GitHubWriteCapabilityPolicy } from "./githubWriteCapability";
+import { computeCredentialIdentifier } from "../_core/auth";
 
 type GitHubResponse = { status: number; headers?: Headers; json(): Promise<unknown> };
 export type GitHubFixtureFetch = (input: string, init?: RequestInit) => Promise<GitHubResponse>;
@@ -23,7 +24,22 @@ function nonBlankString(value: unknown, message: string): string {
 }
 
 export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
-  constructor(private readonly token = ENV.githubScratchPrToken, private readonly fetchImpl: GitHubFixtureFetch = fetch, private readonly capabilityPolicy = new GitHubWriteCapabilityPolicy()) {}
+  private readonly capabilityPolicy: GitHubWriteCapabilityPolicy;
+
+  constructor(private readonly token = ENV.githubScratchPrToken, private readonly fetchImpl: GitHubFixtureFetch = fetch) {
+    if (!this.token) {
+      throw new Error("Fixture GitHub proof refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side.");
+    }
+    const expectedIdentifier = computeCredentialIdentifier(this.token);
+    if (!expectedIdentifier) {
+      throw new Error("Fixture GitHub proof refused: GITHUB_SCRATCH_PR_TOKEN could not be identified.");
+    }
+    const configuredCapabilities: readonly import("./githubWriteCapability").GitHubConfiguredWriteCapability[] = [
+      { repository: FIXTURE_PROOF_REPOSITORY, capability: "contents:write" },
+      { repository: FIXTURE_PROOF_REPOSITORY, capability: "pull_requests:write" },
+    ];
+    this.capabilityPolicy = new GitHubWriteCapabilityPolicy(expectedIdentifier, configuredCapabilities);
+  }
 
   private async request(operation: string, path: string, init: RequestInit = {}): Promise<unknown> {
     if (!this.token) throw new Error("Fixture GitHub proof refused: GITHUB_SCRATCH_PR_TOKEN is not configured server-side.");
@@ -97,7 +113,7 @@ export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
 
   async createBranch(input: { branchName: string; baseSha: string }) {
     if (!/^sentinelforge\/sf_[a-z0-9_-]{1,120}$/.test(input.branchName) || !/^[a-f0-9]{40}$/i.test(input.baseSha)) throw new Error("Fixture GitHub proof refused: branch request is outside the deterministic allowlist.");
-    this.capabilityPolicy.require(FIXTURE_PROOF_REPOSITORY, { capability: "contents:write", method: "POST", endpoint: "/git/refs" });
+    this.capabilityPolicy.verify({ repository: FIXTURE_PROOF_REPOSITORY, capability: "contents:write", method: "POST", endpoint: "/git/refs" }, this.token!);
     const body = asRecord(await this.request("branch creation", "/git/refs", { method: "POST", body: JSON.stringify({ ref: `refs/heads/${input.branchName}`, sha: input.baseSha }) }), "Fixture GitHub branch response was malformed.");
     const object = asRecord(body.object, "Fixture GitHub branch object was malformed.");
     return { sha: nonBlankString(object.sha, "Fixture GitHub branch SHA was missing.") };
@@ -105,7 +121,7 @@ export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
 
   async updateReleaseManifest(input: { branchName: string; contentSha: string; content: string }) {
     if (!/^sentinelforge\/sf_[a-z0-9_-]{1,120}$/.test(input.branchName) || !/^[a-f0-9]{40}$/i.test(input.contentSha)) throw new Error("Fixture GitHub proof refused: update request is outside the deterministic allowlist.");
-    this.capabilityPolicy.require(FIXTURE_PROOF_REPOSITORY, { capability: "contents:write", method: "PUT", endpoint: `/contents/${FIXTURE_PROOF_FILE}` });
+    this.capabilityPolicy.verify({ repository: FIXTURE_PROOF_REPOSITORY, capability: "contents:write", method: "PUT", endpoint: `/contents/${FIXTURE_PROOF_FILE}` }, this.token!);
     const current = await this.getReleaseManifest(FIXTURE_PROOF_BASE_BRANCH);
     if (current.sha !== input.contentSha || transformFixtureReleaseManifest(current.text) !== input.content) throw new Error("Fixture GitHub proof refused: update content is not the exact current main manifest transformation.");
     const body = asRecord(await this.request("release manifest update", `/contents/${FIXTURE_PROOF_FILE}`, { method: "PUT", body: JSON.stringify({ message: BRANCH_COMMIT_MESSAGE, content: Buffer.from(input.content, "utf8").toString("base64"), sha: input.contentSha, branch: input.branchName }) }), "Fixture GitHub commit response was malformed.");
@@ -115,7 +131,7 @@ export class GitHubFixtureWriteApi implements FixtureProofGitHubPort {
 
   async createPullRequest(input: { branchName: string }) {
     if (!/^sentinelforge\/sf_[a-z0-9_-]{1,120}$/.test(input.branchName)) throw new Error("Fixture GitHub proof refused: pull-request branch is outside the deterministic allowlist.");
-    this.capabilityPolicy.require(FIXTURE_PROOF_REPOSITORY, { capability: "pull_requests:write", method: "POST", endpoint: "/pulls" });
+    this.capabilityPolicy.verify({ repository: FIXTURE_PROOF_REPOSITORY, capability: "pull_requests:write", method: "POST", endpoint: "/pulls" }, this.token!);
     const body = asRecord(await this.request("pull request creation", "/pulls", { method: "POST", body: JSON.stringify({ title: PULL_REQUEST_TITLE, body: PULL_REQUEST_BODY, head: input.branchName, base: FIXTURE_PROOF_BASE_BRANCH, maintainer_can_modify: false }) }), "Fixture GitHub pull-request creation response was malformed.");
     return this.mapPullRequest(body);
   }

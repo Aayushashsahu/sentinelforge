@@ -50,6 +50,32 @@ export async function setMissionStatus(missionId: string, status: MissionStatus,
   await db.update(missions).set({ status, updatedAt: now(), ...updates }).where(eq(missions.id, missionId));
 }
 
+/**
+ * Atomically sets the mission status and appends an audit event in a single transaction.
+ * If either operation fails, the entire transaction is rolled back, preventing
+ * an inconsistent state where the status was updated but the audit event was lost.
+ */
+export async function setMissionStatusAndAudit(
+  missionId: string,
+  status: MissionStatus,
+  audit: { eventType: string; actor: string; result: string; payload?: unknown },
+  updates: Partial<Pick<Mission, "rootCause" | "repairSummary" | "patch">> = {},
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable.");
+  return db.transaction(async (tx) => {
+    const [mission] = await tx.select({ status: missions.status }).from(missions).where(eq(missions.id, missionId)).limit(1);
+    if (!mission) throw new Error("Mission was not found.");
+    assertAllowedMissionTransition(mission.status, status);
+    const ts = now();
+    await tx.update(missions).set({ status, updatedAt: ts, ...updates }).where(eq(missions.id, missionId));
+    const [latest] = await tx.select({ sequence: missionEvents.sequence }).from(missionEvents).where(eq(missionEvents.missionId, missionId)).orderBy(desc(missionEvents.sequence)).limit(1);
+    const event = createImmutableAuditEvent({ id: id("evt"), missionId, sequence: nextAuditSequence(latest ? [latest.sequence] : []), eventType: audit.eventType, actor: audit.actor, tool: null, correlationId: null, result: audit.result, payload: audit.payload === undefined ? null : JSON.stringify(audit.payload), evidenceRefs: "[]", createdAt: ts });
+    await tx.insert(missionEvents).values(event);
+    return event;
+  });
+}
+
 export async function setMissionPlanningArtifacts(missionId: string, updates: Pick<Partial<Mission>, "repairSummary" | "patch">) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable.");

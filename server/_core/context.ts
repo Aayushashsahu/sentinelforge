@@ -1,7 +1,14 @@
-import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+import type { CreateExpressContextOptions } from '@trpc/server/adapters/express';
+import type { OperatorAuth } from './auth';
+import { validateOperatorToken } from './auth';
 
-export type TrpcContext = Pick<CreateExpressContextOptions, "req" | "res">;
+export type TrpcContext = Pick<CreateExpressContextOptions, 'req' | 'res'> & {
+  operatorAuth: OperatorAuth;
+};
 
 export function createContext(opts: CreateExpressContextOptions): TrpcContext {
-  return { req: opts.req, res: opts.res };
+  return {
+    ...opts,
+    operatorAuth: validateOperatorToken(opts),
+  };
 }

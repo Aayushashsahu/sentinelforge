@@ -1,22 +1,17 @@
 /// <reference types="vitest/globals" />
 import { describe, expect, it, vi } from "vitest";
 import { GitHubFixtureWriteApi } from "./githubFixtureWrite";
-import { GitHubWriteCapabilityPolicy, type GitHubConfiguredWriteCapability } from "./githubWriteCapability";
 
 const token = "test-token";
 const sha = "a".repeat(40);
 const repository = "Aayushashsahu/sentinelforge-incident-fixture";
 
 function response(status: number, body: unknown, headers: Record<string, string> = {}) { return { status, headers: new Headers(headers), json: async () => body }; }
-function configured(...items: GitHubConfiguredWriteCapability[]) { return new GitHubWriteCapabilityPolicy(items); }
-function contentsCapability(repositoryName = repository): GitHubConfiguredWriteCapability { return { repository: repositoryName, capability: "contents:write" }; }
-function pullRequestCapability(repositoryName = repository): GitHubConfiguredWriteCapability { return { repository: repositoryName, capability: "pull_requests:write" }; }
 
 describe("server-only fixture GitHub write adapter", () => {
-  it("refuses every call when the server-only scratch token is absent", async () => {
+  it("refuses construction when the server-only scratch token is absent", () => {
     const fetchImpl = vi.fn();
-    const api = new GitHubFixtureWriteApi("", fetchImpl);
-    await expect(api.getRepository()).rejects.toThrow(/GITHUB_SCRATCH_PR_TOKEN/);
+    expect(() => new GitHubFixtureWriteApi("", fetchImpl)).toThrow(/GITHUB_SCRATCH_PR_TOKEN/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -34,7 +29,7 @@ describe("server-only fixture GitHub write adapter", () => {
       .mockResolvedValueOnce(response(200, { encoding: "base64", content: Buffer.from('{"version":"1.3.0"}').toString("base64"), sha }))
       .mockResolvedValueOnce(response(200, { commit: { sha } }))
       .mockResolvedValueOnce(response(201, { number: 3, html_url: `https://github.com/${repository}/pull/3`, state: "open", base: { ref: "main" }, head: { ref: "sentinelforge/sf_proof" }, auto_merge: null }));
-    const api = new GitHubFixtureWriteApi(token, fetchImpl, configured(contentsCapability(), pullRequestCapability()));
+    const api = new GitHubFixtureWriteApi(token, fetchImpl);
     await api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha });
     await api.updateReleaseManifest({ branchName: "sentinelforge/sf_proof", contentSha: sha, content: '{"version":"1.4.0"}' });
     await api.createPullRequest({ branchName: "sentinelforge/sf_proof" });
@@ -56,7 +51,7 @@ describe("server-only fixture GitHub write adapter", () => {
   it("captures only sanitized 403 authorization diagnostics for a failed branch create", async () => {
     const secret = "test-token-with-secret-value";
     const fetchImpl = vi.fn(async () => response(403, { message: `requires Contents write; token=${secret}; authorization=Bearer ${secret}`, errors: [{ code: "insufficient_permissions", value: secret }] }, { "x-accepted-github-permissions": "contents=write", "x-oauth-scopes": "repo" }));
-    const api = new GitHubFixtureWriteApi(secret, fetchImpl, configured(contentsCapability()));
+    const api = new GitHubFixtureWriteApi(secret, fetchImpl);
     await expect(api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha })).rejects.toMatchObject({ diagnostic: { httpStatus: 403, method: "POST", endpoint: "/git/refs", acceptedGithubPermissions: "contents=write", oauthScopes: "repo", githubErrorCode: "insufficient_permissions", classification: "TOKEN_SCOPE" } });
     try { await api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha }); } catch (error) {
       expect(JSON.stringify(error)).not.toContain(secret);
@@ -65,43 +60,8 @@ describe("server-only fixture GitHub write adapter", () => {
   });
 
   it("keeps a 403 without permission evidence classified as unknown", async () => {
-    const api = new GitHubFixtureWriteApi(token, vi.fn(async () => response(403, { message: "Forbidden" })), configured(contentsCapability()));
+    const api = new GitHubFixtureWriteApi(token, vi.fn(async () => response(403, { message: "Forbidden" })));
     await expect(api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha })).rejects.toMatchObject({ diagnostic: { classification: "UNKNOWN", acceptedGithubPermissions: null, oauthScopes: null } });
-  });
-
-  it("refuses missing contents-write configuration before branch creation without calling GitHub", async () => {
-    const fetchImpl = vi.fn();
-    const api = new GitHubFixtureWriteApi(token, fetchImpl, configured());
-    await expect(api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha })).rejects.toThrow(/MISSING_CONFIGURATION/);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("refuses missing configuration before branch creation without calling GitHub", async () => {
-    const fetchImpl = vi.fn();
-    const api = new GitHubFixtureWriteApi(token, fetchImpl);
-    await expect(api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha })).rejects.toThrow(/MISSING_CONFIGURATION/);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("refuses manifest update without contents-write configuration before reading or writing GitHub", async () => {
-    const fetchImpl = vi.fn();
-    const api = new GitHubFixtureWriteApi(token, fetchImpl, configured());
-    await expect(api.updateReleaseManifest({ branchName: "sentinelforge/sf_proof", contentSha: sha, content: '{"version":"1.4.0"}' })).rejects.toThrow(/MISSING_CONFIGURATION/);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("refuses missing pull-request-write configuration before PR creation without calling GitHub", async () => {
-    const fetchImpl = vi.fn();
-    const api = new GitHubFixtureWriteApi(token, fetchImpl, configured(contentsCapability()));
-    await expect(api.createPullRequest({ branchName: "sentinelforge/sf_proof" })).rejects.toThrow(/MISSING_CONFIGURATION/);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("does not accept repository-bound evidence for a different repository", async () => {
-    const fetchImpl = vi.fn();
-    const api = new GitHubFixtureWriteApi(token, fetchImpl, configured(contentsCapability("Aayushashsahu/other")));
-    await expect(api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha })).rejects.toThrow(/REPOSITORY_MISMATCH/);
-    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("uses the explicit constructor credential rather than an ambient GitHub token", async () => {
@@ -109,7 +69,7 @@ describe("server-only fixture GitHub write adapter", () => {
     process.env.GH_TOKEN = "ambient-token-must-not-be-used";
     try {
       const fetchImpl = vi.fn(async () => response(201, { object: { sha } }));
-      const api = new GitHubFixtureWriteApi(token, fetchImpl, configured(contentsCapability()));
+      const api = new GitHubFixtureWriteApi(token, fetchImpl);
       await api.createBranch({ branchName: "sentinelforge/sf_proof", baseSha: sha });
       expect(fetchImpl).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ headers: expect.objectContaining({ authorization: `Bearer ${token}` }) }));
     } finally {
